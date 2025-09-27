@@ -54,3 +54,23 @@ pychopper -m edlib \
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147154.fastq.gz" \ #Dirección de la muestra a tratar
   "results/sample1_oriented_trimmed.fastq" 
 ```
+Sin embargo, `Chopper` es una herramienta que filtra según la longitud, pero solo permite considerar largo mínimo. Por lo que, se usó de forma complementaria la herramienta `Fitlong`, pues esta permite establecer el rango ideal de 1300pb a 17pb. 
+Para
+```
+mkdir -p results && \
+filtlong --min_length 1300 --max_length 1700 --keep_percent 90 \
+  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147165.fastq.gz" \
+| pychopper -m edlib \
+  -b "/home/fenrir/resources/primers_stesen.fasta" \
+  -c "/home/fenrir/resources/primers_stesen.txt" \
+  -Q 9 -z 1300 -t 8 \
+  -Y 0 -q 0.52 \
+  -r "results/SRR26147165_report.pdf" \
+  -S "results/SRR26147165_stats.tsv" \
+  -A "results/SRR26147165_scores.tsv" \
+  -K "results/SRR26147165_qc_fail.fastq" \
+  -l "results/SRR26147165_len_fail.fastq" \
+  -u "results/SRR26147165_unclassified.fastq" \
+  -w "results/SRR26147165_rescued.fastq" \
+  /dev/stdin "results/SRR26147165_oriented_trimmed.fastq"
+```
