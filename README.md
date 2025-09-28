@@ -47,7 +47,7 @@ mkdir -p resultados
 pychopper -m edlib \ #Seleccionar el método
   -b resources/primers_stesen.fasta \ #Identifica la ruta y el archivo donde está la secuencia de los primers
   -c resources/primer_stesen.txt \ #Identica la ruta y el archivo con la orientación de los mismos
-  -Q 9 -z 1300 -t 4 \ #`-Q 9` indica que es QScore mínimo es 9, `-z 1200` que la longitud mínima es de 1200pb, `-t` indica la cantidad de núcleos de la CPU que usará `PyChopper` en simultáneo.
+  -Q 9 -z 1200 -t 4 \ #`-Q 9` QScore mínimo, `-z 1200` longitud mínima en pb, `-t` cantidad de núcleos a usar
   -r results/sample1_report.pdf \ #Reporte gráfico de los resultados en formato PDF
   -u results/sample1_unclassified.fastq \ #fastq de las lecturas que se excluyeron
   -w results/sample1_rescued.fastq \ #fastq de las lecturas recuperadas
