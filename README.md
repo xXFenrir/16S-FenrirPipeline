@@ -124,3 +124,147 @@ emu abundance \
   --output-basename SRR26147165 \
   results/SRR26147165/SRR26147165_oriented_trimmed.fastq
 ```
+Para todas las carpetas
+```
+set -euo pipefail
+
+DB="/home/fenrir/emu_db"        # Base de EMU
+THREADS=8
+OUTDIR="results_emu"
+mkdir -p "$OUTDIR"
+
+echo "=== Iniciando pipeline completo ==="
+
+# --- EMU para todas las SRR filtradas ---
+found=0
+for fq in results/*/SRR*_oriented_trimmed*.fastq*; do
+  [ -e "$fq" ] || continue
+  found=1
+  
+  # Detectar el SRR
+  sample="$(basename "$fq" | grep -o 'SRR[0-9]\{6,\}' || true)"
+  if [ -z "$sample" ]; then
+    sample="$(basename "$(dirname "$fq")")"
+  fi
+
+  # Crear subcarpeta para la muestra
+  sample_dir="$OUTDIR/$sample"
+  mkdir -p "$sample_dir"
+
+  echo ">>> Procesando muestra: $sample"
+  echo "    FASTQ: $fq"
+  echo "    Carpeta de salida: $sample_dir"
+
+  # Ejecutar EMU
+  emu abundance \
+    --db "$DB" \
+    --threads "$THREADS" \
+    --output-dir "$sample_dir" \
+    --output-basename "$sample" \
+    --keep-read-assignments --keep-counts \
+    "$fq"
+done
+
+if [ "$found" -eq 0 ]; then
+  echo "No se encontraron archivos FASTQ finales en results/*/SRR*_oriented_trimmed*.fastq*"
+  exit 0
+fi
+
+# --- Postproceso: solo taxonomía (tabla + 2 grafos) ---
+python - <<'PY'
+import os
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+try:
+    from networkx.drawing.nx_agraph import graphviz_layout
+    HAS_DOT = True
+except Exception:
+    HAS_DOT = False
+
+BASE_DIR = "results_emu"
+tax_cols = ["superkingdom","phylum","class","order","family","genus","species"]
+
+# Buscar TSV en todas las subcarpetas
+for root, _, files in os.walk(BASE_DIR):
+    for f in files:
+        if not f.endswith(".tsv"):
+            continue
+        if "rel-abundance" not in f:
+            continue
+        
+        tsv_path = os.path.join(root, f)
+        sample = os.path.splitext(f)[0]
+        print(f"\nPostproceso para {sample}")
+        
+        try:
+            df = pd.read_csv(tsv_path, sep="\t")
+        except Exception as e:
+            print(f"  ⚠ Error leyendo {tsv_path}: {e}")
+            continue
+
+        # Verificar columnas taxonómicas
+        col_low = {c.lower(): c for c in df.columns}
+        present = {c: col_low.get(c) for c in tax_cols}
+        if sum(v is not None for v in present.values()) < 3:
+            print(f"  ⚠ {tsv_path} no parece tabla taxonómica.")
+            continue
+
+        # Tabla solo taxonomía
+        cols_src = []
+        for c in tax_cols:
+            src = present[c]
+            if src is None:
+                df[c] = "Unassigned"
+                cols_src.append(c)
+            else:
+                cols_src.append(src)
+
+        df_tax = df[cols_src].copy()
+        df_tax.columns = tax_cols
+        df_tax = df_tax.fillna("Unassigned")
+
+        out_csv = os.path.join(root, f"{sample}_taxonomy_only.csv")
+        df_tax.to_csv(out_csv, index=False)
+        print(f"  ✔ Tabla taxonómica: {out_csv}")
+
+        # Grafo
+        G = nx.DiGraph()
+        for _, row in df_tax.iterrows():
+            path = [row[c] for c in tax_cols if row[c] != "Unassigned"]
+            for i in range(len(path)-1):
+                G.add_edge(path[i], path[i+1])
+
+        # Grafo spring
+        plt.figure(figsize=(14, 10), constrained_layout=True)
+        pos_spring = nx.spring_layout(G, k=0.8, seed=42)
+        nx.draw(G, pos_spring, with_labels=True,
+                node_size=1200, font_size=7,
+                node_color="lightblue", edge_color="gray")
+        plt.title(f"EMU — Jerarquía taxonómica (spring) — {sample}")
+        out_png1 = os.path.join(root, f"{sample}_taxonomy_graph_spring.png")
+        plt.savefig(out_png1, dpi=150)
+        plt.close()
+        print(f"  ✔ Grafo (spring): {out_png1}")
+
+        # Grafo jerárquico (Graphviz)
+        if HAS_DOT:
+            try:
+                plt.figure(figsize=(12, 14), constrained_layout=True)
+                pos_dot = graphviz_layout(G, prog="dot")
+                nx.draw(G, pos_dot, with_labels=True,
+                        node_size=1200, font_size=7,
+                        node_color="lightblue", edge_color="gray")
+                plt.title(f"EMU — Jerarquía taxonómica (jerárquico) — {sample}")
+                out_png2 = os.path.join(root, f"{sample}_taxonomy_graph_hier.png")
+                plt.savefig(out_png2, dpi=150)
+                plt.close()
+                print(f"  ✔ Grafo (jerárquico): {out_png2}")
+            except Exception as e:
+                print(f"  ⚠ Error con Graphviz para {sample}: {e}")
+        else:
+            print("  ⚠ Graphviz no disponible, omitiendo grafo jerárquico.")
+PY
+```
+
+# Métricas de diversidad
