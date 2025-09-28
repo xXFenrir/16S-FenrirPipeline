@@ -77,8 +77,48 @@ filtlong --min_length 1300 --max_length 1700 --keep_percent 90 \ #Condiciones de
   -w "results/SRR26147165_rescued.fastq" \ #Lecturas rescatadas
   /dev/stdin "results/SRR26147165_oriented_trimmed.fastq" #Obtiene el archivo que saca Fitlong y lo reemplaza con las muestras filtradas y orientadas
 ```
-
+```
+mkdir -p results && \
+filtlong --min_length 1300 --max_length 1700 \
+  "$IN" \
+| pychopper -m edlib \
+    -b "$PRIMERS" -c "$PCONFIG" \
+    -Q 9 -z 1300 -t 8 -Y 0 -q 0.52 \
+    -r "results/${SAMPLE}_report.pdf" \
+    -S "results/${SAMPLE}_stats.tsv" \
+    -A "results/${SAMPLE}_scores.tsv" \
+    -K "results/${SAMPLE}_qc_fail.fastq" \
+    -l "results/${SAMPLE}_len_fail.fastq" \
+    -u "results/${SAMPLE}_unclassified.fastq" \
+    -w "results/${SAMPLE}_rescued.fastq" \
+    /dev/stdin "results/${SAMPLE}_oriented_trimmed.fastq"
+```
 # Taxonomía
+EMU
+```
+conda create -n emu -c conda-forge -c bioconda emu
+```
+Librerías de EMU
+```
+# Definir dónde guardar la base
+export EMU_DATABASE_DIR="/home/fenrir/emu_db"
+mkdir -p "$EMU_DATABASE_DIR"
+cd "$EMU_DATABASE_DIR"
+
+# Instalar cliente para descargar desde OSF
+conda install -c conda-forge osfclient
+
+# Descargar la base de datos
+osf -p 56uf7 fetch osfstorage/emu-prebuilt/emu.tar
+
+# Extraer contenido
+tar -xvf emu.tar
+```
+Graficas
+```
+conda install -c conda-forge graphviz pygraphviz
+```
+exd
 ```
 python - <<'PY'
 import pandas as pd
