@@ -20,7 +20,7 @@ Para realizar este paso, se encontraron que algunos estudios usaron herramientas
 # Denoising y Trimming
 Aquí se busca depurar las muestras y reducir el ruido presente en las secuencias del gen 16S. Una de las herramientas encontradas en bibliografía para la limpieza de las muestras es `Chopper`. Para proceder con la instalación, existen dos métodos por línea de comando desde la terminal de Linux.
 
-Desde [GutHub](https://github.com/epi2me-labs/pychopper):
+Desde [GitHub](https://github.com/epi2me-labs/pychopper):
 ```
 conda install -c nanoporetech -c conda-forge -c bioconda "nanoporetech::pychopper"
 ```
@@ -31,7 +31,7 @@ conda install bioconda::pychopper
 ```
 Posteriormente, se debe revisar el comando base para usar `Chopper`, este puede verse con:
 ```
-chopper -h
+pychopper -h
 ```
 Mostrando así la composición básica del comando.
 ```
