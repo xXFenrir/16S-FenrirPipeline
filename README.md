@@ -44,7 +44,7 @@ En este caso se debe crear una carpeta y su respectiva ruta, para que allí sean
 ```
 mkdir -p resultados
 
-pychopper -m edlib \
+pychopper -m edlib \ #Seleccionar el método
   -b resources/primers_stesen.fasta \ #Identifica la ruta y el archivo donde está la secuencia de los primers
   -c resources/primer_stesen.txt \ #Identica la ruta y el archivo con la orientación de los mismos
   -Q 9 -z 1300 -t 4 \ #`-Q 9` indica que es QScore mínimo es 9, `-z 1200` que la longitud mínima es de 1200pb, `-t` indica la cantidad de núcleos de la CPU que usará `PyChopper` en simultáneo.
