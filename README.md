@@ -308,3 +308,367 @@ PY
 ```
 
 # Métricas de diversidad
+
+Conflictos con paquetes de R y Bioconductor.
+
+```
+cat > metricasd.py <<'PY'
+#!/usr/bin/env python3
+import os, sys, csv, math, argparse, gzip
+from collections import defaultdict, OrderedDict
+
+TAX_COLS = ["superkingdom","phylum","class","order","family","genus","species"]
+
+# ---------- Utilidades de E/S ----------
+def open_any(path):
+    return gzip.open(path, "rt") if path.endswith(".gz") else open(path, "r")
+
+def read_tsv(path):
+    with open_any(path) as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        rows = [{(k.strip().lower() if k else k): (v.strip() if isinstance(v,str) else v)
+                 for k,v in r.items()} for r in reader]
+    return rows
+
+def write_csv(path, header, rows):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(header); w.writerows(rows)
+
+# ---------- Lectura EMU ----------
+def feature_id_from_row(r):
+    sp = r.get("species","")
+    if sp and sp.lower() != "unassigned":
+        return sp
+    parts = [r.get(c,"") for c in TAX_COLS]
+    parts = [p for p in parts if p and p.lower()!="unassigned"]
+    return ";".join(parts) if parts else "Unassigned"
+
+def load_sample(sample_dir):
+    rel = None; cnt = None
+    for fn in os.listdir(sample_dir):
+        if fn.endswith("rel-abundance.tsv"): rel = os.path.join(sample_dir, fn)
+        elif fn.endswith("counts.tsv"):      cnt = os.path.join(sample_dir, fn)
+    if not rel: return None
+
+    rel_rows = read_tsv(rel)
+    counts_by_key = {}
+    if cnt:
+        cnt_rows = read_tsv(cnt)
+        def key_from_row(r): return "|".join([r.get(c,"") for c in TAX_COLS])
+        counts_by_key = { key_from_row(r): int((r.get("count","0") or "0")) for r in cnt_rows }
+
+    sample_id = os.path.basename(sample_dir)
+    rel_map, count_map = {}, {}
+
+    for r in rel_rows:
+        fid = feature_id_from_row(r)
+        try: abu = float(r.get("abundance","0") or 0.0)
+        except: abu = 0.0
+        rel_map[fid] = rel_map.get(fid, 0.0) + abu
+        if counts_by_key:
+            key = "|".join([r.get(c,"") for c in TAX_COLS])
+            cval = counts_by_key.get(key, 0)
+            count_map[fid] = count_map.get(fid, 0) + cval
+
+    return sample_id, rel_map, (count_map if count_map else None)
+
+def union_features(samples):
+    feats = set()
+    for _, rel_map, _ in samples: feats.update(rel_map.keys())
+    for _, _, cnt_map in samples:
+        if cnt_map: feats.update(cnt_map.keys())
+    return sorted(feats)
+
+# ---------- Métricas ----------
+def bray_curtis(a, b):
+    num = 0.0; den = 0.0
+    for x,y in zip(a,b): num += abs(x-y); den += (x+y)
+    return (num/den) if den>0 else 0.0
+
+def jaccard_binary(a, b, eps=0.0):
+    A = sum(1 for x in a if x>eps); B = sum(1 for y in b if y>eps)
+    I = sum(1 for x,y in zip(a,b) if x>eps and y>eps)
+    U = A + B - I
+    return (1 - I / U) if U>0 else 0.0
+
+def hellinger_euclidean(a, b):
+    s = 0.0
+    for x,y in zip(a,b):
+        dx = math.sqrt(x) - math.sqrt(y); s += dx*dx
+    return math.sqrt(s)
+
+def shannon(p):
+    s = 0.0
+    for x in p:
+        if x>0: s -= x*math.log(x)
+    return s
+
+def simpson_1D(p): return 1.0 - sum(x*x for x in p)
+def pielou_evenness(H, S): return (H / math.log(S)) if S>1 and H>0 else 0.0
+def chao1(counts):
+    f1 = sum(1 for c in counts if c==1); f2 = sum(1 for c in counts if c==2)
+    S_obs = sum(1 for c in counts if c>0)
+    if S_obs==0: return 0.0
+    return S_obs + (f1*f1)/(2.0*f2) if f2>0 else S_obs + (f1*(f1-1))/2.0
+
+# ---------- Visual (SVG) ----------
+def color_palette(n):
+    cols=[]; 
+    for i in range(n): cols.append(hsl_to_rgb((i*1.0/n), 0.6, 0.55))
+    return cols
+def hsl_to_rgb(h,s,l):
+    def hue2rgb(p,q,t):
+        if t<0: t+=1
+        if t>1: t-=1
+        if t<1/6: return p+(q-p)*6*t
+        if t<1/2: return q
+        if t<2/3: return p+(q-p)*(2/3 - t)*6
+        return p
+    q = l*(1+s) if l<0.5 else l+s - l*s; p = 2*l - q
+    r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3)
+    return "#%02x%02x%02x" % (int(r*255), int(g*255), int(b*255))
+
+def svg_bar_chart(title, labels, values, width=900, height=300, margin=50):
+    maxv = max(values) if values else 1.0
+    bar_w = (width-2*margin) / max(1,len(values))
+    svg = [f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">']
+    svg.append(f'<text x="{margin}" y="25" font-size="16" font-family="sans-serif">{title}</text>')
+    svg.append(f'<line x1="{margin}" y1="{height-margin}" x2="{width-margin}" y2="{height-margin}" stroke="#333"/>')
+    for i,(lab,val) in enumerate(zip(labels,values)):
+        h = 0 if maxv==0 else (val/maxv)*(height-2*margin)
+        x = margin + i*bar_w + 4; y = height - margin - h
+        svg.append(f'<rect x="{x}" y="{y}" width="{bar_w-8}" height="{h}" fill="#6a93d6"/>')
+        svg.append(f'<text x="{x+bar_w/2-8}" y="{height-margin+14}" font-size="10" font-family="sans-serif" transform="rotate(45 {x+bar_w/2-8},{height-margin+14})">{lab}</text>')
+    for k in range(5):
+        y = height - margin - (k/4)*(height-2*margin); val = (k/4)*maxv
+        svg.append(f'<line x1="{margin-5}" y1="{y}" x2="{width-margin}" y2="{y}" stroke="#eee"/>')
+        svg.append(f'<text x="10" y="{y+4}" font-size="10" font-family="sans-serif">{val:.2f}</text>')
+    svg.append('</svg>'); return "\n".join(svg)
+
+def svg_heatmap(title, samples, M, width=900, height=450, margin=90):
+    n = len(samples); cell = (width-2*margin)/max(1,n)
+    svg = [f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">']
+    svg.append(f'<text x="{margin}" y="25" font-size="16" font-family="sans-serif">{title}</text>')
+    for i in range(n):
+        for j in range(n):
+            v = M[i][j]; c = int(255 - min(max(v,0.0),1.0)*180); col = f"rgb({c},{c+20},{255})"
+            x = margin + j*cell; y = margin + i*cell
+            svg.append(f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" fill="{col}" stroke="white" stroke-width="0.5"><title>{samples[i]} vs {samples[j]}: {v:.3f}</title></rect>')
+    for i,s in enumerate(samples):
+        x = margin + i*cell + cell/2
+        svg.append(f'<text x="{x}" y="{margin-10}" font-size="10" font-family="sans-serif" text-anchor="end" transform="rotate(-45 {x},{margin-10})">{s}</text>')
+        svg.append(f'<text x="{margin-10}" y="{margin + i*cell + cell/2}" font-size="10" font-family="sans-serif" text-anchor="end">{s}</text>')
+    svg.append('</svg>'); return "\n".join(svg)
+
+def svg_stacked_bars(title, samples, series_dict, width=900, height=350, margin=60):
+    order = list(series_dict.keys()); palette = color_palette(len(order))
+    bar_w = (width-2*margin) / max(1,len(samples))
+    svg = [f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">']
+    svg.append(f'<text x="{margin}" y="25" font-size="16" font-family="sans-serif">{title}</text>')
+    svg.append(f'<line x1="{margin}" y1="{height-margin}" x2="{width-margin}" y2="{height-margin}" stroke="#333"/>')
+    for i, sid in enumerate(samples):
+        acc = 0.0; x = margin + i*bar_w + 4
+        for k, name in enumerate(order):
+            val = series_dict[name][i]; h = val*(height-2*margin); y = height - margin - acc - h
+            svg.append(f'<rect x="{x}" y="{y}" width="{bar_w-8}" height="{h}" fill="{palette[k]}"><title>{name}: {val:.3f}</title></rect>')
+            acc += h
+        svg.append(f'<text x="{x+bar_w/2-8}" y="{height-margin+14}" font-size="10" font-family="sans-serif" transform="rotate(45 {x+bar_w/2-8},{height-margin+14})">{sid}</text>')
+    lx, ly = width - margin - 220, 40
+    for k, name in enumerate(order[:18]):
+        svg.append(f'<rect x="{lx}" y="{ly + 18*k}" width="12" height="12" fill="{palette[k]}"/>')
+        svg.append(f'<text x="{lx+18}" y="{ly + 18*k + 10}" font-size="11" font-family="sans-serif">{name}</text>')
+    svg.append('</svg>'); return "\n".join(svg)
+
+# ---------- Composición por rank (desde EMU) ----------
+def value_for_rank(r, rank):
+    rank = rank.lower()
+    if rank in ("genus","family","species"):
+        val = r.get(rank,"") or r.get(rank.capitalize(),"")
+        if val: return val
+    # heurísticas de respaldo
+    if rank == "genus":
+        sp = r.get("species","")
+        if sp: return sp.strip().split()[0]
+        parts = [r.get(c,"") for c in TAX_COLS]
+        parts = [p for p in parts if p]
+        if len(parts)>=6 and parts[5]: return parts[5]
+        return "Unassigned"
+    if rank == "family":
+        parts = [r.get(c,"") for c in TAX_COLS]
+        parts = [p for p in parts if p]
+        if len(parts)>=5 and parts[4]: return parts[4]
+        return "Unassigned"
+    if rank == "species":
+        sp = r.get("species","")
+        if sp: return sp
+        # si no hay species, intenta genus + " sp."
+        g = value_for_rank(r, "genus")
+        return f"{g} sp." if g else "Unassigned"
+    return "Unassigned"
+
+def collect_rank_matrix(emu_dir, rank):
+    sample_dirs = sorted([os.path.join(emu_dir,d) for d in os.listdir(emu_dir)
+                          if os.path.isdir(os.path.join(emu_dir, d))])
+    samples = []; per_sample=[]
+    for d in sample_dirs:
+        rel = None
+        for fn in os.listdir(d):
+            if fn.endswith("rel-abundance.tsv"): rel = os.path.join(d, fn); break
+        if not rel: continue
+        rows = read_tsv(rel); r_map = defaultdict(float)
+        for r in rows:
+            try: abu = float(r.get("abundance","0") or 0.0)
+            except: abu = 0.0
+            key = value_for_rank(r, rank)
+            r_map[key] += abu
+        s = sum(r_map.values())
+        if s>0:
+            for k in list(r_map.keys()): r_map[k] = r_map[k]/s
+        samples.append(os.path.basename(d)); per_sample.append(r_map)
+    all_keys = sorted(set().union(*[set(m.keys()) for m in per_sample])) if per_sample else []
+    rank_abund = {k: [per_sample[j].get(k,0.0) for j in range(len(samples))] for k in all_keys}
+    return samples, rank_abund
+
+# ---------- Pipeline principal ----------
+def main():
+    ap = argparse.ArgumentParser(description="Abundancia, alfa, beta + reporte HTML (sin R)")
+    ap.add_argument("--emu-dir", default="results_emu", help="Carpeta con subcarpetas por muestra (EMU)")
+    ap.add_argument("--out", default="mp_outputs", help="Carpeta de salida")
+    ap.add_argument("--top", type=int, default=10, help="Top N categorías para barras apiladas")
+    ap.add_argument("--rank", choices=["species","genus","family"], default="species",
+                    help="Nivel taxonómico para composición apilada (default: species)")
+    args = ap.parse_args()
+
+    if not os.path.isdir(args.emu_dir):
+        sys.stderr.write("No existe la carpeta %s\n" % args.emu_dir); sys.exit(1)
+
+    # --- Cargar muestras de EMU ---
+    sample_dirs = sorted([os.path.join(args.emu_dir, d) for d in os.listdir(args.emu_dir)
+                          if os.path.isdir(os.path.join(args.emu_dir, d))])
+    samples = [load_sample(d) for d in sample_dirs]
+    samples = [s for s in samples if s]
+    if not samples:
+        sys.stderr.write("No se encontraron rel-abundance.tsv en %s\n" % args.emu_dir); sys.exit(1)
+
+    sample_ids = [s[0] for s in samples]
+    feats = union_features(samples)
+
+    # --- Matrices de abundancia relativa y (si hay) conteos ---
+    rel_mat, cnt_mat = [], []
+    have_counts = all(s[2] is not None for s in samples)
+    for fid in feats:
+        row_rel, row_cnt = [], []
+        for _, rel_map, cnt_map in samples:
+            row_rel.append(rel_map.get(fid, 0.0))
+            if have_counts: row_cnt.append(cnt_map.get(fid, 0))
+        rel_mat.append(row_rel)
+        if have_counts: cnt_mat.append(row_cnt)
+
+    # Normaliza columnas a suma 1
+    col_sums = [0.0]*len(sample_ids)
+    for row in rel_mat:
+        for j, x in enumerate(row): col_sums[j] += x
+    for j, s in enumerate(col_sums):
+        if s>0:
+            for i in range(len(rel_mat)): rel_mat[i][j] = rel_mat[i][j] / s
+
+    # --- Exporta abundancias por feature ---
+    rows = [[fid] + ["%.10f" % rel_mat[i][j] for j in range(len(sample_ids))]
+            for i, fid in enumerate(feats)]
+    write_csv(os.path.join(args.out, "abundance_relative_by_feature.csv"),
+              ["feature_id"] + sample_ids, rows)
+
+    # --- Alfa-diversidad ---
+    alpha_rows = []
+    for j, sid in enumerate(sample_ids):
+        p = [rel_mat[i][j] for i in range(len(feats))]
+        S_obs = sum(1 for x in p if x>0)
+        H = shannon(p); sim1D = simpson_1D(p); J = pielou_evenness(H, S_obs)
+        ch1 = ""
+        if have_counts:
+            counts = [cnt_mat[i][j] for i in range(len(feats))]
+            ch1 = "%.6f" % chao1(counts)
+        alpha_rows.append([sid, str(S_obs), "%.6f" % H, "%.6f" % sim1D, "%.6f" % J, ch1])
+    write_csv(os.path.join(args.out, "alpha_diversity_metrics.csv"),
+              ["sample_id","Observed","Shannon","Simpson_1D","Pielou","Chao1"], alpha_rows)
+
+    # --- Distancias (beta) ---
+    cols_rel = [[rel_mat[i][j] for i in range(len(feats))] for j in range(len(sample_ids))]
+    def matrix_from(dist_fn):
+        return [[dist_fn(cols_rel[a], cols_rel[b]) for b in range(len(sample_ids))]
+                for a in range(len(sample_ids))]
+    M_bray = matrix_from(bray_curtis)
+    M_jacc = matrix_from(jaccard_binary)
+    M_hell = matrix_from(hellinger_euclidean)
+    write_csv(os.path.join(args.out, "beta_distance_bray.csv"), [""]+sample_ids,
+              [[sample_ids[i]]+["%.6f"%v for v in row] for i,row in enumerate(M_bray)])
+    write_csv(os.path.join(args.out, "beta_distance_jaccard.csv"), [""]+sample_ids,
+              [[sample_ids[i]]+["%.6f"%v for v in row] for i,row in enumerate(M_jacc)])
+    write_csv(os.path.join(args.out, "beta_distance_hellinger_euclidean.csv"), [""]+sample_ids,
+              [[sample_ids[i]]+["%.6f"%v for v in row] for i,row in enumerate(M_hell)])
+
+    # --- Composición por rank solicitado y HTML ---
+    comp_samples, rank_abund = collect_rank_matrix(args.emu_dir, args.rank)
+    means = [(k, sum(v)/max(1,len(v))) for k,v in rank_abund.items()]
+    means.sort(key=lambda x: x[1], reverse=True)
+    top = [k for k,_ in means[:args.top]]
+    series = OrderedDict((k, rank_abund[k]) for k in top)
+    other = [0.0]*len(comp_samples)
+    for k,vals in rank_abund.items():
+        if k in series: continue
+        for i,v in enumerate(vals): other[i]+=v
+    series["Other"] = other
+
+    # SVGs
+    shannon_vals = [float(x[2]) for x in alpha_rows]
+    observed_vals = [float(x[1]) for x in alpha_rows]
+    svg1 = svg_bar_chart("Alpha — Shannon", sample_ids, shannon_vals)
+    svg2 = svg_bar_chart("Alpha — Observed (riqueza)", sample_ids, observed_vals)
+    svg3 = svg_heatmap("Beta — Bray–Curtis (heatmap)", sample_ids, M_bray)
+    title_rank = {"species":"especie","genus":"género","family":"familia"}[args.rank]
+    svg4 = svg_stacked_bars(f"Abundancia relativa por {title_rank} (Top {args.top} + Other)", comp_samples, series)
+
+    html = f"""<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<title>Informe Microbiota (sin R)</title>
+<style>
+ body{{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;margin:20px;background:#fafafa;color:#222}}
+ .card{{background:#fff;border:1px solid #eee;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.04);padding:16px;margin:16px auto;max-width:980px}}
+ h2{{margin:8px 0 12px 0}}
+ .note{{font-size:13px;color:#666}}
+ code{{background:#f2f2f2;padding:2px 6px;border-radius:6px}}
+</style>
+</head><body>
+<div class="card"><h2>Alpha diversidad</h2><div>{svg1}</div><div style="height:12px"></div><div>{svg2}</div>
+<p class="note">Las barras están escaladas al máximo observado.</p></div>
+<div class="card"><h2>Beta diversidad</h2><div>{svg3}</div>
+<p class="note">Escala 0→1 (menor→mayor distancia).</p></div>
+<div class="card"><h2>Composición ({title_rank})</h2><div>{svg4}</div>
+<p class="note">Calculado desde *_rel-abundance.tsv de EMU; columnas normalizadas por muestra.</p></div>
+<div class="card"><h2>Archivos</h2>
+<ul>
+<li><code>{os.path.abspath(os.path.join(args.out, "abundance_relative_by_feature.csv"))}</code></li>
+<li><code>{os.path.abspath(os.path.join(args.out, "alpha_diversity_metrics.csv"))}</code></li>
+<li><code>{os.path.abspath(os.path.join(args.out, "beta_distance_bray.csv"))}</code></li>
+<li><code>{os.path.abspath(os.path.join(args.out, "beta_distance_jaccard.csv"))}</code></li>
+<li><code>{os.path.abspath(os.path.join(args.out, "beta_distance_hellinger_euclidean.csv"))}</code></li>
+</ul></div>
+</body></html>"""
+    os.makedirs(args.out, exist_ok=True)
+    out_html = os.path.join(args.out, "report.html")
+    with open(out_html, "w", encoding="utf-8") as f: f.write(html)
+
+    print("Metricas y reporte generados en:", os.path.abspath(args.out))
+    print("Abra:", out_html)
+
+if __name__ == "__main__":
+    main()
+PY
+```
+```
+chmod +x metricasd.py
+./metricasd.py --emu-dir results_emu --out mp_outputs --rank species --top 12
+```
