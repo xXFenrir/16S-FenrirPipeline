@@ -18,7 +18,13 @@ Para usar esta herramienta es necesario hacer la instalación de la misma para e
 Para realizar este paso, se encontraron que algunos estudios usaron herramientas especializadas como `Porechop`, sin embargo, se decidió usar `Dorado` porque esta herramienta es la recomendada por ONT.
 
 # Denoising y Trimming
-Aquí se busca depurar las muestras y reducir el ruido presente en las secuencias del gen 16S. Una de las herramientas encontradas en bibliografía para la limpieza de las muestras es `Chopper`. Para proceder con la instalación, existen dos métodos por línea de comando desde la terminal de Linux.
+
+Es uno de los pasos más importantes en un análisis bioinformático de datos de secuenciación 16S rRNA es la depuración de lecturas crudas. Pues el objetivo aquí es mejorar la calidad de los datos y asegurar que únicamente las lecturas confiables y relevantes pasen a la etapa de taxonomía. En este caso se quiere:
+
+- Filtrar lecturas por longitud y calidad, eliminando aquellas demasiado cortas, largas o de baja calidad que puedan corresponder a artefactos de secuenciación o fragmentos incompletos.
+- Orientar y recortar las lecturas basándonos en la ubicación de los primers, asegurando que todas las secuencias tengan la misma dirección y contenido correcto.
+
+Una de las herramientas encontradas en bibliografía para la limpieza de las muestras es `Pychopper`. Para proceder con la instalación, existen dos métodos por línea de comando desde la terminal de Linux.
 
 Desde [GitHub](https://github.com/epi2me-labs/pychopper):
 ```
@@ -29,32 +35,37 @@ Desde [Anaconda](https://anaconda.org/bioconda/pychopper):
 ```
 conda install bioconda::pychopper 
 ```
-Posteriormente, se debe revisar el comando base para usar `Chopper`, este puede verse con:
-```
-pychopper -h
-```
-Mostrando así la composición básica del comando.
-```
-usage: pychopper [-h] [-b primers] [-g phmm_file] [-c config_file] [-k {PCS109,PCS110,PCS111,PCS114,LSK114,PCB111,PCB114}] [-q cutoff] [-Q min_qual] [-z min_len] [-r report_pdf]
-                 [-u unclass_output] [-l len_fail_output] [-w rescue_output] [-S stats_output] [-K qc_fail_output] [-Y autotune_nr] [-L autotune_samples] [-A scores_output]
-                 [-m method] [-x rescue] [-p] [-t threads] [-B batch_size] [-D read stats] [-y] [-U]
-                 input_fastx [output_fastx]
-```
-En este caso se debe crear una carpeta y su respectiva ruta, para que allí sean descargados los resultados después de la limpieza de la muestra. Adicionalmente, que se tenga una archivo `.fasta` con los primers y otro `.txt` con la orientación de los mismos. De esta manera, ya es posible hacer uso del comando base de `Pychopper`.
+Pychopper identifica los primers en cada lectura, determina su orientación y recorta el amplicón para dejar únicamente la región de interés. Además, genera reportes que muestran cuántas lecturas fueron clasificadas, rechazadas o rescatadas. Adicionalmente, es una herramienta que permite filtrar aquellas lecturas que poseen un QScore por debajo de 9. 
+
+Sin embargo, es necesario crear un archivo `.fasta` con la secuencia de los primers y otro `.txt` con la orientación de los mismos. De esta manera, ya es posible hacer uso del comando base de `Pychopper`.
 ```
 mkdir -p resultados
 
 pychopper -m edlib \ #Seleccionar el método
   -b resources/primers_stesen.fasta \ #Identifica la ruta y el archivo donde está la secuencia de los primers
   -c resources/primer_stesen.txt \ #Identica la ruta y el archivo con la orientación de los mismos
-  -Q 9 -z 1200 -t 4 \ #`-Q 9` QScore mínimo, `-z 1200` longitud mínima en pb, `-t` cantidad de núcleos a usar
+  -Q 9 -z 1300 -t 8 \ #`-Q 9` QScore mínimo, `-z 1200` longitud mínima en pb, `-t` cantidad de núcleos a usar
   -r results/sample1_report.pdf \ #Reporte gráfico de los resultados en formato PDF
   -u results/sample1_unclassified.fastq \ #fastq de las lecturas que se excluyeron
   -w results/sample1_rescued.fastq \ #fastq de las lecturas recuperadas
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147154.fastq.gz" \ #Dirección de la muestra a tratar
   "results/sample1_oriented_trimmed.fastq" 
 ```
-Sin embargo, `Pychopper` es una herramienta que filtra según la longitud, pero solo permite considerar largo mínimo. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal de 1300pb a 1700pb. Para instalar esta herramienta se usó el comando:
+
+- `mkdir -p` crear una carpeta.
+- `-m edlib` habilita un alineador para encontrar los primers.
+- `-b` ruta del archivo con la secuencia de los primers.
+- `-c` ruta del archivo con la orientación de los primers.
+- `-Q` filtro por QScore.
+- `-z`filtro por longitud mínima.
+- `-t` núcleos de CPU a usar.
+- `-r` reporte de los resultados en PDF.
+- `-u` lecturas excluidas.
+- `-w` lecturas guardadas.
+
+Las dos últimas líneas de código permiten buscar el archivo `.fastq` a limpiar. Luego, se define la ruta en que se va a guardar el archivo `.fastq` limpiado.
+
+Sin embargo, `Pychopper` es una herramienta que filtra por longitud mínima y no por rango. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal de 1300pb a 1700pb. Para instalar esta herramienta se usó el comando:
 ```
  conda install bioconda::filtlong
 ```
