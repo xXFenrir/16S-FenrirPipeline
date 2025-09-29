@@ -35,6 +35,7 @@ Desde [Anaconda](https://anaconda.org/bioconda/pychopper):
 ```
 conda install bioconda::pychopper 
 ```
+
 Pychopper identifica los primers en cada lectura, determina su orientación y recorta el amplicón para dejar únicamente la región de interés. Además, genera reportes que muestran cuántas lecturas fueron clasificadas, rechazadas o rescatadas. Adicionalmente, es una herramienta que permite filtrar aquellas lecturas que poseen un QScore por debajo de 9. 
 
 Sin embargo, es necesario crear un archivo `.fasta` con la secuencia de los primers y otro `.txt` con la orientación de los mismos. De esta manera, ya es posible hacer uso del comando base de `Pychopper`.
@@ -42,12 +43,17 @@ Sin embargo, es necesario crear un archivo `.fasta` con la secuencia de los prim
 mkdir -p resultados
 
 pychopper -m edlib \ 
-  -b resources/primers_stesen.fasta \ 
-  -c resources/primer_stesen.txt \ 
-  -Q 9 -z 1300 -t 8 \ 
-  -r results/sample1_report.pdf \ 
-  -u results/sample1_unclassified.fastq \ 
-  -w results/sample1_rescued.fastq \
+  -b "/home/fenrir/resources/primers_stesen.fasta" \ 
+  -c "/home/fenrir/resources/primers_stesen.txt" \ 
+  -Q 9 -z 1300 -t 8 \
+  -Y 0 -q 0.52 \ 
+  -r "results/SRR26147165_report.pdf" \ 
+  -S "results/SRR26147165_stats.tsv" \
+  -A "results/SRR26147165_scores.tsv" \
+  -K "results/SRR26147165_qc_fail.fastq" \ 
+  -l "results/SRR26147165_len_fail.fastq" \ 
+  -u "results/SRR26147165_unclassified.fastq" \ 
+  -w "results/SRR26147165_rescued.fastq" \
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147154.fastq.gz" \ 
   "results/sample1_oriented_trimmed.fastq" 
 ```
@@ -59,7 +65,13 @@ pychopper -m edlib \
 - `-Q` filtro por QScore.
 - `-z`filtro por longitud mínima.
 - `-t` núcleos de CPU a usar.
+- `-Y` desactiva la función de muestreo automático para hacer el proceso reproducible.
+- `-q` ajusta la exigencia del alineamiento a los primers.
 - `-r` reporte de los resultados en PDF.
+- `-S` estadísticas globales tabuladas.
+- `-A` score por lectura.
+- `-K` lecturas que no pasaron el filtro de calidad.
+- `-l` lecturas por debajo de la longitud mínima.
 - `-u` lecturas excluidas.
 - `-w` lecturas guardadas.
 
@@ -75,8 +87,8 @@ Para instalar esta herramienta se usó el comando:
 En este caso, los archivos fueron filtrados inicialmente con `Filtlong` y posteriormente con `Pychopper`. De esta manera, los archivos resultantes serán filtrados según las condiciones que se desee establecer. Adicionalmente, se realizó el código para no tener que limpiar cada archivo por separado, si no que, todos las secuencais son filtradas y los archivos `.fastq` resultantes son dispuestos en su carpeta correspondiente.
 ```
 mkdir -p results && \ #Crear carpeta
-filtlong --min_length 1300 --max_length 1700 \ #Condiciones de filtrado para Filtlong
-  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147165.fastq.gz" \ #Dirección de los archivos originales
+filtlong --min_length 1300 --max_length 1700 \ 
+  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147165.fastq.gz" \ 
 | pychopper -m edlib \ 
   -b "/home/fenrir/resources/primers_stesen.fasta" \ #Secuencia de los primers
   -c "/home/fenrir/resources/primers_stesen.txt" \ #Dirección de los primers
@@ -91,6 +103,10 @@ filtlong --min_length 1300 --max_length 1700 \ #Condiciones de filtrado para Fil
   -w "results/SRR26147165_rescued.fastq" \ #Lecturas rescatadas
   /dev/stdin "results/SRR26147165_oriented_trimmed.fastq" #Obtiene el archivo que saca Fitlong y lo reemplaza con las muestras filtradas y orientadas
 ```
+
+`Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. 
+
+Posteriormente, se llama la herramienta `Pychopper`, 
 ```
 mkdir -p results && \
 filtlong --min_length 1300 --max_length 1700 \
