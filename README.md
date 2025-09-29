@@ -110,65 +110,56 @@ Ahora, para que este código funcione para todos los archivos del estudio se us�
 ```
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s nullglob  
 
-ORIG="/home/fenrir/Documentos/Muestras 16S/sterile_sentinels"
+BASE="/home/fenrir/Documentos/Muestras 16S/sterile_sentinels"
 PRIMERS="/home/fenrir/resources/primers_stesen.fasta"
-PDIR="/home/fenrir/resources/primers_stesen.txt"
-RESDIR="results_2"
+PCONFIG="/home/fenrir/resources/primers_stesen.txt"
+OUTDIR="results3int"
 
-MINLEN=1300
-MAXLEN=1700
-QMIN=9
-ZMIN=1300
-THREADS=8
-QALIGN=0.52
-AUTOTUNE=0
+mkdir -p "$OUTDIR"
 
-mkdir -p "$RESDIR"
+inputs=( "$BASE"/*.fastq.gz "$BASE"/*.fq.gz "$BASE"/*.fastq "$BASE"/*.fq )
+if ((${#inputs[@]}==0)); then
+  echo "No se encontraron FASTQ en: $BASE" >&2
+  exit 1
+fi
 
-echo "Iniciando procesamiento por lotes en: $ORIG"
-echo "Resultados en $RESDIR"
-echo
+for fq in "${inputs[@]}"; do
+  SAMPLE=$(basename "$fq")
+  SAMPLE=${SAMPLE%.gz}
+  SAMPLE=${SAMPLE%.fastq}
+  SAMPLE=${SAMPLE%.fq}
 
-find "$ORIG" -maxdepth 1 -type f -name 'SRR*.fastq.gz' -print0 \
-| while IFS= read -r -d '' IN; do
-  SAMPLE="$(basename "$IN" .fastq.gz)"
-  SDIR="$RESDIR/$SAMPLE"     # Carpeta propia de la muestra
-  mkdir -p "$SDIR"
+  sdir="$OUTDIR/$SAMPLE"
+  mkdir -p "$sdir"
+  echo "Procesando $SAMPLE …"
 
-  echo "Procesando: $SAMPLE"
-  echo "IN : $IN"
-  echo "OUT: $SDIR/${SAMPLE}_*.{fastq,pdf,tsv}"
-
-  # Elimina lecturas demasiado cortas o largas antes de pychopper
-  filtlong --min_length "$MINLEN" --max_length "$MAXLEN" "$IN" | \
-  
-  pychopper -m edlib \
-    -b "$PRIMERS" -c "$PDIR" \
-    -Q "$QMIN" -z "$ZMIN" -t "$THREADS" -Y "$AUTOTUNE" -q "$QALIGN" \
-    -r "$SDIR/${SAMPLE}_report.pdf" \
-    -S "$SDIR/${SAMPLE}_stats.tsv" \
-    -A "$SDIR/${SAMPLE}_scores.tsv" \
-    -K "$SDIR/${SAMPLE}_qc_fail.fastq" \
-    -l "$SDIR/${SAMPLE}_len_fail.fastq" \
-    -u "$SDIR/${SAMPLE}_unclassified.fastq" \
-    -w "$SDIR/${SAMPLE}_rescued.fastq" \
-    /dev/stdin "$SDIR/${SAMPLE}_oriented_trimmed.fastq"
-
-  echo "Listo: $SAMPLE"
-  echo
+  filtlong --min_length 1300 --max_length 1700 "$fq" \
+  | pychopper -m edlib \
+      -b "$PRIMERS" -c "$PCONFIG" \
+      -Q 9 -z 1300 -t 8 -Y 0 -q 0.52 \
+      -r "$sdir/${SAMPLE}_report.pdf" \
+      -S "$sdir/${SAMPLE}_stats.tsv" \
+      -A "$sdir/${SAMPLE}_scores.tsv" \
+      -K "$sdir/${SAMPLE}_qc_fail.fastq" \
+      -l "$sdir/${SAMPLE}_len_fail.fastq" \
+      -u "$sdir/${SAMPLE}_unclassified.fastq" \
+      -w "$sdir/${SAMPLE}_rescued.fastq" \
+      - "$sdir/${SAMPLE}_oriented_trimmed.fastq"
 done
-
-echo "Finalizado, revisa en $RESDIR"
 ```
 
-- `set -euo pipefail` esto aseguro que el flujo se detenga ante cualquier error y no genere resultados parciales.
-- `ORIG` carpeta donde esten las lecturas `.fastq`.
+- `set -euo pipefail` evita que se ejecute pacialmente a causa de fallos.
+- `shopt -s nullglob` si no hay coincidencias es igual a 0
+- `BASE` carpeta donde esten las lecturas `.fastq`.
 - `PRIMERS` archivo `.fasta` con las secuencias de primers.
-- `PDIR` archivo con la orientación de primers.
+- `PCONFIG` archivo con la orientación de primers.
 - `OUTDIR` carpeta para todos los resultados de cada muestra.
+- `inputs` un array para que sea capaz de reconocer cualquier forma en la que se pueda encontrar el archivo `.fastq`.
 
-Se definen `PRIMERS` y `PCONFIG` con las direcciones en las que se encuentra la secuencia y dirección de los primers, para luego ser reemplazadas en el código. Además, se inicia un loop con `for` 
+Con `if ((${#inputs[@]}==0))` se busca que cuando el array no tenga un sufijo de `.fastq` se detenga. Luego, con `for fq in "${inputs[@]}"; do` hace la iteración por cada archivo `.fastq` reconocido. Finalmente, con `SAMPLE=` se busca que poco a poco se quiten los sufijos del archivo hasta quedar únicamente con el directorio y este es el que se usa para nombrar la carpeta en la que se agruparan los resultados.
+
 # Taxonomía
 EMU
 ```
