@@ -86,48 +86,87 @@ Para instalar esta herramienta se usó el comando:
 
 En este caso, los archivos fueron filtrados inicialmente con `Filtlong` y posteriormente con `Pychopper`. De esta manera, los archivos resultantes serán filtrados según las condiciones que se desee establecer. Adicionalmente, se realizó el código para no tener que limpiar cada archivo por separado, si no que, todos las secuencais son filtradas y los archivos `.fastq` resultantes son dispuestos en su carpeta correspondiente.
 ```
-mkdir -p results && \ #Crear carpeta
+mkdir -p results_2 && \ #Crear carpeta
 filtlong --min_length 1300 --max_length 1700 \ 
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147165.fastq.gz" \ 
 | pychopper -m edlib \ 
-  -b "/home/fenrir/resources/primers_stesen.fasta" \ #Secuencia de los primers
-  -c "/home/fenrir/resources/primers_stesen.txt" \ #Dirección de los primers
-  -Q 9 -z 1300 -t 8 \ #Condiciones de filtrado para Pychopper
-  -Y 0 -q 0.52 \ #`-Y` cuántos reads muestrea `q`, `-q` es para definir que tan exigente es en el alineamiento de los primers
-  -r "results/SRR26147165_report.pdf" \ #Genera métricas y gráficos de la limpieza por Pychopper
-  -S "results/SRR26147165_stats.tsv" \ #Estadísticas globales tabuladas
-  -A "results/SRR26147165_scores.tsv" \ #Score por lectura
-  -K "results/SRR26147165_qc_fail.fastq" \ #Lecturas que no pasaron el filtro de calidad
-  -l "results/SRR26147165_len_fail.fastq" \ #Lecturas que quedan por debajo de la longitud mínima (debería ser 0)
-  -u "results/SRR26147165_unclassified.fastq" \ #Lecturas no clasificadas
-  -w "results/SRR26147165_rescued.fastq" \ #Lecturas rescatadas
-  /dev/stdin "results/SRR26147165_oriented_trimmed.fastq" #Obtiene el archivo que saca Fitlong y lo reemplaza con las muestras filtradas y orientadas
+  -b "/home/fenrir/resources/primers_stesen.fasta" \ 
+  -c "/home/fenrir/resources/primers_stesen.txt" \ 
+  -Q 9 -z 1300 -t 8 \ 
+  -Y 0 -q 0.52 \
+  -r "results/SRR26147165_report.pdf" \
+  -S "results/SRR26147165_stats.tsv" \ 
+  -A "results/SRR26147165_scores.tsv" \ 
+  -K "results/SRR26147165_qc_fail.fastq" \ 
+  -l "results/SRR26147165_len_fail.fastq" \ 
+  -u "results/SRR26147165_unclassified.fastq" \ 
+  -w "results/SRR26147165_rescued.fastq" \ 
+  /dev/stdin "results/SRR26147165_oriented_trimmed.fastq" 
 ```
 
 `Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. Posteriormente, se usa `|` para que los archivos que salen de `Filtlong` entren directamente a `Pychopper`, y se usa `/dev/stdin` para que `Pychopper` lea como entrada lo que entra por `|`. Finalmente, el archivo entregado se espera que sea un archivo `.fastq` filtrado con los parámetros definidos en ambas herramientas.
 
 Ahora, para que este código funcione para todos los archivos del estudio se usó:
 ```
-PRIMERS="resources/primers_stesen.fasta"
-PCONFIG="resources/primers_stesen.txt"
+#!/usr/bin/env bash
+set -euo pipefail
 
-mkdir -p results
-for IN in data_raw/SRR*.fastq.gz; do
+ORIG="/home/fenrir/Documentos/Muestras 16S/sterile_sentinels"
+PRIMERS="/home/fenrir/resources/primers_stesen.fasta"
+PDIR="/home/fenrir/resources/primers_stesen.txt"
+RESDIR="results_2"
+
+MINLEN=1300
+MAXLEN=1700
+QMIN=9
+ZMIN=1300
+THREADS=8
+QALIGN=0.52
+AUTOTUNE=0
+
+mkdir -p "$RESDIR"
+
+echo "Iniciando procesamiento por lotes en: $ORIG"
+echo "Resultados en $RESDIR"
+echo
+
+find "$ORIG" -maxdepth 1 -type f -name 'SRR*.fastq.gz' -print0 \
+| while IFS= read -r -d '' IN; do
   SAMPLE="$(basename "$IN" .fastq.gz)"
-  filtlong --min_length 1300 --max_length 1700 "$IN" \
-  | pychopper -m edlib \
-      -b "$PRIMERS" -c "$PCONFIG" \
-      -Q 9 -z 1300 -t 8 -Y 0 -q 0.52 \
-      -r "results/${SAMPLE}_report.pdf" \
-      -S "results/${SAMPLE}_stats.tsv" \
-      -A "results/${SAMPLE}_scores.tsv" \
-      -K "results/${SAMPLE}_qc_fail.fastq" \
-      -l "results/${SAMPLE}_len_fail.fastq" \
-      -u "results/${SAMPLE}_unclassified.fastq" \
-      -w "results/${SAMPLE}_rescued.fastq" \
-      /dev/stdin "results/${SAMPLE}_oriented_trimmed.fastq"
+  SDIR="$RESDIR/$SAMPLE"     # Carpeta propia de la muestra
+  mkdir -p "$SDIR"
+
+  echo "Procesando: $SAMPLE"
+  echo "IN : $IN"
+  echo "OUT: $SDIR/${SAMPLE}_*.{fastq,pdf,tsv}"
+
+  # Elimina lecturas demasiado cortas o largas antes de pychopper
+  filtlong --min_length "$MINLEN" --max_length "$MAXLEN" "$IN" | \
+  
+  pychopper -m edlib \
+    -b "$PRIMERS" -c "$PDIR" \
+    -Q "$QMIN" -z "$ZMIN" -t "$THREADS" -Y "$AUTOTUNE" -q "$QALIGN" \
+    -r "$SDIR/${SAMPLE}_report.pdf" \
+    -S "$SDIR/${SAMPLE}_stats.tsv" \
+    -A "$SDIR/${SAMPLE}_scores.tsv" \
+    -K "$SDIR/${SAMPLE}_qc_fail.fastq" \
+    -l "$SDIR/${SAMPLE}_len_fail.fastq" \
+    -u "$SDIR/${SAMPLE}_unclassified.fastq" \
+    -w "$SDIR/${SAMPLE}_rescued.fastq" \
+    /dev/stdin "$SDIR/${SAMPLE}_oriented_trimmed.fastq"
+
+  echo "Listo: $SAMPLE"
+  echo
 done
+
+echo "Finalizado, revisa en $RESDIR"
 ```
+
+- `set -euo pipefail` esto aseguro que el flujo se detenga ante cualquier error y no genere resultados parciales.
+- `ORIG` carpeta donde esten las lecturas `.fastq`.
+- `PRIMERS` archivo `.fasta` con las secuencias de primers.
+- `PDIR` archivo con la orientación de primers.
+- `OUTDIR` carpeta para todos los resultados de cada muestra.
 
 Se definen `PRIMERS` y `PCONFIG` con las direcciones en las que se encuentra la secuencia y dirección de los primers, para luego ser reemplazadas en el código. Además, se inicia un loop con `for` 
 # Taxonomía
