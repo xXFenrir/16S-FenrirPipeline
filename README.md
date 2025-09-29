@@ -41,14 +41,14 @@ Sin embargo, es necesario crear un archivo `.fasta` con la secuencia de los prim
 ```
 mkdir -p resultados
 
-pychopper -m edlib \ #Seleccionar el método
-  -b resources/primers_stesen.fasta \ #Identifica la ruta y el archivo donde está la secuencia de los primers
-  -c resources/primer_stesen.txt \ #Identica la ruta y el archivo con la orientación de los mismos
-  -Q 9 -z 1300 -t 8 \ #`-Q 9` QScore mínimo, `-z 1200` longitud mínima en pb, `-t` cantidad de núcleos a usar
-  -r results/sample1_report.pdf \ #Reporte gráfico de los resultados en formato PDF
-  -u results/sample1_unclassified.fastq \ #fastq de las lecturas que se excluyeron
-  -w results/sample1_rescued.fastq \ #fastq de las lecturas recuperadas
-  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147154.fastq.gz" \ #Dirección de la muestra a tratar
+pychopper -m edlib \ 
+  -b resources/primers_stesen.fasta \ 
+  -c resources/primer_stesen.txt \ 
+  -Q 9 -z 1300 -t 8 \ 
+  -r results/sample1_report.pdf \ 
+  -u results/sample1_unclassified.fastq \ 
+  -w results/sample1_rescued.fastq \
+  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147154.fastq.gz" \ 
   "results/sample1_oriented_trimmed.fastq" 
 ```
 
@@ -65,14 +65,17 @@ pychopper -m edlib \ #Seleccionar el método
 
 Las dos últimas líneas de código permiten buscar el archivo `.fastq` a limpiar. Luego, se define la ruta en que se va a guardar el archivo `.fastq` limpiado.
 
-Sin embargo, `Pychopper` es una herramienta que filtra por longitud mínima y no por rango. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal de 1300pb a 1700pb. Para instalar esta herramienta se usó el comando:
+Sin embargo, `Pychopper` es una herramienta que filtra por longitud mínima y no por rango. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal de 1300pb a 1700pb. 
+
+Para instalar esta herramienta se usó el comando:
 ```
  conda install bioconda::filtlong
 ```
-En este caso, los archivos fueron filtrados inicialmente con `Filtlong` y posteriormente con `Pychopper`. De esta manera, los archivos resultantes serán filtrados según las condiciones que se desee establecer. Adicionalmente, se realizó el código para no tener que limpiar cada archivo por separado, si no que, todos las secuencais son filtradas y Los archivos `fastq` resultantes son dispuestos en su carpeta correspondiente.
+
+En este caso, los archivos fueron filtrados inicialmente con `Filtlong` y posteriormente con `Pychopper`. De esta manera, los archivos resultantes serán filtrados según las condiciones que se desee establecer. Adicionalmente, se realizó el código para no tener que limpiar cada archivo por separado, si no que, todos las secuencais son filtradas y los archivos `.fastq` resultantes son dispuestos en su carpeta correspondiente.
 ```
 mkdir -p results && \ #Crear carpeta
-filtlong --min_length 1300 --max_length 1700 --keep_percent 90 \ #Condiciones de filtrado para Filtlong
+filtlong --min_length 1300 --max_length 1700 \ #Condiciones de filtrado para Filtlong
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147165.fastq.gz" \ #Dirección de los archivos originales
 | pychopper -m edlib \ 
   -b "/home/fenrir/resources/primers_stesen.fasta" \ #Secuencia de los primers
