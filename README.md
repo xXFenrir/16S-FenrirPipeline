@@ -104,25 +104,32 @@ filtlong --min_length 1300 --max_length 1700 \
   /dev/stdin "results/SRR26147165_oriented_trimmed.fastq" #Obtiene el archivo que saca Fitlong y lo reemplaza con las muestras filtradas y orientadas
 ```
 
-`Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. 
+`Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. Posteriormente, se usa `|` para que los archivos que salen de `Filtlong` entren directamente a `Pychopper`, y se usa `/dev/stdin` para que `Pychopper` lea como entrada lo que entra por `|`. Finalmente, el archivo entregado se espera que sea un archivo `.fastq` filtrado con los parámetros definidos en ambas herramientas.
 
-Posteriormente, se llama la herramienta `Pychopper`, 
+Ahora, para que este código funcione para todos los archivos del estudio se usó:
 ```
-mkdir -p results && \
-filtlong --min_length 1300 --max_length 1700 \
-  "$IN" \
-| pychopper -m edlib \
-    -b "$PRIMERS" -c "$PCONFIG" \
-    -Q 9 -z 1300 -t 8 -Y 0 -q 0.52 \
-    -r "results/${SAMPLE}_report.pdf" \
-    -S "results/${SAMPLE}_stats.tsv" \
-    -A "results/${SAMPLE}_scores.tsv" \
-    -K "results/${SAMPLE}_qc_fail.fastq" \
-    -l "results/${SAMPLE}_len_fail.fastq" \
-    -u "results/${SAMPLE}_unclassified.fastq" \
-    -w "results/${SAMPLE}_rescued.fastq" \
-    /dev/stdin "results/${SAMPLE}_oriented_trimmed.fastq"
+PRIMERS="resources/primers_stesen.fasta"
+PCONFIG="resources/primers_stesen.txt"
+
+mkdir -p results
+for IN in data_raw/SRR*.fastq.gz; do
+  SAMPLE="$(basename "$IN" .fastq.gz)"
+  filtlong --min_length 1300 --max_length 1700 "$IN" \
+  | pychopper -m edlib \
+      -b "$PRIMERS" -c "$PCONFIG" \
+      -Q 9 -z 1300 -t 8 -Y 0 -q 0.52 \
+      -r "results/${SAMPLE}_report.pdf" \
+      -S "results/${SAMPLE}_stats.tsv" \
+      -A "results/${SAMPLE}_scores.tsv" \
+      -K "results/${SAMPLE}_qc_fail.fastq" \
+      -l "results/${SAMPLE}_len_fail.fastq" \
+      -u "results/${SAMPLE}_unclassified.fastq" \
+      -w "results/${SAMPLE}_rescued.fastq" \
+      /dev/stdin "results/${SAMPLE}_oriented_trimmed.fastq"
+done
 ```
+
+Se definen `PRIMERS` y `PCONFIG` con las direcciones en las que se encuentra la secuencia y dirección de los primers, para luego ser reemplazadas en el código. Además, se inicia un loop con `for` 
 # Taxonomía
 EMU
 ```
