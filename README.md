@@ -11,13 +11,60 @@ Para el procesamiento de muestras de 16S con ONT, fue necesario hacer una revisi
 La elaboración de este pipeline se hace desde un entorno Linux con Anaconda.
 
 # Basecalling
-Este es el primer paso del pipeline, pues aquí se busca convertir los archivos fast5 a fastq. Los archivos fast5 son el output de la secuenciación con MinION (Oxford Nanopore Technologies). En este caso, ONT proporciona Dorado como una herramienta para este paso. 
-Para usar esta herramienta es necesario hacer la instalación de la misma para entorno Linux. Esta descarga se hizo por medio de línea de comando desde el Terminal, pues `Dorado` se encuentra como un paquete de `Anaconda` ([Dorado](https://anaconda.org/HCC/dorado)).
+Este es el primer paso del pipeline, pues aquí se busca convertir los archivos fast5 a `.fastq`. Los archivos `.fast5` son el output de la secuenciación con MinION (Oxford Nanopore Technologies). En este caso, ONT proporciona Dorado como una herramienta para este paso. 
+Para usar esta herramienta es necesario hacer la instalación de la misma para entorno Linux. Esta descarga se hizo por medio de línea de comando desde el Terminal, pues `Dorado` se encuentra como un paquete de `Anaconda` ([Dorado](https://anaconda.org/HCC/dorado)). Se descarga el binario precompilado con:
+```
+curl "https://cdn.oxfordnanoportal.com/software/analysis/dorado-1.1.1-linux-x64.tar.gz" -o dorado-1.1.1-linux-x64.tar.gz
+```
+
+Luego, se debe extraer el archivo con:
+```
+tar -xzf dorado-1.1.1-linux-x64.tar.gz
+```
+
+Sin embargo, en las versiones actuales de `Dorado` no se utilizan como entradas los archivos en formato `.fast5` si no archivos `.POD5`, por lo que antes de aplicar el comando básido de la herrmaienta se deben convertir los archivos de ser necesario.
+```
+pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
+
+dorado basecaller hac /ruta/pod5/ \
+  --emit-fastq \
+  --no-trim \
+  -x auto > basecalls.fastq
+```
+
+- `hac` es para usar el modelo de alta precicsión.
+- `--emit-fastq` hace que la salida sea en formato `.fastq`
+- `--no-trim` es para evitar que recorte barcodes y adaptadores.
+- `-x auto` decide automáticamente si usar GPU o CPU.
 
 # Demultiplexing
 Para realizar este paso, se encontraron que algunos estudios usaron herramientas especializadas como `Porechop`, sin embargo, se decidió usar `Dorado` porque esta herramienta es la recomendada por ONT.
 
+Generalmente, este paso se hace al mismo tiempo que el basecalling, por lo que se modifica un poco el comando de basecalling anteriormente puesto. Para usar esta herramienta se usó el siguiente código:
+```
+dorado basecaller hac /ruta/pod5/ \
+  --kit-name SQK-16S114-24 \
+  --trim all \
+  --primer-sequences primers_27F_1492R.fasta \
+  -x auto > calls.bam
+
+dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
+```
+
+- `--kit name` nombre del kit de barcodes usados.
+- `-- trim all` quitar barcodes y primers. En este caso no afecta, pues dorado garantiza que el recorte no interfiere con la demultiplexación.
+- `--primer-sequences` archivo `.fasta` von las secuencias de los primers.
+- `-x auto` automáticamente elige si usar la GPU o CPU.
+- `--no-clasiffy` no vuelve a clasificar, simplemente lee la asignación de barcode que ya quedó guardada en `calls.bam` durante el basecalling, y divide las lecturas en archivos separados por barcode.
+- `--emit-fastq` la salida pasa a ser en formato `.fastq`.
+- `-o` carpeta donde estaran las salidas.
+
 # Denoising y Trimming
+
+Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código:
+```
+
+```
 
 Es uno de los pasos más importantes en un análisis bioinformático de datos de secuenciación 16S rRNA es la depuración de lecturas crudas. Pues el objetivo aquí es mejorar la calidad de los datos y asegurar que únicamente las lecturas confiables y relevantes pasen a la etapa de taxonomía. En este caso se quiere:
 
