@@ -63,146 +63,146 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 
 Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código:
 ```
-import argparse                              # Parseo de argumentos de línea de comandos.
-import csv                                   # Escritura de CSV/TSV.
-import gzip                                  # Lectura de archivos .gz en modo texto.
-import os                                    # Funciones del sistema (tamaño de archivo, etc.).
-from pathlib import Path                     # Manejo de rutas de forma orientada a objetos.
-from statistics import median                # Cálculo de la mediana de longitudes.
-from typing import Optional                  # Tipado opcional para max_reads.
+import argparse                             
+import csv                                   
+import gzip                                  
+import os                                   
+from pathlib import Path                   
+from statistics import median               
+from typing import Optional                  
 
 def parse_args():
-    p = argparse.ArgumentParser(             # Crea un parser de argumentos con descripción.
+    p = argparse.ArgumentParser(             
         description="Extraer métricas básicas de archivos FASTQ/FASTQ.GZ"
     )
-    p.add_argument("input",                  # Argumento posicional: carpeta o archivo FASTQ/FASTQ.GZ.
+    p.add_argument("input",                  
                    help="Carpeta o archivo FASTQ/FASTQ.GZ")
-    p.add_argument("-o", "--output",         # Ruta de salida del archivo tabular.
+    p.add_argument("-o", "--output",         
                    default="fastq_metrics.csv",
                    help="Ruta de salida (CSV/TSV) [por defecto: fastq_metrics.csv]")
-    p.add_argument("--tsv",                  # Flag: si va en TSV en lugar de CSV.
+    p.add_argument("--tsv",                 
                    action="store_true",
                    help="Guardar como TSV en lugar de CSV")
-    p.add_argument("-r", "--recursive",      # Flag: buscar recursivamente subcarpetas.
+    p.add_argument("-r", "--recursive",      
                    action="store_true",
                    help="Buscar recursivamente en subcarpetas")
-    p.add_argument("--phred", type=int,      # Offset Phred (por defecto 33).
+    p.add_argument("--phred", type=int,      
                    default=33,
                    help="Offset Phred (por defecto: 33)")
-    p.add_argument("--max-reads", type=int,  # Límite de lecturas por archivo (pruebas rápidas).
+    p.add_argument("--max-reads", type=int,  
                    default=None,
                    help="Procesar como máximo N lecturas por archivo (útil para pruebas)")
-    return p.parse_args()                    # Devuelve los argumentos parseados.
+    return p.parse_args()                    
 
 def is_gzip(path: Path) -> bool:
-    return str(path).endswith(".gz")         # Considera gzip si el nombre termina en .gz.
+    return str(path).endswith(".gz")         
 
 def open_maybe_gzip(path: Path):
-    if is_gzip(path):                        # Si es .gz...
-        return gzip.open(                    # ...abrir con gzip en modo texto ("rt").
+    if is_gzip(path):                        
+        return gzip.open(                    
             path, "rt", encoding="ascii", errors="ignore"
         )
-    return open(path, "rt",                  # Si no, abrir texto normal. Se ignoran errores de decodificación.
+    return open(path, "rt",                  
                 encoding="ascii", errors="ignore")
 
 def iter_fastq_reads(handle):
     """Generador simple de lecturas FASTQ. Devuelve tuplas (seq, qual)."""
     while True:
-        header = handle.readline()           # Lee línea 1 del bloque (título) y avanza.
-        if not header:                       # Si EOF (fin del archivo), salir del bucle.
+        header = handle.readline()           
+        if not header:                       
             break
-        seq = handle.readline()              # Línea 2: secuencia.
-        plus = handle.readline()             # Línea 3: separador '+'.
-        qual = handle.readline()             # Línea 4: calidades ASCII.
-        if not qual:                         # Si el archivo terminó incompleto, salir.
+        seq = handle.readline()              
+        plus = handle.readline()             
+        qual = handle.readline()             
+        if not qual:                         
             break
-        yield seq.strip(), qual.strip()      # Devuelve secuencia y calidades sin saltos de línea.
+        yield seq.strip(), qual.strip()      
 
 def n50_from_lengths(lengths, total_bases):
-    if not lengths or total_bases == 0:      # Si no hay longitudes o no hay bases, N50=0.
+    if not lengths or total_bases == 0:     
         return 0
-    lengths_sorted = sorted(lengths,         # Ordena longitudes de mayor a menor.
+    lengths_sorted = sorted(lengths,         
                              reverse=True)
-    half = total_bases / 2                   # Mitad de las bases totales.
-    acc = 0                                  # Acumulador de bases.
-    for L in lengths_sorted:                 # Recorre desde la lectura más larga...
+    half = total_bases / 2                   
+    acc = 0                                  
+    for L in lengths_sorted:                
         acc += L
-        if acc >= half:                      # Cuando se supera el 50% acumulado...
-            return L                         # ...el N50 es esa longitud.
-    return 0                                  # (en teoría no se llega aquí si hay datos).
+        if acc >= half:                      
+            return L                         
+    return 0                                  
 
 def process_fastq(path: Path,
                   phred_offset: int = 33,
                   max_reads: Optional[int] = None) -> dict:
-    reads = 0                                 # Contador de lecturas.
-    total_bases = 0                           # Suma de longitudes.
-    gc_bases = 0                              # Conteo de G y C.
-    n_bases = 0                               # Conteo de N (bases desconocidas).
-    qsum = 0                                  # Suma de calidades por base (para media).
-    q20 = 0                                   # Conteo de bases con Q>=20.
-    q30 = 0                                   # Conteo de bases con Q>=30.
-    lengths = []                              # Lista de longitudes para estadísticos y N50.
+    reads = 0                                 
+    total_bases = 0                           
+    gc_bases = 0                              
+    n_bases = 0                               
+    qsum = 0                                  
+    q20 = 0                                   
+    q30 = 0                                   
+    lengths = []                              
 
     try:
-        with open_maybe_gzip(path) as fh:     # Abre el archivo (gz o texto) como manejador.
-            for i, (seq, qual) in enumerate(  # Itera sobre lecturas FASTQ (seq y qual).
+        with open_maybe_gzip(path) as fh:     
+            for i, (seq, qual) in enumerate(  
                     iter_fastq_reads(fh), start=1):
-                L = len(seq)                  # Longitud de la secuencia.
-                if L == 0:                    # Si secuencia vacía, saltar.
+                L = len(seq)                  
+                if L == 0:                    
                     continue
-                lengths.append(L)             # Guarda la longitud para stats/N50.
-                reads += 1                    # +1 lectura procesada.
-                total_bases += L              # Suma de bases.
+                lengths.append(L)             
+                reads += 1                    
+                total_bases += L              
 
-                s_upper = seq.upper()         # Secuencia a mayúsculas para conteos robustos.
-                gc_bases += s_upper.count("G") + s_upper.count("C")  # Conteo GC.
-                n_bases += s_upper.count("N")                         # Conteo N.
+                s_upper = seq.upper()         
+                gc_bases += s_upper.count("G") + s_upper.count("C")  
+                n_bases += s_upper.count("N")                        
 
-                if len(qual) != L:            # Si la línea de calidad no coincide en longitud...
-                    Lq = min(L, len(qual))    # ...ajusta a la mínima para evitar errores.
+                if len(qual) != L:            
+                    Lq = min(L, len(qual))    
                     qsum += sum((ord(ch) - phred_offset) for ch in qual[:Lq])
                     q20  += sum(1 for ch in qual[:Lq] if (ord(ch) - phred_offset) >= 20)
                     q30  += sum(1 for ch in qual[:Lq] if (ord(ch) - phred_offset) >= 30)
-                else:                         # Caso típico: longitudes iguales.
+                else:                         
                     qsum += sum((ord(ch) - phred_offset) for ch in qual)
                     q20  += sum(1 for ch in qual if (ord(ch) - phred_offset) >= 20)
                     q30  += sum(1 for ch in qual if (ord(ch) - phred_offset) >= 30)
 
-                if max_reads is not None and  # Si se definió un límite de lecturas...
-                   reads >= max_reads:         # ...y ya llegamos, corta el bucle (para pruebas).
+                if max_reads is not None and  
+                   reads >= max_reads:         
                     break
 
-    except Exception as e:                     # Si hay error al leer/parsing...
+    except Exception as e:                     
         return {
-            "file": str(path),                 # Devuelve el nombre de archivo...
-            "sample": path.stem                # ...y el sample (nombre sin sufijos comunes)...
+            "file": str(path),                 
+            "sample": path.stem                
                       .replace(".fastq", "")
                       .replace(".fq", ""),
-            "error": str(e),                   # ...y un campo de error con el mensaje.
+            "error": str(e),                   
         }
 
-    if reads == 0 or total_bases == 0:         # Si no hubo lecturas válidas...
+    if reads == 0 or total_bases == 0:        
         mean_len = med_len = min_len = max_len = n50 = 0
         gc_pct = n_pct = mean_q = q20_pct = q30_pct = 0.0
     else:
-        mean_len = round(total_bases / reads, 2)         # Longitud media.
-        med_len = int(median(lengths))                   # Mediana de longitudes.
-        min_len = min(lengths)                           # Longitud mínima.
-        max_len = max(lengths)                           # Longitud máxima.
-        n50 = n50_from_lengths(lengths, total_bases)     # N50.
+        mean_len = round(total_bases / reads, 2)         
+        med_len = int(median(lengths))                   
+        min_len = min(lengths)                           
+        max_len = max(lengths)                           
+        n50 = n50_from_lengths(lengths, total_bases)     
 
-        gc_pct = round(100.0 * gc_bases / total_bases, 3) # %GC total.
-        n_pct  = round(100.0 * n_bases  / total_bases, 3) # %N total.
-        mean_q = round(qsum / total_bases, 3)             # Calidad media por base.
-        q20_pct = round(100.0 * q20 / total_bases, 3)     # % de bases con Q>=20.
-        q30_pct = round(100.0 * q30 / total_bases, 3)     # % de bases con Q>=30.
+        gc_pct = round(100.0 * gc_bases / total_bases, 3) 
+        n_pct  = round(100.0 * n_bases  / total_bases, 3) 
+        mean_q = round(qsum / total_bases, 3)             
+        q20_pct = round(100.0 * q20 / total_bases, 3)     
+        q30_pct = round(100.0 * q30 / total_bases, 3)     
 
     try:
-        file_bytes = os.path.getsize(path)                # Tamaño del archivo en bytes (comprimido si .gz).
+        file_bytes = os.path.getsize(path)                
     except Exception:
-        file_bytes = None                                 # Si falla (p. ej. permisos), deja None.
+        file_bytes = None                                 
 
-    return {                                              # Devuelve un diccionario con todas las métricas.
+    return {                                              
         "file": str(path),
         "sample": path.stem.replace(".fastq", "")
                              .replace(".fq", ""),
@@ -222,35 +222,35 @@ def process_fastq(path: Path,
     }
 
 def find_fastqs(root: Path, recursive: bool = False):
-    files = []                                            # Lista para acumular rutas de FASTQ.
-    if root.is_file():                                    # Si la entrada es un archivo...
-        if any(str(root).endswith(ext)                    # ...y coincide con extensiones válidas...
+    files = []                                            
+    if root.is_file():                                    
+        if any(str(root).endswith(ext)                    
                for ext in (".fastq", ".fq", ".fastq.gz", ".fq.gz")):
-            files.append(root)                            # ...añádelo.
-    else:                                                 # Si la entrada es carpeta...
-        patterns = ["*.fastq", "*.fq", "*.fastq.gz", "*.fq.gz"]  # Patrones a buscar.
-        if recursive:                                     # Búsqueda recursiva...
+            files.append(root)                            
+    else:                                                 
+        patterns = ["*.fastq", "*.fq", "*.fastq.gz", "*.fq.gz"]  
+        if recursive:                                     
             for pat in patterns:
-                files.extend(root.rglob(pat))             # rglob: incluye subcarpetas.
-        else:                                             # Búsqueda solo en la carpeta actual...
+                files.extend(root.rglob(pat))             
+        else:                                             
             for pat in patterns:
-                files.extend(root.glob(pat))              # glob: no baja a subcarpetas.
-    return sorted(set(files))                             # Quita duplicados y ordena (salida determinista).
+                files.extend(root.glob(pat))              
+    return sorted(set(files))                             
 
 def main():
-    args = parse_args()                                   # Lee argumentos CLI.
-    inp = Path(args.input).expanduser()                   # Normaliza la ruta (~ -> /home/usuario).
-    files = find_fastqs(inp, recursive=args.recursive)    # Encuentra archivos a procesar.
-    if not files:                                         # Si no hay archivos, avisa y sale.
+    args = parse_args()                                   
+    inp = Path(args.input).expanduser()                   
+    files = find_fastqs(inp, recursive=args.recursive)    
+    if not files:                                         
         print(f"[WARN] No se encontraron archivos FASTQ en: {inp}")
         return
 
-    delimiter = "\t" if args.tsv else ","                 # Define separador (por flag --tsv).
-    out_path = Path(args.output)                          # Ruta del archivo de salida.
-    if out_path.suffix.lower() == ".tsv":                 # Si la extensión termina en .tsv...
-        delimiter = "\t"                                  # ...fuerza tabulador (aunque no se ponga --tsv).
+    delimiter = "\t" if args.tsv else ","                 
+    out_path = Path(args.output)                         
+    if out_path.suffix.lower() == ".tsv":                 
+        delimiter = "\t"                                  
 
-    fieldnames = [                                        # Orden/columnas del archivo de salida.
+    fieldnames = [                                        
         "file", "sample", "reads", "bases",
         "mean_len", "median_len", "min_len", "max_len", "N50",
         "GC_percent", "N_percent",
@@ -258,27 +258,27 @@ def main():
         "file_size_bytes"
     ]
 
-    print(f"[INFO] Archivos detectados: {len(files)}")    # Log informativo.
-    with open(out_path, "w", newline="") as f:            # Abre salida (texto) con newline controlado.
-        writer = csv.DictWriter(                          # Crea escritor CSV con las columnas definidas.
+    print(f"[INFO] Archivos detectados: {len(files)}")   
+    with open(out_path, "w", newline="") as f:            
+        writer = csv.DictWriter(                          
             f, fieldnames=fieldnames, delimiter=delimiter
         )
-        writer.writeheader()                              # Escribe encabezado.
-        for fpath in files:                               # Itera por cada FASTQ encontrado.
-            stats = process_fastq(                        # Calcula métricas del archivo.
+        writer.writeheader()                              
+        for fpath in files:                               
+            stats = process_fastq(                        
                 fpath, phred_offset=args.phred,
                 max_reads=args.max_reads
             )
-            if "error" in stats:                          # Si hubo error al procesar, lo imprime.
+            if "error" in stats:                          
                 print(f"[ERROR] {fpath}: {stats['error']}")
-            writer.writerow({                             # Escribe una fila con las claves esperadas;
-                k: stats.get(k, "") for k in fieldnames   # usa "" si falta algún campo.
+            writer.writerow({                             
+                k: stats.get(k, "") for k in fieldnames   
             })
 
-    print(f"[OK] Resultados guardados en: {out_path.resolve()}")  # Mensaje de éxito con ruta absoluta.
+    print(f"[OK] Resultados guardados en: {out_path.resolve()}")  
 
-if __name__ == "__main__":                                # Punto de entrada si se ejecuta como script.
-    main()                                                # Llama a main().
+if __name__ == "__main__":                                
+    main()                                                
 ```
 
 Los paquetes que se importanron fueron:
