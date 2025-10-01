@@ -506,12 +506,12 @@ Se usó `csv.DictWriter` para garantizar un orden fijo de columnas y un formato 
 Una vez creado el script con el código, se ejecúta:
 ```
 python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
-  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
+  "/home/fenrir/dentrim_stesen" \
   -r --tsv \
-  --primers "/home/fenrir/resources/primers.fasta" \
+  --primers "/home/fenrir/resources/primers_stesen.fasta" \
   --primer-window 120 --primer-max-mismatches 2 --primer-scan 10000 \
   --chimera-denovo --vsearch vsearch --chimera-sample 10000 \
-  -o "/home/fenrir/scriptsbioinf/estadisticas_full.tsv"
+  -o "/home/fenrir/clean_stads/estadisticas_full.tsv"
 ```
 
 # Denoising y Trimming
