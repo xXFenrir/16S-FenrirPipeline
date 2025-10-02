@@ -63,33 +63,28 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 
 Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código:
 ```
-import argparse
-import csv
-import gzip
-import os
-import re
-import shutil
-import subprocess as sp
-import tempfile
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import argparse, gzip, os, re, sys, time
 from pathlib import Path
 from statistics import median
 from typing import Optional, List
 
-# ------------------------ Utilidades básicas ------------------------
+# ---------- Utilidades básicas ----------
 
-def is_gzip(path: Path) -> bool:
-    return str(path).endswith(".gz")
+def is_gzip(p: Path) -> bool:
+    return str(p).endswith(".gz")
 
-def open_maybe_gzip(path: Path):
-    if is_gzip(path):
-        return gzip.open(path, "rt", encoding="ascii", errors="ignore")
-    return open(path, "rt", encoding="ascii", errors="ignore")
+def open_maybe_gzip(p: Path):
+    if is_gzip(p):
+        return gzip.open(p, "rt", encoding="ascii", errors="ignore")
+    return open(p, "rt", encoding="ascii", errors="ignore")
 
 def iter_fastq_reads(handle):
-    """Generador simple de lecturas FASTQ (4 líneas por lectura). Devuelve (seq, qual)."""
     while True:
-        header = handle.readline()
-        if not header:
+        h = handle.readline()
+        if not h:
             break
         seq = handle.readline()
         plus = handle.readline()
@@ -101,21 +96,19 @@ def iter_fastq_reads(handle):
 def n50_from_lengths(lengths, total_bases):
     if not lengths or total_bases == 0:
         return 0
-    lengths_sorted = sorted(lengths, reverse=True)
+    ls = sorted(lengths, reverse=True)
     half = total_bases / 2
     acc = 0
-    for L in lengths_sorted:
+    for L in ls:
         acc += L
         if acc >= half:
             return L
     return 0
 
-# ------------------------ PRIMERS: lectura y búsqueda ------------------------
+# ---------- PRIMERS ----------
 
 def read_fasta_seqs(path: Path) -> List[str]:
-    """Lee un FASTA y devuelve una lista de secuencias (ACGTN...) en mayúsculas."""
-    seqs = []
-    cur = []
+    seqs, cur = [], []
     with open(path, "rt", encoding="utf-8", errors="ignore") as fh:
         for line in fh:
             line = line.strip()
@@ -126,18 +119,16 @@ def read_fasta_seqs(path: Path) -> List[str]:
                     seqs.append("".join(cur).upper())
                     cur = []
             else:
-                # Solo letras ACGTN
                 cur.append(re.sub(r"[^ACGTNacgtn]", "", line))
         if cur:
             seqs.append("".join(cur).upper())
     return [s for s in seqs if s]
 
 _rcmap = str.maketrans("ACGTN", "TGCAN")
-def revcomp(seq: str) -> str:
-    return seq.upper().translate(_rcmap)[::-1]
+def revcomp(s: str) -> str:
+    return s.upper().translate(_rcmap)[::-1]
 
 def hamming_leq_k(a: str, b: str, k: int) -> bool:
-    """True si Hamming(a,b) <= k. 'N' en el PRIMER (b) es comodín."""
     mism = 0
     for ca, cb in zip(a, b):
         if cb == "N":
@@ -149,7 +140,6 @@ def hamming_leq_k(a: str, b: str, k: int) -> bool:
     return True
 
 def any_primer_in_window(seq: str, primers: List[str], k: int) -> bool:
-    """Busca cualquier primer (o su RC) en cualquier desplazamiento de la ventana (seq)."""
     n = len(seq)
     for p in primers:
         m = len(p)
@@ -162,45 +152,7 @@ def any_primer_in_window(seq: str, primers: List[str], k: int) -> bool:
                 return True
     return False
 
-# ------------------------ CHIMERAS con vsearch ------------------------
-
-_size_re = re.compile(r";size=(\d+)")
-
-def parse_sizes_from_fasta(fapath: Path) -> int:
-    """Suma 'size=' de encabezados FASTA; si no hay, cuenta secuencias."""
-    total = 0
-    with open(fapath, "rt", encoding="utf-8", errors="ignore") as fh:
-        for line in fh:
-            if line.startswith(">"):
-                m = _size_re.search(line)
-                if m:
-                    total += int(m.group(1))
-                else:
-                    total += 1
-    return total
-
-def estimate_chimera_percent_with_vsearch(fasta_in: Path, vsearch_bin: str, tmpdir: Path) -> Optional[float]:
-    """Corre vsearch dereplicación + uchime3_denovo y retorna % quimeras ponderado por 'size='."""
-    try:
-        derep = tmpdir / (fasta_in.stem + ".derep.fna")
-        chim = tmpdir / (fasta_in.stem + ".chim.fna")
-        nonchim = tmpdir / (fasta_in.stem + ".nonchim.fna")
-        sp.run([vsearch_bin, "--derep_fulllength", str(fasta_in),
-                "--output", str(derep), "--sizeout", "--uc", "/dev/null"],
-               check=True, stdout=sp.PIPE, stderr=sp.PIPE)
-        sp.run([vsearch_bin, "--uchime3_denovo", str(derep),
-                "--chimeras", str(chim), "--nonchimeras", str(nonchim),
-                "--uchimeout", os.devnull],
-               check=True, stdout=sp.PIPE, stderr=sp.PIPE)
-        tot = parse_sizes_from_fasta(derep)
-        if tot == 0:
-            return 0.0
-        chim_w = parse_sizes_from_fasta(chim) if chim.exists() else 0
-        return 100.0 * chim_w / tot
-    except Exception:
-        return None
-
-# ------------------------ Procesamiento por archivo ------------------------
+# ---------- Métricas por archivo ----------
 
 def process_fastq(path: Path,
                   phred_offset: int = 33,
@@ -208,274 +160,205 @@ def process_fastq(path: Path,
                   primers: Optional[List[str]] = None,
                   primer_window: int = 120,
                   primer_max_mismatches: int = 2,
-                  primer_scan: int = 10000,
-                  chimera_denovo: bool = False,
-                  vsearch_bin: str = "vsearch",
-                  chimera_sample: int = 10000,
-                  tmpdir: Optional[Path] = None) -> dict:
-    reads = 0
-    total_bases = 0
-    gc_bases = 0
-    n_bases = 0
-    qsum = 0
-    q20 = 0
-    q30 = 0
+                  primer_scan: int = 10000) -> dict:
+    reads = total_bases = gc_bases = n_bases = qsum = q20 = q30 = 0
     lengths = []
 
-    # PRIMERS contadores
-    primer_scanned = 0
-    primer_head_hits = 0
-    primer_tail_hits = 0
-    primer_any_hits = 0
+    primer_scanned = primer_any_hits = 0
     do_primers = primers is not None and len(primers) > 0 and primer_scan > 0
 
-    # CHIMERA preparación
-    do_chim = chimera_denovo and chimera_sample > 0
-    tmp_for_file = None
-    fasta_sample = None
-    fasta_sample_handle = None
-    sampled = 0
+    with open_maybe_gzip(path) as fh:
+        for i, (seq, qual) in enumerate(iter_fastq_reads(fh), start=1):
+            L = len(seq)
+            if L == 0:
+                continue
+            lengths.append(L); reads += 1; total_bases += L
+            sup = seq.upper()
+            gc_bases += sup.count("G") + sup.count("C")
+            n_bases  += sup.count("N")
 
-    try:
-        if do_chim:
-            tmp_for_file = Path(tempfile.mkdtemp(prefix="chim_", dir=str(tmpdir) if tmpdir else None))
-            fasta_sample = tmp_for_file / (path.stem + ".sample.fna")
-            fasta_sample_handle = open(fasta_sample, "wt", encoding="utf-8")
+            if len(qual) != L:
+                Lq = min(L, len(qual))
+                qsum += sum((ord(ch) - phred_offset) for ch in qual[:Lq])
+                q20  += sum(1 for ch in qual[:Lq] if (ord(ch) - phred_offset) >= 20)
+                q30  += sum(1 for ch in qual[:Lq] if (ord(ch) - phred_offset) >= 30)
+            else:
+                qsum += sum((ord(ch) - phred_offset) for ch in qual)
+                q20  += sum(1 for ch in qual if (ord(ch) - phred_offset) >= 20)
+                q30  += sum(1 for ch in qual if (ord(ch) - phred_offset) >= 30)
 
-        with open_maybe_gzip(path) as fh:
-            for i, (seq, qual) in enumerate(iter_fastq_reads(fh), start=1):
-                L = len(seq)
-                if L == 0:
-                    continue
-                # Métricas básicas
-                lengths.append(L)
-                reads += 1
-                total_bases += L
+            if do_primers and primer_scanned < primer_scan:
+                head = sup[:primer_window]
+                tail = sup[-primer_window:] if L >= primer_window else sup
+                hit_head = any_primer_in_window(head, primers, primer_max_mismatches)
+                hit_tail = any_primer_in_window(tail, primers, primer_max_mismatches) if L > primer_window else False
+                if hit_head or hit_tail:
+                    primer_any_hits += 1
+                primer_scanned += 1
 
-                sup = seq.upper()
-                gc_bases += sup.count("G") + sup.count("C")
-                n_bases += sup.count("N")
+            if max_reads is not None and reads >= max_reads:
+                break
 
-                # Calidad
-                if len(qual) != L:
-                    Lq = min(L, len(qual))
-                    qsum += sum((ord(ch) - phred_offset) for ch in qual[:Lq])
-                    q20 += sum(1 for ch in qual[:Lq] if (ord(ch) - phred_offset) >= 20)
-                    q30 += sum(1 for ch in qual[:Lq] if (ord(ch) - phred_offset) >= 30)
-                else:
-                    qsum += sum((ord(ch) - phred_offset) for ch in qual)
-                    q20 += sum(1 for ch in qual if (ord(ch) - phred_offset) >= 20)
-                    q30 += sum(1 for ch in qual if (ord(ch) - phred_offset) >= 30)
-
-                # PRIMERS (escaneo parcial para rendimiento)
-                if do_primers and primer_scanned < primer_scan:
-                    head = sup[:primer_window]
-                    tail = sup[-primer_window:] if L >= primer_window else sup
-                    hit_head = any_primer_in_window(head, primers, primer_max_mismatches)
-                    hit_tail = any_primer_in_window(tail, primers, primer_max_mismatches) if L > primer_window else False
-                    if hit_head:
-                        primer_head_hits += 1
-                    if hit_tail:
-                        primer_tail_hits += 1
-                    if hit_head or hit_tail:
-                        primer_any_hits += 1
-                    primer_scanned += 1
-
-                # CHIMERAS (muestra primeras lecturas)
-                if do_chim and sampled < chimera_sample:
-                    # FASTA simple: >idx\nSEQ\n
-                    fasta_sample_handle.write(f">{i}\n{sup}\n")
-                    sampled += 1
-
-                if max_reads is not None and reads >= max_reads:
-                    break
-
-    except Exception as e:
-        # Limpieza de temporales si algo falla
-        try:
-            if fasta_sample_handle:
-                fasta_sample_handle.close()
-            if tmp_for_file and tmp_for_file.exists():
-                shutil.rmtree(tmp_for_file, ignore_errors=True)
-        except Exception:
-            pass
-        return {
-            "file": str(path),
-            "sample": path.stem.replace(".fastq", "").replace(".fq", ""),
-            "error": str(e),
-        }
-
-    # Cierra manejadores y calcula quimeras si aplica
-    chimera_pct = ""
-    if do_chim and fasta_sample_handle:
-        fasta_sample_handle.close()
-        # Verifica vsearch
-        vbin = shutil.which(vsearch_bin) or vsearch_bin
-        if shutil.which(vbin) or os.path.basename(vbin) == vsearch_bin:
-            est = estimate_chimera_percent_with_vsearch(fasta_sample, vbin, tmp_for_file)
-            chimera_pct = round(est, 3) if est is not None else ""
-        else:
-            chimera_pct = ""
-        # Limpieza
-        try:
-            shutil.rmtree(tmp_for_file, ignore_errors=True)
-        except Exception:
-            pass
-
-    # Estadísticas básicas
     if reads == 0 or total_bases == 0:
-        mean_len = med_len = min_len = max_len = n50 = 0
+        mean_len = min_len = max_len = n50 = 0
         gc_pct = n_pct = mean_q = q20_pct = q30_pct = 0.0
     else:
         mean_len = round(total_bases / reads, 2)
-        med_len = int(median(lengths))
-        min_len = min(lengths)
-        max_len = max(lengths)
+        min_len = min(lengths); max_len = max(lengths)
         n50 = n50_from_lengths(lengths, total_bases)
         gc_pct = round(100.0 * gc_bases / total_bases, 3)
-        n_pct = round(100.0 * n_bases / total_bases, 3)
+        n_pct  = round(100.0 * n_bases  / total_bases, 3)  # (no se muestra en la tabla, pero se calcula)
         mean_q = round(qsum / total_bases, 3)
         q20_pct = round(100.0 * q20 / total_bases, 3)
         q30_pct = round(100.0 * q30 / total_bases, 3)
 
-    # % PRIMERS
     if do_primers and primer_scanned > 0:
         primer_any_pct = round(100.0 * primer_any_hits / primer_scanned, 3)
-        primer_head_pct = round(100.0 * primer_head_hits / primer_scanned, 3)
-        primer_tail_pct = round(100.0 * primer_tail_hits / primer_scanned, 3)
     else:
-        primer_any_pct = primer_head_pct = primer_tail_pct = ""
-
-    # Tamaño del archivo
-    try:
-        file_bytes = os.path.getsize(path)
-    except Exception:
-        file_bytes = None
+        primer_any_pct = ""
 
     return {
-        "file": str(path),
-        "sample": path.stem.replace(".fastq", "").replace(".fq", ""),
+        "sample": path.stem.replace(".fastq","").replace(".fq",""),
         "reads": reads,
-        "bases": total_bases,
         "mean_len": mean_len,
-        "median_len": med_len,
         "min_len": min_len,
         "max_len": max_len,
         "N50": n50,
         "GC_percent": gc_pct,
-        "N_percent": n_pct,
         "mean_Q": mean_q,
         "Q20_bases_percent": q20_pct,
         "Q30_bases_percent": q30_pct,
-        "file_size_bytes": file_bytes,
-        # Nuevas columnas
         "primer_any_percent": primer_any_pct,
-        "primer_head_percent": primer_head_pct,
-        "primer_tail_percent": primer_tail_pct,
-        "chimera_percent": chimera_pct,
     }
 
-# ------------------------ CLI ------------------------
+# ---------- Tabla “bonita” con | y filas de - ----------
 
-def parse_args():
-    p = argparse.ArgumentParser(description="Extraer métricas básicas de FASTQ/FASTQ.GZ con opcional PRIMERS y QUIMERAS")
-    p.add_argument("input", help="Carpeta o archivo FASTQ/FASTQ.GZ")
-    p.add_argument("-o", "--output", default="fastq_metrics.csv", help="Ruta de salida (CSV/TSV) [por defecto: fastq_metrics.csv]")
-    p.add_argument("--tsv", action="store_true", help="Guardar como TSV en lugar de CSV")
-    p.add_argument("-r", "--recursive", action="store_true", help="Buscar recursivamente en subcarpetas")
-    p.add_argument("--phred", type=int, default=33, help="Offset Phred (por defecto: 33)")
-    p.add_argument("--max-reads", type=int, default=None, help="Procesar como máximo N lecturas por archivo (útil para pruebas)")
-    # PRIMERS
-    p.add_argument("--primers", type=str, default=None, help="FASTA con primers (p. ej., 27F/1492R). Busca en cabecera/cola por ventana.")
-    p.add_argument("--primer-window", type=int, default=120, help="Tamaño de ventana en extremos (nt) para buscar primers [120]")
-    p.add_argument("--primer-max-mismatches", type=int, default=2, help="Máximo de mismatches permitidos en la coincidencia [2]")
-    p.add_argument("--primer-scan", type=int, default=10000, help="Máximo de lecturas a escanear para primers por archivo [10000]")
-    # CHIMERAS
-    p.add_argument("--chimera-denovo", action="store_true", help="Estimar %% de quimeras con vsearch --uchime3_denovo (muestra por archivo)")
-    p.add_argument("--vsearch", type=str, default="vsearch", help="Ruta al binario de vsearch [vsearch]")
-    p.add_argument("--chimera-sample", type=int, default=10000, help="N lecturas por archivo para estimar quimeras [10000]")
-    p.add_argument("--tmpdir", type=str, default=None, help="Directorio temporal para archivos intermedios (opcional)")
-    return p.parse_args()
+HEADERS = [
+    "Muestra","lecturas","longitud promedio","loogitud mínima","longitud máxima",
+    "N50","GC%","QScore promedio","Q20%","Q30%","% primers"
+]
+
+ORDER = [
+    "sample","reads","mean_len","min_len","max_len",
+    "N50","GC_percent","mean_Q","Q20_bases_percent","Q30_bases_percent","primer_any_percent"
+]
+
+def _fmt(x, dec=None):
+    if x == "" or x is None: return ""
+    if isinstance(x, float):
+        return f"{x:.{dec if dec is not None else 3}f}"
+    return str(x)
+
+def row_to_display(row: dict) -> list:
+    mapping = {
+        "sample": row["sample"],
+        "reads": _fmt(row["reads"], 0),
+        "mean_len": _fmt(row["mean_len"], 2),
+        "min_len": _fmt(row["min_len"], 0),
+        "max_len": _fmt(row["max_len"], 0),
+        "N50": _fmt(row["N50"], 0),
+        "GC_percent": _fmt(row["GC_percent"], 3),
+        "mean_Q": _fmt(row["mean_Q"], 3),
+        "Q20_bases_percent": _fmt(row["Q20_bases_percent"], 3),
+        "Q30_bases_percent": _fmt(row["Q30_bases_percent"], 3),
+        "primer_any_percent": _fmt(row["primer_any_percent"], 3),
+    }
+    return [mapping[k] for k in ORDER]
+
+def write_pretty_table(rows: list, headers: list, out_path: Path):
+    str_rows = [row_to_display(r) for r in rows]
+    widths = [len(h) for h in headers]
+    for r in str_rows:
+        for i, cell in enumerate(r):
+            widths[i] = max(widths[i], len(str(cell)))
+    def mkline(cells):
+        parts = [(str(cells[i]).ljust(widths[i])) for i in range(len(headers))]
+        return "| " + " | ".join(parts) + " |"
+    header_line = mkline(headers)
+    sep_line = "-" * len(header_line)
+    with open(out_path, "w", encoding="utf-8") as out:
+        out.write(header_line + "\n")
+        out.write(sep_line + "\n")
+        for r in str_rows:
+            out.write(mkline(r) + "\n")
+            out.write(sep_line + "\n")
+
+# ---------- CLI y ejecución ----------
 
 def find_fastqs(root: Path, recursive: bool = False):
     files = []
     if root.is_file():
-        if any(str(root).endswith(ext) for ext in (".fastq", ".fq", ".fastq.gz", ".fq.gz")):
+        if any(str(root).endswith(ext) for ext in (".fastq",".fq",".fastq.gz",".fq.gz")):
             files.append(root)
     else:
-        patterns = ["*.fastq", "*.fq", "*.fastq.gz", "*.fq.gz"]
+        pats = ["*.fastq","*.fq","*.fastq.gz","*.fq.gz"]
         if recursive:
-            for pat in patterns:
-                files.extend(root.rglob(pat))
+            for pat in pats: files.extend(root.rglob(pat))
         else:
-            for pat in patterns:
-                files.extend(root.glob(pat))
+            for pat in pats: files.extend(root.glob(pat))
     return sorted(set(files))
+
+def parse_args():
+    p = argparse.ArgumentParser(description="Métricas FASTQ; salida única formateada con '|' y separadores de filas, con avisos de inicio/fin.")
+    p.add_argument("input", help="Carpeta o archivo FASTQ/FASTQ.GZ")
+    p.add_argument("-o","--output", default="estadisticas_pretty.txt", help="Ruta de salida .txt (tabla)")
+    p.add_argument("-r","--recursive", action="store_true", help="Buscar recursivamente en subcarpetas")
+    p.add_argument("--phred", type=int, default=33, help="Offset Phred (por defecto: 33)")
+    p.add_argument("--max-reads", type=int, default=None, help="Máximo de lecturas por archivo (pruebas)")
+    p.add_argument("--primers", type=str, default=None, help="FASTA con primers (A/C/G/T/N)")
+    p.add_argument("--primer-window", type=int, default=120, help="Ventana en extremos para buscar primers [120]")
+    p.add_argument("--primer-max-mismatches", type=int, default=2, help="Máximo de mismatches [2]")
+    p.add_argument("--primer-scan", type=int, default=10000, help="N lecturas a escanear para primers [10000]")
+    return p.parse_args()
 
 def main():
     args = parse_args()
     inp = Path(args.input).expanduser()
-    files = find_fastqs(inp, recursive=args.recursive)
-    if not files:
-        print(f"[WARN] No se encontraron archivos FASTQ en: {inp}")
-        return
-
-    delimiter = "\t" if args.tsv else ","
     out_path = Path(args.output)
-    if out_path.suffix.lower() == ".tsv":
-        delimiter = "\t"
 
-    # Carga primers si procede
+    # Mensaje de inicio
+    t0 = time.time()
+    print(f"[INFO] Iniciando: analizando FASTQ en {inp} ...", file=sys.stderr)
+
+    # Carga primers si los hay
     primers = None
     if args.primers:
-        primers_path = Path(args.primers).expanduser()
-        if primers_path.exists():
-            primers = read_fasta_seqs(primers_path)
+        pp = Path(args.primers).expanduser()
+        if pp.exists():
+            primers = read_fasta_seqs(pp)
             if not primers:
-                print(f"[WARN] No se leyeron secuencias desde {primers_path}. Ignorando --primers.")
+                print(f"[WARN] El archivo de primers está vacío o no legible: {pp}", file=sys.stderr)
                 primers = None
         else:
-            print(f"[WARN] Archivo de primers no existe: {primers_path}. Ignorando --primers.")
-            primers = None
+            print(f"[WARN] Archivo de primers no existe: {pp}. Continuaré sin primers.", file=sys.stderr)
 
-    # Columnas
-    fieldnames = [
-        "file", "sample", "reads", "bases",
-        "mean_len", "median_len", "min_len", "max_len", "N50",
-        "GC_percent", "N_percent",
-        "mean_Q", "Q20_bases_percent", "Q30_bases_percent",
-        "file_size_bytes",
-        # nuevas
-        "primer_any_percent", "primer_head_percent", "primer_tail_percent",
-        "chimera_percent"
-    ]
+    files = find_fastqs(inp, recursive=args.recursive)
+    if not files:
+        print(f"[WARN] No se encontraron archivos FASTQ en: {inp}", file=sys.stderr)
+        return
 
-    print(f"[INFO] Archivos detectados: {len(files)}")
-    with open(out_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=delimiter)
-        writer.writeheader()
-        for fpath in files:
-            stats = process_fastq(
-                fpath,
-                phred_offset=args.phred,
-                max_reads=args.max_reads,
-                primers=primers,
-                primer_window=args.primer_window,
-                primer_max_mismatches=args.primer_max_mismatches,
-                primer_scan=args.primer_scan,
-                chimera_denovo=args.chimera_denovo,
-                vsearch_bin=args.vsearch,
-                chimera_sample=args.chimera_sample,
-                tmpdir=Path(args.tmpdir) if args.tmpdir else None,
-            )
-            if "error" in stats:
-                print(f"[ERROR] {fpath}: {stats['error']}")
-            writer.writerow({k: stats.get(k, "") for k in fieldnames})
+    print(f"[INFO] Archivos detectados: {len(files)}", file=sys.stderr)
 
-    print(f"[OK] Resultados guardados en: {out_path.resolve()}")
+    rows = []
+    for fpath in files:
+        rows.append(process_fastq(
+            fpath,
+            phred_offset=args.phred,
+            max_reads=args.max_reads,
+            primers=primers,
+            primer_window=args.primer_window,
+            primer_max_mismatches=args.primer_max_mismatches,
+            primer_scan=args.primer_scan
+        ))
+
+    write_pretty_table(rows, HEADERS, out_path)
+
+    # Mensaje de fin
+    dt = time.time() - t0
+    print(f"[OK] Tabla guardada en: {out_path.resolve()}  (tiempo: {dt:.1f}s)", file=sys.stderr)
 
 if __name__ == "__main__":
-    main()                                              
+    main()                                           
 ```
 
 Los paquetes que se importanron fueron:
@@ -507,10 +390,9 @@ Una vez creado el script con el código, se ejecúta:
 ```
 python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
-  -r --tsv \
+  -r \
   --primers "/home/fenrir/resources/primers_stesen.fasta" \
-  --primer-window 120 --primer-max-mismatches 2 --primer-scan 10000 \
-  -o "/home/fenrir/scriptsbioinf/estadisticas.txt"
+  -o "/home/fenrir/scriptsbioinf/estadisticas_pretty.txt"
 ```
 
 # Denoising y Trimming
