@@ -425,13 +425,6 @@ pychopper -m edlib \
   -c "/home/fenrir/resources/primers_stesen.txt" \ 
   -Q 9 -z 1300 -t 8 \
   -Y 0 -q 0.52 \ 
-  -r "results/SRR26147165_report.pdf" \ 
-  -S "results/SRR26147165_stats.tsv" \
-  -A "results/SRR26147165_scores.tsv" \
-  -K "results/SRR26147165_qc_fail.fastq" \ 
-  -l "results/SRR26147165_len_fail.fastq" \ 
-  -u "results/SRR26147165_unclassified.fastq" \ 
-  -w "results/SRR26147165_rescued.fastq" \
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels/SRR26147154.fastq.gz" \ 
   "results/sample1_oriented_trimmed.fastq" 
 ```
@@ -472,13 +465,6 @@ filtlong --min_length 1300 --max_length 1700 \
   -c "/home/fenrir/resources/primers_stesen.txt" \ 
   -Q 9 -z 1300 -t 8 \ 
   -Y 0 -q 0.52 \
-  -r "results/SRR26147165_report.pdf" \
-  -S "results/SRR26147165_stats.tsv" \ 
-  -A "results/SRR26147165_scores.tsv" \ 
-  -K "results/SRR26147165_qc_fail.fastq" \ 
-  -l "results/SRR26147165_len_fail.fastq" \ 
-  -u "results/SRR26147165_unclassified.fastq" \ 
-  -w "results/SRR26147165_rescued.fastq" \ 
   /dev/stdin "results/SRR26147165_oriented_trimmed.fastq" 
 ```
 
