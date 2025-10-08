@@ -1,4 +1,5 @@
 # 16S-FenrirPipeline
+
 Taxa ans diversity pipeline for ONT 16S
 Para el procesamiento de muestras de 16S con ONT, fue necesario hacer una revisión bibliográfica de otros estudios, con el fin de identificar aquellas herramientas que son útiles para diferentes estancias en la construcción del pipeline. Por lo que se identificaron los siguientes pasos:
 - Basecalling
@@ -10,7 +11,8 @@ Para el procesamiento de muestras de 16S con ONT, fue necesario hacer una revisi
 
 La elaboración de este pipeline se hace desde un entorno Linux con Anaconda.
 
-# Basecalling
+# BASECALLING
+
 Este es el primer paso del pipeline, pues aquí se busca convertir los archivos fast5 a `.fastq`. Los archivos `.fast5` son el output de la secuenciación con MinION (Oxford Nanopore Technologies). En este caso, ONT proporciona Dorado como una herramienta para este paso. 
 Para usar esta herramienta es necesario hacer la instalación de la misma para entorno Linux. Esta descarga se hizo por medio de línea de comando desde el Terminal, pues `Dorado` se encuentra como un paquete de `Anaconda` ([Dorado](https://anaconda.org/HCC/dorado)). Se descarga el binario precompilado con:
 ```
@@ -37,7 +39,8 @@ dorado basecaller hac /ruta/pod5/ \
 - `--no-trim` es para evitar que recorte barcodes y adaptadores.
 - `-x auto` decide automáticamente si usar GPU o CPU.
 
-# Demultiplexing
+# DEMULTIPLEXING
+
 Para realizar este paso, se encontraron que algunos estudios usaron herramientas especializadas como `Porechop`, sin embargo, se decidió usar `Dorado` porque esta herramienta es la recomendada por ONT.
 
 Generalmente, este paso se hace al mismo tiempo que el basecalling, por lo que se modifica un poco el comando de basecalling anteriormente puesto. Para usar esta herramienta se usó el siguiente código:
@@ -59,9 +62,9 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 - `--emit-fastq` la salida pasa a ser en formato `.fastq`.
 - `-o` carpeta donde estaran las salidas.
 
-# Reporte de estadísticas básicas
+# REPORTE DE ESTADÍSTICAS BÁSICAS
 
-Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código presente en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas).
+Es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de algunos repositorios, estos ya viene filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o no. Adicvionalmente, se podría llevar un registo sobre la calidad en la que estan las secuencias antes y después de filtradas. Por lo que, se usó el código que se encuentra en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas). Este código permite generar un archivo `.txt` y `.xlsx` donde se genera una tabla con el reporte de estadísticas básicas de cada una de las secuencais.
 
 ## Paquetes importados
 
@@ -78,7 +81,7 @@ Los paquetes que se importanron fueron:
 - `pandas` crea un XLSX con las columnas establecidas.
 
 ## Funciones definidas
-
+- #`is_gzip`#
 Con el parámetro `input` puede ser un archivo o una carpeta, lo que permite procesar una sola muestra o una carpeta con varios de estas. Además, con `--recursive` se busca también en subcarpetas, ignorando así las jerarquías. Luego, con `--output` se define la ruta y el nombre del archivo, y con `--tsv` permite generar un archivo separado por tabulaciones. Usando `--phred` se puede conocer la calidad de las lecturas. Finalmente, con `--max-reads` se procesa solo las primeras N lecturas de cada archivo y se detiene.
 
 Para abrir `.fastq.gz` se usó `gzip.open` pues evita descomprimir y mantienes un flujo de lectura constante. Además, con `encoding="ascii"` y `errors="ignore"` se evita que cuando aparezca un carácter extraño, sean ignorados y sacar métricas del resto sin detenerse.
