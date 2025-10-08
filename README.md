@@ -267,13 +267,13 @@ def row_to_display(row: dict) -> list:
     return [mapping[k] for k in ORDER]
 
 def row_to_excel(row: dict) -> dict:
-    """Dict con claves HEADERS y valores nativos para Excel."""
+    """Dict con claves HEADERS y valores nativos para Excel (números como números)."""
     return {
         "Muestra": row["sample"],
         "lecturas": int(row["reads"]) if isinstance(row["reads"], (int,float)) else None,
         "bases": int(row["bases"]) if isinstance(row["bases"], (int,float)) else None,
         "longitud promedio": float(row["mean_len"]) if row["mean_len"] != "" else None,
-        "longitud mínima": int(row["min_len"]) if row["min_len"] != "" else None,   # <— corregido
+        "longitud mínima": int(row["min_len"]) if row["min_len"] != "" else None,
         "longitud máxima": int(row["max_len"]) if row["max_len"] != "" else None,
         "N50": int(row["N50"]) if row["N50"] != "" else None,
         "GC%": float(row["GC_percent"]) if row["GC_percent"] != "" else None,
@@ -304,11 +304,12 @@ def write_pretty_table(rows: list, headers: list, out_path: Path):
             out.write(sep_line + "\n")
 
 def write_tsv(rows: list, out_path: Path):
+    """TSV limpio (para conversión o emergencia). Usa valores nativos donde aplica."""
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("\t".join(HEADERS) + "\n")
         for r in rows:
-            d = row_to_display(r)
-            f.write("\t".join(str(x) for x in d) + "\n")
+            ex = row_to_excel(r)
+            f.write("\t".join("" if ex[h] is None else str(ex[h]) for h in HEADERS) + "\n")
 
 def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> bool:
     # 1) pandas + openpyxl/xlsxwriter
@@ -316,9 +317,10 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
         import pandas as pd
         df = pd.DataFrame([row_to_excel(r) for r in rows], columns=HEADERS)
         df.to_excel(out_xlsx, index=False)
+        print("[INFO] XLSX escrito con pandas", file=sys.stderr)
         return True
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[INFO] pandas no disponible/usable ({e.__class__.__name__}): intento openpyxl...", file=sys.stderr)
     # 2) openpyxl directo
     try:
         from openpyxl import Workbook
@@ -329,25 +331,48 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
             ex = row_to_excel(r)
             ws.append([ex[h] for h in HEADERS])
         wb.save(out_xlsx)
+        print("[INFO] XLSX escrito con openpyxl", file=sys.stderr)
         return True
-    except Exception:
-        pass
-    # 3) LibreOffice/soffice (requiere TSV intermedio)
+    except Exception as e:
+        print(f"[INFO] openpyxl no disponible/usable ({e.__class__.__name__}): intento LibreOffice...", file=sys.stderr)
+    # 3) LibreOffice/soffice forzando TAB como separador
     soffice = shutil.which("libreoffice") or shutil.which("soffice")
     if soffice and tmp_tsv:
-        write_tsv(rows, tmp_tsv)
+        write_tsv(rows, tmp_tsv)  # TSV limpio (TAB)
         try:
-            sp.run([soffice, "--headless", "--convert-to", "xlsx", str(tmp_tsv), "--outdir", str(out_xlsx.parent)],
-                   check=True, stdout=sp.PIPE, stderr=sp.PIPE)
+            # Fuerza: separador de campo=9 (TAB), texto=34 ("), codificación UTF-8
+            cmd = [
+                soffice, "--headless",
+                "--convert-to", "xlsx:Calc MS Excel 2007 XML",
+                "--infilter=Text - txt - csv (StarCalc):9,34,76,1",
+                str(tmp_tsv), "--outdir", str(out_xlsx.parent)
+            ]
+            sp.run(cmd, check=True, stdout=sp.PIPE, stderr=sp.PIPE)
             generated = out_xlsx.parent / (tmp_tsv.stem + ".xlsx")
             if generated.exists() and generated != out_xlsx:
                 generated.replace(out_xlsx)
+            print("[INFO] XLSX convertido con LibreOffice (TAB forzado)", file=sys.stderr)
             return True
-        except Exception:
-            return False
+        except Exception as e:
+            print(f"[INFO] Filtro largo falló ({e.__class__.__name__}), probando CSV:9,34,76,1...", file=sys.stderr)
+            try:
+                cmd = [
+                    soffice, "--headless",
+                    "--convert-to", "xlsx:Calc MS Excel 2007 XML",
+                    "--infilter=CSV:9,34,76,1",
+                    str(tmp_tsv), "--outdir", str(out_xlsx.parent)
+                ]
+                sp.run(cmd, check=True, stdout=sp.PIPE, stderr=sp.PIPE)
+                generated = out_xlsx.parent / (tmp_tsv.stem + ".xlsx")
+                if generated.exists() and generated != out_xlsx:
+                    generated.replace(out_xlsx)
+                print("[INFO] XLSX convertido con LibreOffice (CSV:9,34,76,1)", file=sys.stderr)
+                return True
+            except Exception:
+                return False
     return False
 
-# ---------- Descubrimiento de archivos, CLI y main ----------
+# ---------- Descubrimiento, CLI y main ----------
 
 def find_fastqs(root: Path, recursive: bool = False):
     files = []
@@ -363,10 +388,10 @@ def find_fastqs(root: Path, recursive: bool = False):
     return sorted(set(files))
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Métricas FASTQ; genera TXT 'bonito' y XLSX. Avisos por stderr.")
+    p = argparse.ArgumentParser(description="Métricas FASTQ; genera TXT 'bonito' y XLSX. Logs del método usado por stderr.")
     p.add_argument("input", help="Carpeta o archivo FASTQ/FASTQ.GZ")
     p.add_argument("-o","--output", default="estadisticas_pretty.txt", help="Ruta de salida .txt (tabla)")
-    p.add_argument("--xlsx-out", default=None, help="Ruta de salida .xlsx (opcional; por defecto mismo nombre que -o)")
+    p.add_argument("--xlsx-out", default=None, help="Ruta de salida .xlsx (por defecto mismo nombre que -o)")
     p.add_argument("-r","--recursive", action="store_true", help="Buscar recursivamente en subcarpetas")
     p.add_argument("--phred", type=int, default=33, help="Offset Phred (por defecto: 33)")
     p.add_argument("--max-reads", type=int, default=None, help="Máximo de lecturas por archivo (pruebas)")
@@ -419,7 +444,7 @@ def main():
     write_pretty_table(rows, HEADERS, out_txt)
     print(f"[OK] TXT guardado en: {out_txt.resolve()}", file=sys.stderr)
 
-    # XLSX (con varios intentos)
+    # XLSX (método usado se informa dentro de try_write_xlsx)
     if try_write_xlsx(rows, out_xlsx, tmp_tsv):
         print(f"[OK] XLSX guardado en: {out_xlsx.resolve()}", file=sys.stderr)
         if tmp_tsv.exists():
@@ -430,8 +455,9 @@ def main():
         print(f"[WARN] No se pudo crear .xlsx automáticamente.", file=sys.stderr)
         print(f"       Te dejo un TSV para Excel: {tmp_tsv.resolve()}", file=sys.stderr)
         print(f"       Opciones:", file=sys.stderr)
-        print(f"         - Instalar pandas/openpyxl:  pip install pandas openpyxl", file=sys.stderr)
-        print(f"         - O convertir con LibreOffice: libreoffice --headless --convert-to xlsx \"{tmp_tsv}\" --outdir \"{out_xlsx.parent}\"", file=sys.stderr)
+        print(f"         - Instalar:  python3 -m pip install pandas openpyxl", file=sys.stderr)
+        print(f"         - O convertir con LibreOffice:", file=sys.stderr)
+        print(f"           libreoffice --headless --convert-to xlsx \"{tmp_tsv}\" --outdir \"{out_xlsx.parent}\"", file=sys.stderr)
 
     dt = time.time() - t0
     print(f"[OK] Proceso completo. Tiempo: {dt:.1f}s", file=sys.stderr)
@@ -442,12 +468,15 @@ if __name__ == "__main__":
 
 Los paquetes que se importanron fueron:
 - `argparse` evita que se tenga que editar el código si se cambia el formato de la entradaa tanto con una carpeta como con un archivo.
-- `csv` escribe CSV/TSV sin dependencias externas.
 - `gzip` lee `.fastq.gz` sin descomprimir.
 - `os` para saber tamaño del archivo.
 - `pathlib.Path` reconoce espacios, ~, etc.
-- `statistics.median` permite incluir media y mediana.
-- `typing.Optional` hace explícito que max_reads puede omitirse.
+- `re` permite reconocer solo las bases nitrogenadas en archivos FASTA.
+- `sys` permite imprimir avisos.
+- `time` permite conocer el tiempo que demoró en ejecutarse.
+- `shutil` permite ver si es posible convertir un archivo de TSV a XLSX
+- `subprocess` permite separa cada columna en el archivo XLSX.
+- `pandas` crea un XLSX con las columnas establecidas.
 
 Con el parámetro `input` puede ser un archivo o una carpeta, lo que permite procesar una sola muestra o una carpeta con varios de estas. Además, con `--recursive` se busca también en subcarpetas, ignorando así las jerarquías. Luego, con `--output` se define la ruta y el nombre del archivo, y con `--tsv` permite generar un archivo separado por tabulaciones. Usando `--phred` se puede conocer la calidad de las lecturas. Finalmente, con `--max-reads` se procesa solo las primeras N lecturas de cada archivo y se detiene.
 
