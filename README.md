@@ -61,7 +61,9 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 
 # Reporte de estadísticas básicas
 
-Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código presente en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas)
+Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código presente en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas).
+
+## Paquetes importados
 
 Los paquetes que se importanron fueron:
 - `argparse` evita que se tenga que editar el código si se cambia el formato de la entradaa tanto con una carpeta como con un archivo.
@@ -74,6 +76,8 @@ Los paquetes que se importanron fueron:
 - `shutil` permite ver si es posible convertir un archivo de TSV a XLSX
 - `subprocess` permite separa cada columna en el archivo XLSX.
 - `pandas` crea un XLSX con las columnas establecidas.
+
+## Funciones definidas
 
 Con el parámetro `input` puede ser un archivo o una carpeta, lo que permite procesar una sola muestra o una carpeta con varios de estas. Además, con `--recursive` se busca también en subcarpetas, ignorando así las jerarquías. Luego, con `--output` se define la ruta y el nombre del archivo, y con `--tsv` permite generar un archivo separado por tabulaciones. Usando `--phred` se puede conocer la calidad de las lecturas. Finalmente, con `--max-reads` se procesa solo las primeras N lecturas de cada archivo y se detiene.
 
@@ -90,6 +94,8 @@ La búsqueda de archivos con `find_fastqs` acepta `.fastq` y `.fq`. Adicionalmen
 La escritura del reporte usa `csv.DictWriter` para mantener un orden estable de columnas y evitar errores de formato. Se abre el archivo con `newline=""` para prevenir líneas en blanco extra en algunos sistemas. Si al procesar un archivo ocurre una excepción, se imprime un `[ERROR]` en consola y se continúa; el diccionario que devuelve process_fastq puede incluir un campo error, pero la fila se escribe con los campos conocidos. Esta tolerancia controlada es intencional en trabajos por lote: te permite terminar la corrida y luego revisar con calma los casos problemáticos.
 
 Se usó `csv.DictWriter` para garantizar un orden fijo de columnas y un formato consistente sin pelear con separadores. Luego, se abre el archivo con `newline=""` para evitar líneas en blanco extra. Si al procesar un `.fastq` ocurre una excepción, se imprime un `[ERROR] en consola y el script continúa con los demás archivos, donde la fila problemática se escribe solo con los campos conocidos, pero con las métricas vacías.
+
+## Ejecución del código
 
 Una vez creado el script con el código, se ejecúta:
 ```
