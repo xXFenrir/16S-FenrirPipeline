@@ -66,7 +66,7 @@ Antes de proceder con este paso, es necesario saber si las muestras necesitan o 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse, gzip, os, re, sys, time
+import argparse, gzip, os, re, sys, time, shutil, subprocess as sp
 from pathlib import Path
 from statistics import median
 from typing import Optional, List
@@ -201,13 +201,12 @@ def process_fastq(path: Path,
 
     if reads == 0 or total_bases == 0:
         mean_len = min_len = max_len = n50 = 0
-        gc_pct = n_pct = mean_q = q20_pct = q30_pct = 0.0
+        gc_pct = mean_q = q20_pct = q30_pct = 0.0
     else:
         mean_len = round(total_bases / reads, 2)
         min_len = min(lengths); max_len = max(lengths)
         n50 = n50_from_lengths(lengths, total_bases)
         gc_pct = round(100.0 * gc_bases / total_bases, 3)
-        n_pct  = round(100.0 * n_bases  / total_bases, 3)  # (no se muestra en la tabla, pero se calcula)
         mean_q = round(qsum / total_bases, 3)
         q20_pct = round(100.0 * q20 / total_bases, 3)
         q30_pct = round(100.0 * q30 / total_bases, 3)
@@ -220,6 +219,7 @@ def process_fastq(path: Path,
     return {
         "sample": path.stem.replace(".fastq","").replace(".fq",""),
         "reads": reads,
+        "bases": total_bases,
         "mean_len": mean_len,
         "min_len": min_len,
         "max_len": max_len,
@@ -231,15 +231,15 @@ def process_fastq(path: Path,
         "primer_any_percent": primer_any_pct,
     }
 
-# ---------- Tabla “bonita” con | y filas de - ----------
+# ---------- Construcción de la tabla (nombres en español) ----------
 
 HEADERS = [
-    "Muestra","lecturas","longitud promedio","loogitud mínima","longitud máxima",
+    "Muestra","lecturas","bases","longitud promedio","longitud mínima","longitud máxima",
     "N50","GC%","QScore promedio","Q20%","Q30%","% primers"
 ]
 
 ORDER = [
-    "sample","reads","mean_len","min_len","max_len",
+    "sample","reads","bases","mean_len","min_len","max_len",
     "N50","GC_percent","mean_Q","Q20_bases_percent","Q30_bases_percent","primer_any_percent"
 ]
 
@@ -253,6 +253,7 @@ def row_to_display(row: dict) -> list:
     mapping = {
         "sample": row["sample"],
         "reads": _fmt(row["reads"], 0),
+        "bases": _fmt(row["bases"], 0),
         "mean_len": _fmt(row["mean_len"], 2),
         "min_len": _fmt(row["min_len"], 0),
         "max_len": _fmt(row["max_len"], 0),
@@ -264,6 +265,25 @@ def row_to_display(row: dict) -> list:
         "primer_any_percent": _fmt(row["primer_any_percent"], 3),
     }
     return [mapping[k] for k in ORDER]
+
+def row_to_excel(row: dict) -> dict:
+    """Dict con claves HEADERS y valores nativos para Excel."""
+    return {
+        "Muestra": row["sample"],
+        "lecturas": int(row["reads"]) if isinstance(row["reads"], (int,float)) else None,
+        "bases": int(row["bases"]) if isinstance(row["bases"], (int,float)) else None,
+        "longitud promedio": float(row["mean_len"]) if row["mean_len"] != "" else None,
+        "longitud mínima": int(row["min_len"]) if row["min_len"] != "" else None,   # <— corregido
+        "longitud máxima": int(row["max_len"]) if row["max_len"] != "" else None,
+        "N50": int(row["N50"]) if row["N50"] != "" else None,
+        "GC%": float(row["GC_percent"]) if row["GC_percent"] != "" else None,
+        "QScore promedio": float(row["mean_Q"]) if row["mean_Q"] != "" else None,
+        "Q20%": float(row["Q20_bases_percent"]) if row["Q20_bases_percent"] != "" else None,
+        "Q30%": float(row["Q30_bases_percent"]) if row["Q30_bases_percent"] != "" else None,
+        "% primers": float(row["primer_any_percent"]) if row["primer_any_percent"] != "" else None,
+    }
+
+# ---------- Salidas: TXT bonito + XLSX ----------
 
 def write_pretty_table(rows: list, headers: list, out_path: Path):
     str_rows = [row_to_display(r) for r in rows]
@@ -283,7 +303,51 @@ def write_pretty_table(rows: list, headers: list, out_path: Path):
             out.write(mkline(r) + "\n")
             out.write(sep_line + "\n")
 
-# ---------- CLI y ejecución ----------
+def write_tsv(rows: list, out_path: Path):
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\t".join(HEADERS) + "\n")
+        for r in rows:
+            d = row_to_display(r)
+            f.write("\t".join(str(x) for x in d) + "\n")
+
+def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> bool:
+    # 1) pandas + openpyxl/xlsxwriter
+    try:
+        import pandas as pd
+        df = pd.DataFrame([row_to_excel(r) for r in rows], columns=HEADERS)
+        df.to_excel(out_xlsx, index=False)
+        return True
+    except Exception:
+        pass
+    # 2) openpyxl directo
+    try:
+        from openpyxl import Workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.append(HEADERS)
+        for r in rows:
+            ex = row_to_excel(r)
+            ws.append([ex[h] for h in HEADERS])
+        wb.save(out_xlsx)
+        return True
+    except Exception:
+        pass
+    # 3) LibreOffice/soffice (requiere TSV intermedio)
+    soffice = shutil.which("libreoffice") or shutil.which("soffice")
+    if soffice and tmp_tsv:
+        write_tsv(rows, tmp_tsv)
+        try:
+            sp.run([soffice, "--headless", "--convert-to", "xlsx", str(tmp_tsv), "--outdir", str(out_xlsx.parent)],
+                   check=True, stdout=sp.PIPE, stderr=sp.PIPE)
+            generated = out_xlsx.parent / (tmp_tsv.stem + ".xlsx")
+            if generated.exists() and generated != out_xlsx:
+                generated.replace(out_xlsx)
+            return True
+        except Exception:
+            return False
+    return False
+
+# ---------- Descubrimiento de archivos, CLI y main ----------
 
 def find_fastqs(root: Path, recursive: bool = False):
     files = []
@@ -299,9 +363,10 @@ def find_fastqs(root: Path, recursive: bool = False):
     return sorted(set(files))
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Métricas FASTQ; salida única formateada con '|' y separadores de filas, con avisos de inicio/fin.")
+    p = argparse.ArgumentParser(description="Métricas FASTQ; genera TXT 'bonito' y XLSX. Avisos por stderr.")
     p.add_argument("input", help="Carpeta o archivo FASTQ/FASTQ.GZ")
     p.add_argument("-o","--output", default="estadisticas_pretty.txt", help="Ruta de salida .txt (tabla)")
+    p.add_argument("--xlsx-out", default=None, help="Ruta de salida .xlsx (opcional; por defecto mismo nombre que -o)")
     p.add_argument("-r","--recursive", action="store_true", help="Buscar recursivamente en subcarpetas")
     p.add_argument("--phred", type=int, default=33, help="Offset Phred (por defecto: 33)")
     p.add_argument("--max-reads", type=int, default=None, help="Máximo de lecturas por archivo (pruebas)")
@@ -314,13 +379,13 @@ def parse_args():
 def main():
     args = parse_args()
     inp = Path(args.input).expanduser()
-    out_path = Path(args.output)
+    out_txt = Path(args.output)
+    out_xlsx = Path(args.xlsx_out) if args.xlsx_out else out_txt.with_suffix(".xlsx")
+    tmp_tsv = out_txt.with_suffix(".tsv")
 
-    # Mensaje de inicio
     t0 = time.time()
     print(f"[INFO] Iniciando: analizando FASTQ en {inp} ...", file=sys.stderr)
 
-    # Carga primers si los hay
     primers = None
     if args.primers:
         pp = Path(args.primers).expanduser()
@@ -336,7 +401,6 @@ def main():
     if not files:
         print(f"[WARN] No se encontraron archivos FASTQ en: {inp}", file=sys.stderr)
         return
-
     print(f"[INFO] Archivos detectados: {len(files)}", file=sys.stderr)
 
     rows = []
@@ -351,14 +415,29 @@ def main():
             primer_scan=args.primer_scan
         ))
 
-    write_pretty_table(rows, HEADERS, out_path)
+    # TXT bonito
+    write_pretty_table(rows, HEADERS, out_txt)
+    print(f"[OK] TXT guardado en: {out_txt.resolve()}", file=sys.stderr)
 
-    # Mensaje de fin
+    # XLSX (con varios intentos)
+    if try_write_xlsx(rows, out_xlsx, tmp_tsv):
+        print(f"[OK] XLSX guardado en: {out_xlsx.resolve()}", file=sys.stderr)
+        if tmp_tsv.exists():
+            try: tmp_tsv.unlink()
+            except Exception: pass
+    else:
+        write_tsv(rows, tmp_tsv)
+        print(f"[WARN] No se pudo crear .xlsx automáticamente.", file=sys.stderr)
+        print(f"       Te dejo un TSV para Excel: {tmp_tsv.resolve()}", file=sys.stderr)
+        print(f"       Opciones:", file=sys.stderr)
+        print(f"         - Instalar pandas/openpyxl:  pip install pandas openpyxl", file=sys.stderr)
+        print(f"         - O convertir con LibreOffice: libreoffice --headless --convert-to xlsx \"{tmp_tsv}\" --outdir \"{out_xlsx.parent}\"", file=sys.stderr)
+
     dt = time.time() - t0
-    print(f"[OK] Tabla guardada en: {out_path.resolve()}  (tiempo: {dt:.1f}s)", file=sys.stderr)
+    print(f"[OK] Proceso completo. Tiempo: {dt:.1f}s", file=sys.stderr)
 
 if __name__ == "__main__":
-    main()                                           
+    main()                                      
 ```
 
 Los paquetes que se importanron fueron:
@@ -392,8 +471,10 @@ python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
   -r \
   --primers "/home/fenrir/resources/primers_stesen.fasta" \
-  -o "/home/fenrir/scriptsbioinf/estadisticas_pretty.txt"
+  -o "/home/fenrir/scriptsbioinf/estadisticas_pretty.txt" \
+  --xlsx-out "/home/fenrir/scriptsbioinf/estadisticas.xlsx"
 ```
+(SE DEBE AGREGAR LOS CAMBIOS QUE SE LE HICIERON AL CÓDIGO, QUE ES EL # DE BASES Y LA SALIDA EN FORMATO .XSLX)
 
 # Denoising y Trimming
 
@@ -717,6 +798,18 @@ chmod +x dentrim.py
 - `inputs` un array para que sea capaz de reconocer cualquier forma en la que se pueda encontrar el archivo `.fastq`.
 
 Con `if ((${#inputs[@]}==0))` se busca que cuando el array no tenga un sufijo de `.fastq` se detenga. Luego, con `for fq in "${inputs[@]}"; do` hace la iteración por cada archivo `.fastq` reconocido. Finalmente, con `SAMPLE=` se busca que poco a poco se quiten los sufijos del archivo hasta quedar únicamente con el directorio y este es el que se usa para nombrar la carpeta en la que se agruparan los resultados.
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Taxonomía
 EMU
