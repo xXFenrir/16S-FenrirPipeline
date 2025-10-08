@@ -780,7 +780,7 @@ chmod +x dentrim.py
 ```
 # ASÍ SE LLAMA
 ```
-./dentrim.py \
+/home/fenrir/scriptsbioinf/dentrim.py \
   -i "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
   -o "dentrim_stesen" \
   --minlen 1000 --maxlen 1700 \
