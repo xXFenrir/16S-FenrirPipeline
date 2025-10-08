@@ -13,7 +13,7 @@ La elaboración de este pipeline se hace desde un entorno Linux con Anaconda.
 
 # BASECALLING
 
-Este es el primer paso del pipeline, pues aquí se busca convertir los archivos fast5 a `.fastq`. Los archivos `.fast5` son el output de la secuenciación con MinION (Oxford Nanopore Technologies). En este caso, ONT proporciona Dorado como una herramienta para este paso. 
+Este es el primer paso del pipeline, pues aquí se busca convertir los archivos `FAST5` a `FASTQ`. Los archivos `FAST5` son el output de la secuenciación con MinION (Oxford Nanopore Technologies). En este caso, ONT proporciona Dorado como una herramienta para este paso. 
 Para usar esta herramienta es necesario hacer la instalación de la misma para entorno Linux. Esta descarga se hizo por medio de línea de comando desde el Terminal, pues `Dorado` se encuentra como un paquete de `Anaconda` ([Dorado](https://anaconda.org/HCC/dorado)). Se descarga el binario precompilado con:
 ```
 curl "https://cdn.oxfordnanoportal.com/software/analysis/dorado-1.1.1-linux-x64.tar.gz" -o dorado-1.1.1-linux-x64.tar.gz
@@ -24,7 +24,7 @@ Luego, se debe extraer el archivo con:
 tar -xzf dorado-1.1.1-linux-x64.tar.gz
 ```
 
-Sin embargo, en las versiones actuales de `Dorado` no se utilizan como entradas los archivos en formato `.fast5` si no archivos `.POD5`, por lo que antes de aplicar el comando básido de la herrmaienta se deben convertir los archivos de ser necesario.
+Sin embargo, en las versiones actuales de `Dorado` no se utilizan como entradas los archivos en formato `FAST5` si no archivos `POD5`, por lo que antes de aplicar el comando básido de la herrmaienta se deben convertir los archivos de ser necesario.
 ```
 pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
 
@@ -35,7 +35,7 @@ dorado basecaller hac /ruta/pod5/ \
 ```
 
 - `hac` es para usar el modelo de alta precicsión.
-- `--emit-fastq` hace que la salida sea en formato `.fastq`
+- `--emit-fastq` hace que la salida sea en formato `FASTQ`.
 - `--no-trim` es para evitar que recorte barcodes y adaptadores.
 - `-x auto` decide automáticamente si usar GPU o CPU.
 
@@ -59,44 +59,46 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 - `--primer-sequences` archivo `.fasta` von las secuencias de los primers.
 - `-x auto` automáticamente elige si usar la GPU o CPU.
 - `--no-clasiffy` no vuelve a clasificar, simplemente lee la asignación de barcode que ya quedó guardada en `calls.bam` durante el basecalling, y divide las lecturas en archivos separados por barcode.
-- `--emit-fastq` la salida pasa a ser en formato `.fastq`.
+- `--emit-fastq` la salida pasa a ser en formato `FASTQ`.
 - `-o` carpeta donde estaran las salidas.
 
 # REPORTE DE ESTADÍSTICAS BÁSICAS
 
-Es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de algunos repositorios, estos ya viene filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o no. Adicvionalmente, se podría llevar un registo sobre la calidad en la que estan las secuencias antes y después de filtradas. Por lo que, se usó el código que se encuentra en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas). Este código permite generar un archivo `.txt` y `.xlsx` donde se genera una tabla con el reporte de estadísticas básicas de cada una de las secuencais.
+Es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de algunos repositorios, estos ya viene filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `FASTQ`, de tal manera que se pueda observar si vale la pena filtrar o no. Adicvionalmente, se podría llevar un registo sobre la calidad en la que estan las secuencias antes y después de filtradas. Por lo que, se usó el código que se encuentra en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas). Este código permite generar un archivo `TXT` y `XLSX` donde se genera una tabla con el reporte de estadísticas básicas de cada una de las secuencais.
 
 ## Paquetes importados
 
 Los paquetes que se importanron fueron:
 - `argparse` evita que se tenga que editar el código si se cambia el formato de la entradaa tanto con una carpeta como con un archivo.
-- `gzip` lee `.fastq.gz` sin descomprimir.
+- `gzip` lee `FASTQ.GZ` sin descomprimir.
 - `os` para saber tamaño del archivo.
 - `pathlib.Path` reconoce espacios, ~, etc.
-- `re` permite reconocer solo las bases nitrogenadas en archivos FASTA.
+- `re` permite reconocer solo las bases nitrogenadas en archivos `FASTA`.
 - `sys` permite imprimir avisos.
 - `time` permite conocer el tiempo que demoró en ejecutarse.
-- `shutil` permite ver si es posible convertir un archivo de TSV a XLSX
-- `subprocess` permite separa cada columna en el archivo XLSX.
-- `pandas` crea un XLSX con las columnas establecidas.
+- `shutil` permite ver si es posible convertir un archivo de `TSV` a `XLSX`.
+- `subprocess` permite separa cada columna en el archivo `XLSX`.
+- `pandas` crea un `XLSX` con las columnas establecidas.
 
 ## Funciones definidas
-- #`is_gzip`#
-Con el parámetro `input` puede ser un archivo o una carpeta, lo que permite procesar una sola muestra o una carpeta con varios de estas. Además, con `--recursive` se busca también en subcarpetas, ignorando así las jerarquías. Luego, con `--output` se define la ruta y el nombre del archivo, y con `--tsv` permite generar un archivo separado por tabulaciones. Usando `--phred` se puede conocer la calidad de las lecturas. Finalmente, con `--max-reads` se procesa solo las primeras N lecturas de cada archivo y se detiene.
-
-Para abrir `.fastq.gz` se usó `gzip.open` pues evita descomprimir y mantienes un flujo de lectura constante. Además, con `encoding="ascii"` y `errors="ignore"` se evita que cuando aparezca un carácter extraño, sean ignorados y sacar métricas del resto sin detenerse.
-
-`iter_fastq_reads` lee cada cuatro líneas del archivo `.fastq`, pues corresponden al encabezado, la secuencia y la calidad. Como salida entrega únicamente la secuencia y su calidad, deteniéndose si encontraba el fin del archivo.
-
-Adicionalmente, se incluyeron funciones para encontrar presencia de primers y quimeras. Por lo que, para saber si todavía quedan primers en los extremos de las lecturas, se debe pasar un archivo `.fasta` con las secuencias de tus primers usando `--primers`, y el programa examina solo los extremos de cada lectura. Para tolerar errores de secuenciación, permite con `--primer-max-mismatches` desajustes y además prueba tanto la secuencia del primer como su reverse. Mientras que, la estimación de quimeras se activa con `--chimera-denovo` y requiere tener `vsearch` instalado. En este caso, se toma una muestra de lecturas por archivo, se convierten a `.fasta` temporal y luego correr `vsearch --uchime3_denovo` para detectar quimeras sin referencia.
-
-Para la parte estadística, se usó `n50_from_lengths` para optener el valor N50 como indicador de la longitud típica por bases de las lecturas. Otras de las métricas son el número de lecturas, bases totales, estadísticos de longitud (media, mediana, mínimo, máximo y N50), composición (GC% y N%) y calidad (Q media por base y % de bases ≥Q20/≥Q30). En este caso, la mediana se incluye para hacer más sensible el código a valores anormales, GC% y N% ayudan a detectar contaminación y revela ambigüedades o errores de lectura, la calidad media por base, y los umbrales Q20/Q30 como referencias comparativas. Finalmente, el script asume Phred+33, aunque, se expone `--phred` en caso de datos atípicos.
-
-La búsqueda de archivos con `find_fastqs` acepta `.fastq` y `.fq`. Adicionalmente, en `main`, si se termina en `.tsv` se fuerzan tabs aunque olvide. Por último, se imprime `[INFO] con el número de archivos detectados y `[OK]` con la ruta final.
-
-La escritura del reporte usa `csv.DictWriter` para mantener un orden estable de columnas y evitar errores de formato. Se abre el archivo con `newline=""` para prevenir líneas en blanco extra en algunos sistemas. Si al procesar un archivo ocurre una excepción, se imprime un `[ERROR]` en consola y se continúa; el diccionario que devuelve process_fastq puede incluir un campo error, pero la fila se escribe con los campos conocidos. Esta tolerancia controlada es intencional en trabajos por lote: te permite terminar la corrida y luego revisar con calma los casos problemáticos.
-
-Se usó `csv.DictWriter` para garantizar un orden fijo de columnas y un formato consistente sin pelear con separadores. Luego, se abre el archivo con `newline=""` para evitar líneas en blanco extra. Si al procesar un `.fastq` ocurre una excepción, se imprime un `[ERROR] en consola y el script continúa con los demás archivos, donde la fila problemática se escribe solo con los campos conocidos, pero con las métricas vacías.
+- `is_gzip()`: Detecta si el archivo a analizar posee el sufijo `.GZ`, pues convierte el string en booleano y hace la lectura de este.
+- `open_maybe_gzip()`: Abre un archivo de texto, si es `.GZ`, usa `gzip.open()` para leer el archivo sin descomprimir, si no, usa `open()`.
+- `iter_fastq_reads()`: Itera continuamente sobre un archivo `FASTQ` guardando únicamente la secuencia y su calidad.
+- `n50_from_lengths()`: Ordena las longitudes de mayor a menor y acumula hasta alcanzar al menos el 50 % del total de bases, y esta longitud corresponde al N50. En caso de que no haya datos lo representa como 0.
+- `read_fasta_seqs()`: Carga un archivo `FASTA` y devuelve solo las secuencias. Para cada `FASTA`, concatena líneas de secuencia y aplica una limpieza con `regex` para eliminar cualquier carácter que no sea ACGTN. De esta manera, se estandariza la entrada para la detección de primers.
+- `revcomp()`: Genera la secuencia reverse de ADN. Primero traduce, y luego invierte la cadena, de tal manera, permite buscar primers en ambas hebras.
+- `hamming_leq_k()`: Con una matriz, comprueba que la longitud del fragmento de la secuencia corresponda a la del primer. Además, se usa para saber si hay secuencias N, permitiendo la lectura aún cuando  haya errores de secuenciación.
+- `any_primer_in_window()`: Comprueba si en la lectura forward o reverse aparece algún primer. Donde, si encuentra una coincidencia es `True` y `False` si no hay ninguna.
+- `process_fastq()`: Procesa un archivo `FASTQ` y calcula métricas de número de lecturas, bases totales, longitudes, GC%, QScore promedio y porcentajes de bases ≥Q20, ≥Q30 y % primers.
+- `_fmt()`: Si el valor es float, fija el número de decimales, si es entero, lo convierte a string. Permitiendo que el formato sea el mismo en todas las columnas.
+- `row_to_display()`: Transforma el conjunto de métricas en una lista de strings y en el orden exacto de columnas para el `TXT`.
+- `row_to_excel()`: Convierte el mismo conjunto de métricas en int/float/None, lo que, permite que `pandas` u `openpyxl` escriban un `XLSX`.
+- `write_pretty_table()`: Calcula el ancho máximo de cada columna, rellena con `ljust` e inserta una línea de guiones del mismo largo para cada columna y cada fila.
+- `write_tsv()`: Genera un `TSV` separado por tabulaciones usando los valores de `row_to_excel`.
+- `try_write_xlsx()`: Intenta escribir el `XLSX`. Primero intenta con `pandas`, si falla, usa `openpyxl`, y si tampoco es posible, utiliza LibreOffice headless convirtiendo un `TSV` de `write_tsv()` a `XLSX`. Finalmente, indica `True` si logró crear el Excel y muestra el método usado.
+- `find_fastqs()`: Permite comprobar la ruta sin considerar jerarquías, pues si es un archivo, valida que tenga extensión `FASTQ` o `FQ`. Si es carpeta, usa `glob` o `rglob` según si está o no comprimido. Por último, devuelve las rutas ordenadas y sin duplicados.
+- `parse_args()`: Define la interfaz de línea de comandos, como la entrada, la salida y ruta de los primers.
+- `main()`: Parsea argumentos y anuncia inicio, carga primers si se proporcionan, localiza los `FASTQ`, informa cuántos encontró, procesa cada archivo con `process_fastq`, escribe el `TXT` con `write_pretty_table` y luego intenta el `XLSX` con `try_write_xlsx`. Finalmente, imprime un resumen con la ruta de salida y el tiempo de ejecución.
 
 ## Ejecución del código
 
@@ -106,10 +108,14 @@ python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
   "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
   -r \
   --primers "/home/fenrir/resources/primers_stesen.fasta" \
-  -o "/home/fenrir/scriptsbioinf/estadisticas_pretty.txt" \
-  --xlsx-out "/home/fenrir/scriptsbioinf/estadisticas.xlsx"
+  -o "/home/fenrir/og_stats/estadisticas_og_stesen.txt" \
+  --xlsx-out "/home/fenrir/og_stats/estadisticas_og_stesen.xlsx"
 ```
-(SE DEBE AGREGAR LOS CAMBIOS QUE SE LE HICIERON AL CÓDIGO, QUE ES EL # DE BASES Y LA SALIDA EN FORMATO .XSLX)
+1. Primero se escribe la ruta en la que se encuentra el script.
+2. `-r` busca en subcarpetas.
+3. `--primers` es la ruta del archivo `FASTA` de los primers.
+4. `-o` ruta del archivo `TXT` de salida.
+5. `--xlsx-out` rutas del archivo `XLSX` de salida. 
 
 # Denoising y Trimming
 
