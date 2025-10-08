@@ -61,7 +61,7 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 
 # Reporte de estadísticas básicas
 
-Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código presente en el archivo de [Reporte de estadísticas]()
+Antes de proceder con este paso, es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de los repositorios algunos ya vienen filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `.fastq`, de tal manera que se pueda observar si vale la pena filtrar o estos ya están limpios. Por lo que, se usó el código presente en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas)
 
 Los paquetes que se importanron fueron:
 - `argparse` evita que se tenga que editar el código si se cambia el formato de la entradaa tanto con una carpeta como con un archivo.
