@@ -81,6 +81,7 @@ Los paquetes que se importanron fueron:
 - `pandas` crea un `XLSX` con las columnas establecidas.
 
 ## Funciones definidas
+
 - `is_gzip()`: Detecta si el archivo a analizar posee el sufijo `.GZ`, pues convierte el string en booleano y hace la lectura de este.
 - `open_maybe_gzip()`: Abre un archivo de texto, si es `.GZ`, usa `gzip.open()` para leer el archivo sin descomprimir, si no, usa `open()`.
 - `iter_fastq_reads()`: Itera continuamente sobre un archivo `FASTQ` guardando únicamente la secuencia y su calidad.
@@ -124,6 +125,8 @@ Es uno de los pasos más importantes en un análisis bioinformático de datos de
 - Filtrar lecturas por longitud y calidad, eliminando aquellas demasiado cortas, largas o de baja calidad que puedan corresponder a artefactos de secuenciación o fragmentos incompletos.
 - Orientar y recortar las lecturas basándonos en la ubicación de los primers, asegurando que todas las secuencias tengan la misma dirección y contenido correcto.
 
+## Pychopper
+
 Una de las herramientas encontradas en bibliografía para la limpieza de las muestras es `Pychopper`. La instalación se hace por línea de código desde desde [GitHub](https://github.com/epi2me-labs/pychopper) con:
 ```
 conda install -c nanoporetech -c conda-forge -c bioconda "nanoporetech::pychopper"
@@ -153,6 +156,8 @@ pychopper -m edlib \
 
 Las dos últimas líneas de código permiten buscar el archivo `FASTQ` a limpiar. Luego, se define la ruta en que se va a guardar el archivo `FASTQ` limpiado.
 
+## Filtlong
+
 Sin embargo, `Pychopper` es una herramienta que filtra por longitud mínima y no por rango. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal en pb. 
 
 Para instalar esta herramienta se usó el comando:
@@ -174,6 +179,10 @@ filtlong --min_length 1300 --max_length 1700 \
 ```
 
 `Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. Posteriormente, se usa `|` para que los archivos que salen de `Filtlong` entren directamente a `Pychopper`, y se usa `/dev/stdin` para que `Pychopper` lea como entrada lo que entra por `|`. Finalmente, el archivo entregado se espera que sea un archivo `.fastq` filtrado con los parámetros definidos en ambas herramientas.
+
+## Descripción del código
+
+El script para el [Denosing y trimming]() permite
 
 Ahora, para que este código funcione para todos los archivos del estudio se usó:
 ```
