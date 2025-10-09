@@ -182,7 +182,7 @@ filtlong --min_length 1300 --max_length 1700 \
 
 ## Descripción del código
 
-El script para el [Denosing y trimming]() permite
+El script para el [Denosing y trimming](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Denoising%20y%20trimming) permite
 
 Ahora, para que este código funcione para todos los archivos del estudio se usó:
 ```
