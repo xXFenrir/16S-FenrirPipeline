@@ -182,193 +182,33 @@ filtlong --min_length 1300 --max_length 1700 \
 
 ## Descripción del código
 
-El script para el [Denosing y trimming](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Denoising%20y%20trimming) permite
+El script para el [Denosing y trimming](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Denoising%20y%20trimming) permite filtrar las secuencias `FASTQ` crudas por longitud, QScore y remover primers.
 
-Ahora, para que este código funcione para todos los archivos del estudio se usó:
-```
-cat > dentrim.py <<'PY'
-#!/usr/bin/env python3
-"""
-dentrim.py — Filtra y orienta lecturas 16S (filtlong + pychopper) y produce SOLO el FASTQ final.
+### Paquetes importados
 
-Provee:
-  - run_dentrim(input_dir, outdir, minlen, maxlen, qscore, threads, primers, pconfig, verbose=True)
-  - CLI si se ejecuta como script.
+Los paquetes importados fueron:
+- `argparse`: Permite construir la interfaz de línea de comandos definiendo las entradas y variables.
+- `glob`: Sirve para encontrar archivos con sufijo `FASTQ` independientemente de si está o no comprimido. En caso de no encontrar nada, el programa avisa y termina. 
+- `os`: Verifica la existencia de los archivos de entrada, crea carpetas de salida por muestra, compone rutas portables y elimina salidas parciales si la ejecución falla.
+- `shlex`: Permite que las rutas o archivos que estén compuestos con espacios sean tomados con una sola palabra con `shlex.quote()`.
+- `shutil.which`: Comprueba si falta `filtlong`, `pychopper` y `bash` están disponibles antes de arrancar, generando un mensaje si falta alguno de estos.
+- `subprocess`: Arma un proceso `filtlong … | pychopper …` y lo corre con `subprocess.run()`. Se antepone `set -o pipefail` para que cualquier fallo en el proceso se refleje sea informado. Luego, se revisa `returncode` para decidir si se salta una muestra y se limpia la salida parcial.
+- `sys`: Proporciona control sobre la salida y la terminación del programa por medio de avisos.
+- `pathlib.Path`: Obtiene el nombre base del archivo quitando sus sufijos.
+- `typing`: Permite que se informe de errores antes de correr el script.
 
-Requisitos en PATH: filtlong, pychopper, bash
-"""
+### Funciones definidas
 
-import argparse
-import glob
-import os
-import shlex
-import shutil
-import subprocess
-import sys
-from pathlib import Path
-from typing import Dict, List
+- `_must_exist(path, kind)`: Valida que una ruta exista antes de correr el pipeline. Si `kind` es `dir`, exige que la entrada sea una carpeta, si es `file`, exige que sea un archivo. Cuando la comprobación falla, termina el programa con un mensaje claro usando `sys.exit.
+- `_which_or_die(cmd)`: Verificar la presencia de `filtlong`, `pychopper` y `bash`. Si alguna no está instalada, finaliza con un mensaje explicando qué falta.
+- `_sample_name(f)`: Toma la ruta de un archivo `FASTQ` comprimido o no, y obtiene el nombre base con `Path(f).name` y elimina, los sufijos que le acompañen. De este modo, se usa para crear el subdirectorio de salida y el nombre del archivo resultante, manteniendo una nomenclatura consistente.
+- `run_dentrim()`: Valida entradas y dependencias, localiza todos los archivos de lectura en `input_dir`. Pues, ejecuta `filtlong` leyendo directamente el archivo para filtrar por longitud entre `minlen` y `maxlen`. Luego, envía su salida por `stdin` a `pychopper`, que recibe y orienta usando los primers con `-b primers` y `-c pconfig`, el umbral de calidad qscore, y el número de hilos threads. Además, se usa `-z minlen` para mantener coherencia con el mínimo de longitud. Antes de su ejecución se activa `set -o pipefail` para que cualquier fallo intermedio se refleje en la terminal.
+- `_build_parser()`: Define todas las variables de entrada como obligatorias, para definir facilmente desde la interfaz de línea de comandos.
+- `main()`: Actúa como punto de entrada cuando el archivo se ejecuta directamente. Donde, interpreta los argumentos proporcionados por el usuario y da paso a `run_dentrim()`, activando mensajes de salida que muestran los parámetros y el avance.
 
+### Ejecución del código
 
-def _must_exist(path: str, kind: str) -> None:
-    if kind == "dir" and not os.path.isdir(path):
-        sys.exit(f"ERROR: No existe directorio: {path}")
-    if kind == "file" and not os.path.isfile(path):
-        sys.exit(f"ERROR: No existe archivo: {path}")
-
-
-def _which_or_die(cmd: str) -> None:
-    if shutil.which(cmd) is None:
-        sys.exit(f"ERROR: No se encontró '{cmd}' en PATH")
-
-
-def _sample_name(f: str) -> str:
-    name = Path(f).name
-    for suf in (".gz", ".fastq", ".fq"):
-        if name.endswith(suf):
-            name = name[: -len(suf)]
-    return name
-
-
-def run_dentrim(
-    input_dir: str,
-    outdir: str,
-    minlen: int,
-    maxlen: int,
-    qscore: int,
-    threads: int,
-    primers: str,
-    pconfig: str,
-    verbose: bool = True,
-) -> Dict[str, List[str]]:
-    """
-    Ejecuta el pipeline sobre todos los FASTQ/FQ del directorio.
-
-    Devuelve:
-      {
-        "processed": [lista de muestras procesadas],
-        "skipped":   [lista de muestras saltadas],
-        "outdir":    ruta de salida (str)
-      }
-    """
-    # Validaciones de entrada
-    _must_exist(input_dir, "dir")
-    _must_exist(primers, "file")
-    _must_exist(pconfig, "file")
-    if minlen > maxlen:
-        sys.exit(f"ERROR: minlen ({minlen}) > maxlen ({maxlen})")
-
-    # Dependencias
-    _which_or_die("filtlong")
-    _which_or_die("pychopper")
-    _which_or_die("bash")
-
-    os.makedirs(outdir, exist_ok=True)
-
-    # Recolectar entradas
-    patterns = ["*.fastq.gz", "*.fq.gz", "*.fastq", "*.fq"]
-    inputs: List[str] = []
-    for pat in patterns:
-        inputs.extend(glob.glob(os.path.join(input_dir, pat)))
-    if not inputs:
-        sys.exit(f"No se encontraron FASTQ en: {input_dir}")
-
-    if verbose:
-        print("== Parámetros ==")
-        print(f"Input:   {input_dir}")
-        print(f"Output:  {outdir}")
-        print(f"MinLen:  {minlen}")
-        print(f"MaxLen:  {maxlen}")
-        print(f"QScore:  {qscore}")
-        print(f"Threads: {threads}")
-        print(f"Primers: {primers}")
-        print(f"PConfig: {pconfig}\n")
-
-    processed: List[str] = []
-    skipped: List[str] = []
-
-    for fq in inputs:
-        sample = _sample_name(fq)
-        sdir = os.path.join(outdir, sample)
-        os.makedirs(sdir, exist_ok=True)
-        out_fastq = os.path.join(sdir, f"{sample}_oriented_trimmed.fastq")
-        if verbose:
-            print(f"Procesando {sample} …")
-
-        # Quoted paths (maneja espacios)
-        fq_q = shlex.quote(fq)
-        primers_q = shlex.quote(primers)
-        pconfig_q = shlex.quote(pconfig)
-        out_q = shlex.quote(out_fastq)
-
-        # filtlong lee el archivo directamente; pychopper desde stdin.
-        cmd = (
-            "set -o pipefail; "
-            f"filtlong --min_length {minlen} --max_length {maxlen} {fq_q}"
-            f" | pychopper -m edlib -b {primers_q} -c {pconfig_q}"
-            f"     -Q {qscore} -z {minlen} -t {threads} -Y 0 -q 0.52"
-            f"     - {out_q}"
-        )
-        proc = subprocess.run(cmd, shell=True, executable="/bin/bash")
-
-        if proc.returncode != 0:
-            # Pudo quedar en 0 lecturas o error interno en pychopper; limpiamos y marcamos como saltado
-            try:
-                os.remove(out_fastq)
-            except FileNotFoundError:
-                pass
-            skipped.append(sample)
-            if verbose:
-                print(f"⚠️  {sample}: sin lecturas tras filtrado u otro error. Saltando.", file=sys.stderr)
-            continue
-
-        processed.append(sample)
-
-    if verbose:
-        print(f"\n✅ Listo. Resultados en: {outdir}")
-        if skipped:
-            print("⚠️  Muestras saltadas:", ", ".join(skipped))
-
-    return {"processed": processed, "skipped": skipped, "outdir": outdir}
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
-        description="Filtra y orienta lecturas 16S (filtlong+pychopper) y deja SOLO el FASTQ final."
-    )
-    p.add_argument("-i", "--input", required=True, help="Carpeta con FASTQ/FQ (.gz opcional)")
-    p.add_argument("-o", "--outdir", required=True, help="Carpeta de salida")
-    p.add_argument("--minlen", required=True, type=int, help="Longitud mínima (filtlong, pychopper -z)")
-    p.add_argument("--maxlen", required=True, type=int, help="Longitud máxima (filtlong)")
-    p.add_argument("-Q", "--qscore", required=True, type=int, help="QScore mínimo (pychopper -Q)")
-    p.add_argument("-t", "--threads", required=True, type=int, help="Núcleos/hilos (pychopper -t)")
-    p.add_argument("--primers", required=True, help="FASTA de primers")
-    p.add_argument("--pconfig", required=True, help="Config de primers (TXT de pychopper)")
-    return p
-
-
-def main() -> None:
-    parser = _build_parser()
-    args = parser.parse_args()
-    run_dentrim(
-        input_dir=args.input,
-        outdir=args.outdir,
-        minlen=args.minlen,
-        maxlen=args.maxlen,
-        qscore=args.qscore,
-        threads=args.threads,
-        primers=args.primers,
-        pconfig=args.pconfig,
-        verbose=True,
-    )
-
-
-if __name__ == "__main__":
-    main()
-PY
-
-chmod +x dentrim.py
-```
-# ASÍ SE LLAMA
+Para ejecutar el código se usa el siguiente comando:
 ```
 /home/fenrir/scriptsbioinf/dentrim.py \
   -i "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
@@ -378,28 +218,15 @@ chmod +x dentrim.py
   --primers "/home/fenrir/resources/primers_stesen.fasta" \
   --pconfig "/home/fenrir/resources/primers_stesen.txt"
 ```
-# MENCIONAR CAMBIOS
-- `set -euo pipefail` evita que se ejecute pacialmente a causa de fallos.
-- `shopt -s nullglob` si no hay coincidencias es igual a 0
-- `BASE` carpeta donde esten las lecturas `.fastq`.
-- `PRIMERS` archivo `.fasta` con las secuencias de primers.
-- `PCONFIG` archivo con la orientación de primers.
-- `OUTDIR` carpeta para todos los resultados de cada muestra.
-- `inputs` un array para que sea capaz de reconocer cualquier forma en la que se pueda encontrar el archivo `.fastq`.
 
-Con `if ((${#inputs[@]}==0))` se busca que cuando el array no tenga un sufijo de `.fastq` se detenga. Luego, con `for fq in "${inputs[@]}"; do` hace la iteración por cada archivo `.fastq` reconocido. Finalmente, con `SAMPLE=` se busca que poco a poco se quiten los sufijos del archivo hasta quedar únicamente con el directorio y este es el que se usa para nombrar la carpeta en la que se agruparan los resultados.
-
-
-
-
-
-
-
-
-
-
-
-
+1. Se define la ruta del script.
+2. `-i` es la ruta de los datos de entrada.
+3. `-o` nombre de la carpeta de salida.
+4. `--minlen` y `--maxlen` definen el rango de longitud aceptada.
+5. `-Q` es el QScore mínimo aceptado.
+6. `-t` es el número de núcleos para ejecutar la herramienta.
+7. `--primers` es la ruta con el `FASTA` con la secuencia de los primers.
+8. `--pconfig` es la ruta con la dirección de los primers.
 
 # Taxonomía
 EMU
