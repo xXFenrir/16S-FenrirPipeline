@@ -66,7 +66,7 @@ def revcomp(s: str) -> str:
 def hamming_leq_k(a: str, b: str, k: int) -> bool:
     mism = 0
     for ca, cb in zip(a, b):
-        if cb == "N":
+        if cb == "N":  # N en el patrón no penaliza
             continue
         if ca != cb:
             mism += 1
@@ -141,13 +141,13 @@ def process_fastq(path: Path,
         mean_len = round(total_bases / reads, 2)
         min_len = min(lengths); max_len = max(lengths)
         n50 = n50_from_lengths(lengths, total_bases)
-        gc_pct = round(100.0 * gc_bases / total_bases, 3)
-        mean_q = round(qsum / total_bases, 3)
-        q20_pct = round(100.0 * q20 / total_bases, 3)
-        q30_pct = round(100.0 * q30 / total_bases, 3)
+        gc_pct = round(100.0 * gc_bases / total_bases, 2)
+        mean_q = round(qsum / total_bases, 2)
+        q20_pct = round(100.0 * q20 / total_bases, 2)
+        q30_pct = round(100.0 * q30 / total_bases, 2)
 
     if do_primers and primer_scanned > 0:
-        primer_any_pct = round(100.0 * primer_any_hits / primer_scanned, 3)
+        primer_any_pct = round(100.0 * primer_any_hits / primer_scanned, 2)
     else:
         primer_any_pct = ""
 
@@ -178,10 +178,14 @@ ORDER = [
     "N50","GC_percent","mean_Q","Q20_bases_percent","Q30_bases_percent","primer_any_percent"
 ]
 
-def _fmt(x, dec=None):
-    if x == "" or x is None: return ""
+def _fmt(x, dec: int = 2):
+    """Formatea con máximo 'dec' decimales para TXT (recorta ceros finales)."""
+    if x == "" or x is None:
+        return ""
     if isinstance(x, float):
-        return f"{x:.{dec if dec is not None else 3}f}"
+        s = f"{x:.{dec}f}"
+        s = s.rstrip('0').rstrip('.')
+        return s
     return str(x)
 
 def row_to_display(row: dict) -> list:
@@ -193,32 +197,32 @@ def row_to_display(row: dict) -> list:
         "min_len": _fmt(row["min_len"], 0),
         "max_len": _fmt(row["max_len"], 0),
         "N50": _fmt(row["N50"], 0),
-        "GC_percent": _fmt(row["GC_percent"], 3),
-        "mean_Q": _fmt(row["mean_Q"], 3),
-        "Q20_bases_percent": _fmt(row["Q20_bases_percent"], 3),
-        "Q30_bases_percent": _fmt(row["Q30_bases_percent"], 3),
-        "primer_any_percent": _fmt(row["primer_any_percent"], 3),
+        "GC_percent": _fmt(row["GC_percent"], 2),
+        "mean_Q": _fmt(row["mean_Q"], 2),
+        "Q20_bases_percent": _fmt(row["Q20_bases_percent"], 2),
+        "Q30_bases_percent": _fmt(row["Q30_bases_percent"], 2),
+        "primer_any_percent": _fmt(row["primer_any_percent"], 2),
     }
     return [mapping[k] for k in ORDER]
 
 def row_to_excel(row: dict) -> dict:
-    """Dict con claves HEADERS y valores nativos para Excel (números como números)."""
+    """Convierte a tipos nativos y redondea a 2 decimales para XLSX."""
     return {
         "Muestra": row["sample"],
         "lecturas": int(row["reads"]) if isinstance(row["reads"], (int,float)) else None,
         "bases": int(row["bases"]) if isinstance(row["bases"], (int,float)) else None,
-        "longitud promedio": float(row["mean_len"]) if row["mean_len"] != "" else None,
+        "longitud promedio": round(float(row["mean_len"]), 2) if row["mean_len"] != "" else None,
         "longitud mínima": int(row["min_len"]) if row["min_len"] != "" else None,
         "longitud máxima": int(row["max_len"]) if row["max_len"] != "" else None,
         "N50": int(row["N50"]) if row["N50"] != "" else None,
-        "GC%": float(row["GC_percent"]) if row["GC_percent"] != "" else None,
-        "QScore promedio": float(row["mean_Q"]) if row["mean_Q"] != "" else None,
-        "Q20%": float(row["Q20_bases_percent"]) if row["Q20_bases_percent"] != "" else None,
-        "Q30%": float(row["Q30_bases_percent"]) if row["Q30_bases_percent"] != "" else None,
-        "% primers": float(row["primer_any_percent"]) if row["primer_any_percent"] != "" else None,
+        "GC%": round(float(row["GC_percent"]), 2) if row["GC_percent"] != "" else None,
+        "QScore promedio": round(float(row["mean_Q"]), 2) if row["mean_Q"] != "" else None,
+        "Q20%": round(float(row["Q20_bases_percent"]), 2) if row["Q20_bases_percent"] != "" else None,
+        "Q30%": round(float(row["Q30_bases_percent"]), 2) if row["Q30_bases_percent"] != "" else None,
+        "% primers": round(float(row["primer_any_percent"]), 2) if row["primer_any_percent"] != "" else None,
     }
 
-# ---------- Salidas: TXT bonito + XLSX ----------
+# ---------- Salidas: TXT bonito + TSV + XLSX ----------
 
 def write_pretty_table(rows: list, headers: list, out_path: Path):
     str_rows = [row_to_display(r) for r in rows]
@@ -239,7 +243,7 @@ def write_pretty_table(rows: list, headers: list, out_path: Path):
             out.write(sep_line + "\n")
 
 def write_tsv(rows: list, out_path: Path):
-    """TSV limpio (para conversión o emergencia). Usa valores nativos donde aplica."""
+    """TSV limpio con valores nativos (útil para conversión)."""
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("\t".join(HEADERS) + "\n")
         for r in rows:
@@ -247,7 +251,7 @@ def write_tsv(rows: list, out_path: Path):
             f.write("\t".join("" if ex[h] is None else str(ex[h]) for h in HEADERS) + "\n")
 
 def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> bool:
-    # 1) pandas + openpyxl/xlsxwriter
+    # 1) pandas
     try:
         import pandas as pd
         df = pd.DataFrame([row_to_excel(r) for r in rows], columns=HEADERS)
@@ -256,7 +260,7 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
         return True
     except Exception as e:
         print(f"[INFO] pandas no disponible/usable ({e.__class__.__name__}): intento openpyxl...", file=sys.stderr)
-    # 2) openpyxl directo
+    # 2) openpyxl
     try:
         from openpyxl import Workbook
         wb = Workbook()
@@ -270,12 +274,11 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
         return True
     except Exception as e:
         print(f"[INFO] openpyxl no disponible/usable ({e.__class__.__name__}): intento LibreOffice...", file=sys.stderr)
-    # 3) LibreOffice/soffice forzando TAB como separador
+    # 3) LibreOffice headless forzando TAB
     soffice = shutil.which("libreoffice") or shutil.which("soffice")
     if soffice and tmp_tsv:
-        write_tsv(rows, tmp_tsv)  # TSV limpio (TAB)
+        write_tsv(rows, tmp_tsv)
         try:
-            # Fuerza: separador de campo=9 (TAB), texto=34 ("), codificación UTF-8
             cmd = [
                 soffice, "--headless",
                 "--convert-to", "xlsx:Calc MS Excel 2007 XML",
@@ -306,6 +309,38 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
             except Exception:
                 return False
     return False
+
+def format_xlsx_two_decimals(xlsx_path: Path):
+    """
+    Fija el formato '0.00' en columnas decimales del XLSX.
+    No cambia valores (ya redondeados); solo el formato visible.
+    """
+    try:
+        from openpyxl import load_workbook
+    except ImportError:
+        print("[INFO] No se pudo fijar formato en XLSX: falta openpyxl (instala con 'pip install openpyxl')", file=sys.stderr)
+        return
+
+    wb = load_workbook(xlsx_path)
+    ws = wb.active
+
+    decimal_headers = {"longitud promedio", "GC%", "QScore promedio", "Q20%", "Q30%", "% primers"}
+    headers = [cell.value for cell in ws[1]]
+
+    for col_idx, header in enumerate(headers, start=1):
+        if header in decimal_headers:
+            for row in range(2, ws.max_row + 1):
+                cell = ws.cell(row=row, column=col_idx)
+                if cell.value is None:
+                    continue
+                try:
+                    cell.value = float(cell.value)  # asegura numérico
+                except Exception:
+                    continue
+                cell.number_format = "0.00"
+
+    wb.save(xlsx_path)
+    print("[INFO] Formato XLSX fijado a 2 decimales en columnas decimales", file=sys.stderr)
 
 # ---------- Descubrimiento, CLI y main ----------
 
@@ -379,8 +414,9 @@ def main():
     write_pretty_table(rows, HEADERS, out_txt)
     print(f"[OK] TXT guardado en: {out_txt.resolve()}", file=sys.stderr)
 
-    # XLSX (método usado se informa dentro de try_write_xlsx)
+    # XLSX
     if try_write_xlsx(rows, out_xlsx, tmp_tsv):
+        format_xlsx_two_decimals(out_xlsx)  # fija formato 0.00 en columnas decimales
         print(f"[OK] XLSX guardado en: {out_xlsx.resolve()}", file=sys.stderr)
         if tmp_tsv.exists():
             try: tmp_tsv.unlink()
@@ -388,7 +424,7 @@ def main():
     else:
         write_tsv(rows, tmp_tsv)
         print(f"[WARN] No se pudo crear .xlsx automáticamente.", file=sys.stderr)
-        print(f"       Te dejo un TSV para Excel: {tmp_tsv.resolve()}", file=sys.stderr)
+        print(f"       TSV para Excel: {tmp_tsv.resolve()}", file=sys.stderr)
         print(f"       Opciones:", file=sys.stderr)
         print(f"         - Instalar:  python3 -m pip install pandas openpyxl", file=sys.stderr)
         print(f"         - O convertir con LibreOffice:", file=sys.stderr)
@@ -399,3 +435,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
