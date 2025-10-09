@@ -124,24 +124,15 @@ Es uno de los pasos más importantes en un análisis bioinformático de datos de
 - Filtrar lecturas por longitud y calidad, eliminando aquellas demasiado cortas, largas o de baja calidad que puedan corresponder a artefactos de secuenciación o fragmentos incompletos.
 - Orientar y recortar las lecturas basándonos en la ubicación de los primers, asegurando que todas las secuencias tengan la misma dirección y contenido correcto.
 
-Una de las herramientas encontradas en bibliografía para la limpieza de las muestras es `Pychopper`. Para proceder con la instalación, existen dos métodos por línea de comando desde la terminal de Linux.
-
-Desde [GitHub](https://github.com/epi2me-labs/pychopper):
+Una de las herramientas encontradas en bibliografía para la limpieza de las muestras es `Pychopper`. La instalación se hace por línea de código desde desde [GitHub](https://github.com/epi2me-labs/pychopper) con:
 ```
 conda install -c nanoporetech -c conda-forge -c bioconda "nanoporetech::pychopper"
 ```
 
-Desde [Anaconda](https://anaconda.org/bioconda/pychopper):
-```
-conda install bioconda::pychopper 
-```
-
 Pychopper identifica los primers en cada lectura, determina su orientación y recorta el amplicón para dejar únicamente la región de interés. Además, genera reportes que muestran cuántas lecturas fueron clasificadas, rechazadas o rescatadas. Adicionalmente, es una herramienta que permite filtrar aquellas lecturas que poseen un QScore por debajo de 9. 
 
-Sin embargo, es necesario crear un archivo `.fasta` con la secuencia de los primers y otro `.txt` con la orientación de los mismos. De esta manera, ya es posible hacer uso del comando base de `Pychopper`.
+Sin embargo, es necesario crear un archivo `FASTA` con la secuencia de los primers y otro `TXT` con la orientación de los mismos. De esta manera, ya es posible hacer uso del comando base de `Pychopper`.
 ```
-mkdir -p resultados
-
 pychopper -m edlib \ 
   -b "/home/fenrir/resources/primers_stesen.fasta" \ 
   -c "/home/fenrir/resources/primers_stesen.txt" \ 
@@ -151,7 +142,6 @@ pychopper -m edlib \
   "results/sample1_oriented_trimmed.fastq" 
 ```
 
-- `mkdir -p` crear una carpeta.
 - `-m edlib` habilita un alineador para encontrar los primers.
 - `-b` ruta del archivo con la secuencia de los primers.
 - `-c` ruta del archivo con la orientación de los primers.
@@ -160,17 +150,10 @@ pychopper -m edlib \
 - `-t` núcleos de CPU a usar.
 - `-Y` desactiva la función de muestreo automático para hacer el proceso reproducible.
 - `-q` ajusta la exigencia del alineamiento a los primers.
-- `-r` reporte de los resultados en PDF.
-- `-S` estadísticas globales tabuladas.
-- `-A` score por lectura.
-- `-K` lecturas que no pasaron el filtro de calidad.
-- `-l` lecturas por debajo de la longitud mínima.
-- `-u` lecturas excluidas.
-- `-w` lecturas guardadas.
 
-Las dos últimas líneas de código permiten buscar el archivo `.fastq` a limpiar. Luego, se define la ruta en que se va a guardar el archivo `.fastq` limpiado.
+Las dos últimas líneas de código permiten buscar el archivo `FASTQ` a limpiar. Luego, se define la ruta en que se va a guardar el archivo `FASTQ` limpiado.
 
-Sin embargo, `Pychopper` es una herramienta que filtra por longitud mínima y no por rango. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal de 1300pb a 1700pb. 
+Sin embargo, `Pychopper` es una herramienta que filtra por longitud mínima y no por rango. Por lo que, se usó de forma complementaria la herramienta `Filtlong`, pues esta permite establecer el rango ideal en pb. 
 
 Para instalar esta herramienta se usó el comando:
 ```
@@ -193,49 +176,6 @@ filtlong --min_length 1300 --max_length 1700 \
 `Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. Posteriormente, se usa `|` para que los archivos que salen de `Filtlong` entren directamente a `Pychopper`, y se usa `/dev/stdin` para que `Pychopper` lea como entrada lo que entra por `|`. Finalmente, el archivo entregado se espera que sea un archivo `.fastq` filtrado con los parámetros definidos en ambas herramientas.
 
 Ahora, para que este código funcione para todos los archivos del estudio se usó:
-```
-#!/usr/bin/env bash
-set -euo pipefail
-shopt -s nullglob  
-
-BASE="/home/fenrir/Documentos/Muestras 16S/sterile_sentinels"
-PRIMERS="/home/fenrir/resources/primers_stesen.fasta"
-PCONFIG="/home/fenrir/resources/primers_stesen.txt"
-OUTDIR="results3int"
-
-mkdir -p "$OUTDIR"
-
-inputs=( "$BASE"/*.fastq.gz "$BASE"/*.fq.gz "$BASE"/*.fastq "$BASE"/*.fq )
-if ((${#inputs[@]}==0)); then
-  echo "No se encontraron FASTQ en: $BASE" >&2
-  exit 1
-fi
-
-for fq in "${inputs[@]}"; do
-  SAMPLE=$(basename "$fq")
-  SAMPLE=${SAMPLE%.gz}
-  SAMPLE=${SAMPLE%.fastq}
-  SAMPLE=${SAMPLE%.fq}
-
-  sdir="$OUTDIR/$SAMPLE"
-  mkdir -p "$sdir"
-  echo "Procesando $SAMPLE …"
-
-  filtlong --min_length 1300 --max_length 1700 "$fq" \
-  | pychopper -m edlib \
-      -b "$PRIMERS" -c "$PCONFIG" \
-      -Q 9 -z 1300 -t 8 -Y 0 -q 0.52 \
-      -r "$sdir/${SAMPLE}_report.pdf" \
-      -S "$sdir/${SAMPLE}_stats.tsv" \
-      -A "$sdir/${SAMPLE}_scores.tsv" \
-      -K "$sdir/${SAMPLE}_qc_fail.fastq" \
-      -l "$sdir/${SAMPLE}_len_fail.fastq" \
-      -u "$sdir/${SAMPLE}_unclassified.fastq" \
-      -w "$sdir/${SAMPLE}_rescued.fastq" \
-      - "$sdir/${SAMPLE}_oriented_trimmed.fastq"
-done
-```
-# CAAMBIOS (EL SIGUIENTE ES EL NUEVO)
 ```
 cat > dentrim.py <<'PY'
 #!/usr/bin/env python3
