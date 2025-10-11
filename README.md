@@ -55,7 +55,7 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 ```
 
 - `--kit name` nombre del kit de barcodes usados.
-- `-- trim all` quitar barcodes y primers. En este caso no afecta, pues dorado garantiza que el recorte no interfiere con la demultiplexación.
+- `-- trim all` quitar barcodes, adaptadores y primers. En este caso no afecta, pues dorado garantiza que el recorte no interfiere con la demultiplexación.
 - `--primer-sequences` archivo `.fasta` von las secuencias de los primers.
 - `-x auto` automáticamente elige si usar la GPU o CPU.
 - `--no-clasiffy` no vuelve a clasificar, simplemente lee la asignación de barcode que ya quedó guardada en `calls.bam` durante el basecalling, y divide las lecturas en archivos separados por barcode.
