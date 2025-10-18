@@ -1,0 +1,586 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+EMU pipeline wrapper + aggregator
+
+Funcionalidad:
+1) Descubre/acepta FASTQ(s) de entrada (fastq o fastq.gz).
+2) Ejecuta `emu abundance` por muestra con los flags adecuados.
+3) Recolecta salidas por muestra y agrega a:
+   - feature_table_counts.tsv
+   - feature_table_relabund.tsv
+   - taxonomy.tsv  (feature_id -> taxonomía estilo k__/p__/.../s__)
+   - alpha_diversity.tsv  (Observed, Chao1, Shannon, Simpson)
+   - (opcional) feature_table.biom
+4) (opcional) Funde lecturas asignadas a un CSV maestro (puede ser grande).
+
+Requisitos:
+- Python 3.8+
+- pandas, numpy
+- (opcional) biom-format para exportar BIOM
+- EMU instalado en PATH (o especificar con --emu-cmd)
+
+Ejemplos:
+  # Ejecutar sobre todos los FASTQ en results/*/SRR*_oriented_trimmed*.fastq*
+  python emu_pipeline_pack.py \
+    --db /home/fenrir/emu_db \
+    --input-glob 'results/*/SRR*_oriented_trimmed*.fastq*' \
+    --outdir results_emu_pack --threads 8 --rank species \
+    --keep-counts --keep-assignments --merge-assignments
+
+  # Ejecutar sobre una carpeta específica
+  python emu_pipeline_pack.py \
+    --db /home/fenrir/emu_db \
+    --input-dir /ruta/a/fastqs \
+    --pattern '*.fastq.gz' \
+    --outdir results_emu_pack --threads 8
+
+Salida clave para diversidad:
+- feature_table_counts.tsv  -> usa para Bray-Curtis/Jaccard/UniFrac (si luego generas árbol)
+- feature_table_relabund.tsv -> perfiles normalizados
+- taxonomy.tsv -> mapeo de features a taxonomía completa
+- alpha_diversity.tsv -> métricas alfa precalculadas (Observed/Chao1/Shannon/Simpson)
+"""
+import argparse
+import os
+import sys
+import glob
+import gzip
+import subprocess
+from pathlib import Path
+from typing import List, Dict, Tuple, Optional
+
+import numpy as np
+import pandas as pd
+
+# ----------------------------- Utilidades básicas -----------------------------
+
+TAX_COLS_CANON = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
+RANKS_ALLOWED = set(TAX_COLS_CANON)
+
+def eprint(*a, **k):
+    print(*a, file=sys.stderr, **k)
+
+def ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+def which(cmd: str) -> Optional[str]:
+    from shutil import which as _which
+    return _which(cmd)
+
+def safe_basename_noext(p: Path) -> str:
+    """Obtén un nombre de muestra razonable desde el FASTQ."""
+    name = p.name
+    # Intenta SRR… si aplica
+    import re
+    m = re.search(r"(SRR\d{6,})", name, flags=re.IGNORECASE)
+    if m:
+        return m.group(1)
+    # Si no, usa carpeta padre + nombre base sin ext
+    stem = p.stem
+    if stem.endswith(".fastq"):  # para .fastq.gz -> stem = *.fastq
+        stem = Path(stem).stem
+    parent = p.parent.name
+    return f"{parent}_{stem}"
+
+def read_table_maybe(path: Path) -> Optional[pd.DataFrame]:
+    try:
+        return pd.read_csv(path, sep="\t")
+    except Exception as e:
+        eprint(f"[WARN] No pude leer {path}: {e}")
+        return None
+
+def to_qiime_tax_string(row: pd.Series) -> str:
+    parts = []
+    prefixes = ["k__", "p__", "c__", "o__", "f__", "g__", "s__"]
+    for col, pref in zip(TAX_COLS_CANON, prefixes):
+        val = str(row.get(col, "") or "").strip()
+        if not val or val.lower() == "unassigned":
+            parts.append(pref)
+        else:
+            parts.append(pref + val)
+    return ";".join(parts)
+
+def chao1(counts: np.ndarray) -> float:
+    """Chao1 clásico basado en conteos enteros."""
+    counts = counts[counts > 0]
+    S_obs = (counts > 0).sum()
+    if counts.size == 0:
+        return 0.0
+    f1 = (counts == 1).sum()
+    f2 = (counts == 2).sum()
+    if f2 == 0:
+        return float(S_obs + (f1 * (f1 - 1)) / 2.0)  # corrección cuando f2=0
+    return float(S_obs + (f1 * f1) / (2.0 * f2))
+
+def shannon_entropy(p: np.ndarray) -> float:
+    p = p[p > 0]
+    if p.size == 0:
+        return 0.0
+    return float(-(p * np.log(p)).sum())
+
+def simpson_index(p: np.ndarray) -> float:
+    if p.size == 0:
+        return 0.0
+    return float(1.0 - (p * p).sum())
+
+# ----------------------------- EMU ejecución ---------------------------------
+
+def run_emu_for_sample(
+    emu_cmd: str,
+    db: Path,
+    fastq: Path,
+    outdir_sample: Path,
+    sample: str,
+    threads: int,
+    keep_counts: bool,
+    keep_assignments: bool,
+) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
+    """
+    Ejecuta `emu abundance` y retorna rutas a:
+      (rel_abund_path, counts_path, assignments_path)
+    (algunas pueden ser None si no se pidieron o no existen)
+    """
+    ensure_dir(outdir_sample)
+    cmd = [
+        emu_cmd, "abundance",
+        "--db", str(db),
+        "--threads", str(threads),
+        "--output-dir", str(outdir_sample),
+        "--output-basename", sample,
+    ]
+    if keep_counts:
+        cmd.append("--keep-counts")
+    if keep_assignments:
+        cmd.append("--keep-read-assignments")
+    cmd.append(str(fastq))
+
+    eprint(f"[EMU] {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+    rel_abund = next(outdir_sample.glob(f"{sample}*rel-abundance.tsv"), None)
+    counts = next(outdir_sample.glob(f"{sample}*counts.tsv"), None) if keep_counts else None
+    assigns = next(outdir_sample.glob(f"{sample}*read-assignments.tsv"), None) if keep_assignments else None
+    return rel_abund, counts, assigns
+
+# ----------------------------- Agregación ------------------------------------
+
+def select_rank(df: pd.DataFrame, rank: str) -> pd.DataFrame:
+    """Filtra a un nivel taxonómico (rank) concreto si la tabla trae todos los niveles."""
+    lower = {c.lower(): c for c in df.columns}
+    if rank not in lower:
+        # si no existe la columna exacta del rank, asumimos que ya viene a nivel especie
+        return df.copy()
+    # Retenemos filas con valor en ese rank
+    col = lower[rank]
+    df2 = df.copy()
+    df2 = df2[df2[col].notna() & (df2[col].astype(str).str.strip() != "")]
+    return df2
+
+def build_feature_id(row: pd.Series, rank: str) -> str:
+    """Crea un ID estable para cada taxón: rank|tax_id|tax_name (si disponibles)."""
+    tax_id = str(row.get("tax_id", "")).strip()
+    name = ""
+    if rank in row and pd.notna(row[rank]) and str(row[rank]).strip():
+        name = str(row[rank]).strip()
+    elif "species" in row and pd.notna(row["species"]) and str(row["species"]).strip():
+        name = str(row["species"]).strip()
+    elif "tax_name" in row and pd.notna(row["tax_name"]) and str(row["tax_name"]).strip():
+        name = str(row["tax_name"]).strip()
+    # limpia pipes
+    name = name.replace("|", "_")
+    tax_id = tax_id.replace("|", "_")
+    base = f"{rank}|{tax_id}|{name}" if tax_id or name else f"{rank}|NA|NA"
+    return base
+
+def aggregate_tables(
+    per_sample_counts: Dict[str, Path],
+    per_sample_rel: Dict[str, Path],
+    outdir: Path,
+    rank: str,
+    min_abundance: float = 0.0
+) -> Tuple[Path, Path, Path, Path]:
+    """
+    Genera matrices agregadas y alfa diversidad.
+    Retorna rutas a: (counts_tsv, relabund_tsv, taxonomy_tsv, alpha_tsv)
+    """
+    # 1) Cargar y pivotear conteos (si existen); si no, derivarlos desde abundancias + total_reads si está
+    features = set()
+    sample_order = sorted(set(per_sample_counts.keys()) | set(per_sample_rel.keys()))
+    rows_tax_meta: Dict[str, Dict[str, str]] = {}
+    counts_map: Dict[str, Dict[str, int]] = {s: {} for s in sample_order}
+    rel_map: Dict[str, Dict[str, float]] = {s: {} for s in sample_order}
+
+    def process_one_tsv(tsv_path: Path, sample: str, kind: str):
+        df = read_table_maybe(tsv_path)
+        if df is None or df.empty:
+            return
+        # uniformiza columnas taxonómicas
+        col_low = {c.lower(): c for c in df.columns}
+        for col in TAX_COLS_CANON:
+            if col not in col_low:
+                df[col] = np.nan
+            else:
+                df[col] = df[col_low[col]]
+
+        # filtra por rank
+        df = select_rank(df, rank)
+
+        # Aplica filtro por abundancia si corresponde (solo para rel-abundance)
+        if kind == "rel":
+            rel_col = None
+            # EMU típicamente usa "relative_abundance" o "rel_abundance" (según versión)
+            for cand in ["relative_abundance", "rel_abundance", "rel-abundance", "abundance"]:
+                if cand in df.columns:
+                    rel_col = cand
+                    break
+            if rel_col is None:
+                # intenta desde "fraction_total_reads" si existiera
+                for cand in ["fraction_total_reads", "fraction"]:
+                    if cand in df.columns:
+                        rel_col = cand
+                        break
+            if rel_col is None:
+                eprint(f"[WARN] No hallé columna de abundancia relativa en {tsv_path}.")
+            else:
+                if min_abundance > 0:
+                    df = df[df[rel_col] >= min_abundance]
+
+        return df
+
+    # Primero REL para asegurar features aunque no haya counts
+    for sample, tsv in per_sample_rel.items():
+        df = process_one_tsv(tsv, sample, "rel")
+        if df is None or df.empty:
+            continue
+
+        # define columna de abundancia relativa
+        rel_col = None
+        for cand in ["relative_abundance", "rel_abundance", "rel-abundance", "abundance", "fraction_total_reads", "fraction"]:
+            if cand in df.columns:
+                rel_col = cand
+                break
+        if rel_col is None:
+            continue
+
+        for _, row in df.iterrows():
+            fid = build_feature_id(row, rank)
+            features.add(fid)
+            # guarda rel
+            rel_map[sample][fid] = float(row[rel_col]) if pd.notna(row[rel_col]) else 0.0
+            # guarda taxonomía canónica (para exportar taxonomy.tsv)
+            rows_tax_meta.setdefault(fid, {c: "" for c in TAX_COLS_CANON})
+            for c in TAX_COLS_CANON:
+                val = row.get(c, "")
+                rows_tax_meta[fid][c] = "" if pd.isna(val) else str(val)
+
+    # Luego COUNTS (si están)
+    for sample, tsv in per_sample_counts.items():
+        df = process_one_tsv(tsv, sample, "counts")
+        if df is None or df.empty:
+            continue
+
+        count_col = None
+        for cand in ["count", "counts", "read_count", "reads"]:
+            if cand in df.columns:
+                count_col = cand
+                break
+        if count_col is None:
+            eprint(f"[WARN] No hallé columna de conteo en {tsv}. Intentaré derivar desde relativas si es posible.")
+            continue
+
+        for _, row in df.iterrows():
+            fid = build_feature_id(row, rank)
+            features.add(fid)
+            val = row[count_col]
+            try:
+                val = int(val)
+            except Exception:
+                try:
+                    val = int(float(val))
+                except Exception:
+                    val = 0
+            counts_map[sample][fid] = val
+            # tax meta (por si no vino de rel)
+            rows_tax_meta.setdefault(fid, {c: "" for c in TAX_COLS_CANON})
+            for c in TAX_COLS_CANON:
+                valx = row.get(c, "")
+                if rows_tax_meta[fid].get(c, "") == "":
+                    rows_tax_meta[fid][c] = "" if pd.isna(valx) else str(valx)
+
+    # Si no hay counts, derivamos conteos aproximados usando rel * total (si total está en rel)
+    # Muchas veces EMU no expone total; en ese caso dejamos counts como 0 y usamos solo relativas para alfa (posible sesgo).
+    # Para alfa robusta se recomiendan counts reales (usar --keep-counts).
+    for sample in sample_order:
+        if counts_map[sample]:
+            continue
+        # intenta obtener total desde sum(relatives) asumido = 1.0, counts no derivables sin total real.
+        # mantenemos 0s: alfa se basa en presence/absence si no hay counts.
+        pass
+
+    # Construir tablas
+    features = sorted(features)
+    # Counts
+    mat_counts = np.zeros((len(features), len(sample_order)), dtype=int)
+    for j, s in enumerate(sample_order):
+        for i, fid in enumerate(features):
+            mat_counts[i, j] = int(counts_map[s].get(fid, 0))
+
+    # RelAbund
+    mat_rel = np.zeros((len(features), len(sample_order)), dtype=float)
+    for j, s in enumerate(sample_order):
+        for i, fid in enumerate(features):
+            mat_rel[i, j] = float(rel_map[s].get(fid, 0.0))
+
+    # DataFrames
+    df_counts = pd.DataFrame(mat_counts, index=features, columns=sample_order)
+    df_rel = pd.DataFrame(mat_rel, index=features, columns=sample_order)
+
+    # taxonomy.tsv
+    tax_rows = []
+    for fid in features:
+        meta = rows_tax_meta.get(fid, {c: "" for c in TAX_COLS_CANON})
+        tax_rows.append({
+            "feature_id": fid,
+            "taxonomy": to_qiime_tax_string(pd.Series(meta))
+        })
+    df_tax = pd.DataFrame(tax_rows, columns=["feature_id", "taxonomy"])
+
+    # alpha_diversity.tsv desde counts si hay, si no desde relativas (threshold >0)
+    alpha_rows = []
+    for s in sample_order:
+        counts_vec = df_counts[s].to_numpy()
+        rel_vec = df_rel[s].to_numpy()
+        # Observed: especies con >0 (prioriza counts; si todo 0, usa rel)
+        observed = int((counts_vec > 0).sum()) if counts_vec.sum() > 0 else int((rel_vec > 0).sum())
+        # Chao1: de counts; si no hay counts, aproxima con presencia/ausencia (poco informativo)
+        chao = chao1(counts_vec) if counts_vec.sum() > 0 else float(observed)
+        # Shannon/Simpson: a partir de proporciones (derivadas de counts o usando rel)
+        if counts_vec.sum() > 0:
+            p = counts_vec / counts_vec.sum()
+        else:
+            total_rel = rel_vec.sum()
+            p = rel_vec / total_rel if total_rel > 0 else rel_vec
+        shan = shannon_entropy(p)
+        simp = simpson_index(p)
+        alpha_rows.append({
+            "sample": s,
+            "observed": observed,
+            "chao1": chao,
+            "shannon": shan,
+            "simpson": simp
+        })
+    df_alpha = pd.DataFrame(alpha_rows, columns=["sample", "observed", "chao1", "shannon", "simpson"])
+
+    # Guardar
+    counts_tsv = outdir / "feature_table_counts.tsv"
+    rel_tsv = outdir / "feature_table_relabund.tsv"
+    tax_tsv = outdir / "taxonomy.tsv"
+    alpha_tsv = outdir / "alpha_diversity.tsv"
+    df_counts.to_csv(counts_tsv, sep="\t", index=True, header=True)
+    df_rel.to_csv(rel_tsv, sep="\t", index=True, header=True)
+    df_tax.to_csv(tax_tsv, sep="\t", index=False)
+    df_alpha.to_csv(alpha_tsv, sep="\t", index=False)
+    eprint(f"[OK] Matriz de conteos: {counts_tsv}")
+    eprint(f"[OK] Matriz de abundancia relativa: {rel_tsv}")
+    eprint(f"[OK] Taxonomía: {tax_tsv}")
+    eprint(f"[OK] Alfa diversidad: {alpha_tsv}")
+
+    # BIOM (opcional)
+    try:
+        import biom
+        from biom.table import Table
+        biom_out = outdir / "feature_table.biom"
+        table = Table(
+            df_counts.to_numpy(),
+            observation_ids=df_counts.index.tolist(),
+            sample_ids=df_counts.columns.tolist()
+        )
+        with biom.util.biom_open(str(biom_out), 'w') as f:
+            table.to_hdf5(f, "emu_pipeline_pack")
+        eprint(f"[OK] BIOM: {biom_out}")
+    except Exception as e:
+        eprint(f"[INFO] Saltando export BIOM (instala 'biom-format' si lo necesitas). Motivo: {e}")
+
+    return counts_tsv, rel_tsv, tax_tsv, alpha_tsv
+
+# ----------------------------- Main ------------------------------------------
+
+def discover_fastqs(args) -> List[Path]:
+    paths: List[Path] = []
+    if args.input_glob:
+        for pat in args.input_glob:
+            for p in glob.glob(pat):
+                if os.path.isfile(p):
+                    paths.append(Path(p))
+    if args.input_dir:
+        base = Path(args.input_dir)
+        pat = args.pattern or "*.fastq*"
+        paths.extend(base.rglob(pat))
+    # de-dup y ordenar
+    uniq = sorted(set([p.resolve() for p in paths]))
+    return uniq
+
+def merge_assignments(assign_paths: Dict[str, Path], outdir: Path) -> Optional[Path]:
+    """Une lecturas asignadas en un solo CSV con columnas: sample, read_id, tax_id, tax_name (si están)."""
+    if not assign_paths:
+        return None
+    rows = []
+    nfiles = len(assign_paths)
+    eprint(f"[INFO] Fusionando lecturas asignadas de {nfiles} muestras… (puede ser pesado)")
+    for sample, p in assign_paths.items():
+        df = read_table_maybe(p)
+        if df is None or df.empty:
+            continue
+        # columnas típicas: read_id, tax_id, tax_name (varía por versión)
+        colmap = {c.lower(): c for c in df.columns}
+        read_col = colmap.get("read_id", None)
+        taxid_col = colmap.get("tax_id", None)
+        tname_col = colmap.get("tax_name", None)
+        if read_col is None or taxid_col is None:
+            eprint(f"[WARN] {p} no contiene columnas esperadas (read_id/tax_id). Lo omito.")
+            continue
+        sub = pd.DataFrame({
+            "sample": sample,
+            "read_id": df[read_col].astype(str),
+            "tax_id": df[taxid_col].astype(str),
+            "tax_name": df[tname_col].astype(str) if tname_col else ""
+        })
+        rows.append(sub)
+    if not rows:
+        return None
+    big = pd.concat(rows, ignore_index=True)
+    outcsv = outdir / "read_assignments_merged.csv"
+    big.to_csv(outcsv, index=False)
+    eprint(f"[OK] Lecturas asignadas fusionadas: {outcsv} (filas={len(big)})")
+    return outcsv
+
+def main():
+    ap = argparse.ArgumentParser(description="Pipeline EMU + agregación para diversidad alfa/beta.")
+    ap.add_argument("--db", required=True, help="Ruta a la base de datos de EMU")
+    ap.add_argument("--outdir", required=True, help="Directorio de salida")
+    ap.add_argument("--threads", type=int, default=8, help="Hilos para EMU (default: 8)")
+    ap.add_argument("--emu-cmd", default="emu", help="Comando EMU (default: 'emu')")
+    # Descubrimiento de entradas
+    ap.add_argument("--input-glob", nargs="+", help="Uno o más patrones glob (ej: 'results/*/*.fastq.gz')")
+    ap.add_argument("--input-dir", help="Carpeta raíz para buscar FASTQ(s)")
+    ap.add_argument("--pattern", help="Patrón (default: '*.fastq*') para --input-dir")
+    # Flags EMU
+    ap.add_argument("--keep-counts", action="store_true", help="Guardar tablas de conteos por muestra")
+    ap.add_argument("--keep-assignments", action="store_true", help="Guardar lecturas asignadas por muestra")
+    # Agregación
+    ap.add_argument("--rank", default="species", choices=list(RANKS_ALLOWED),
+                    help="Nivel taxonómico a consolidar (default: species)")
+    ap.add_argument("--min-abundance", type=float, default=0.0,
+                    help="Filtro mínimo de abundancia relativa para incluir features (default: 0.0)")
+    ap.add_argument("--merge-assignments", action="store_true",
+                    help="Fusionar lecturas asignadas en un solo CSV maestro (puede ser grande)")
+    args = ap.parse_args()
+
+    outdir = Path(args.outdir).resolve()
+    ensure_dir(outdir)
+
+    # Verifica EMU
+    emu_bin = args.emu_cmd
+    if os.path.sep not in emu_bin:  # nombre simple, buscar en PATH
+        wb = which(emu_bin)
+        if wb is None:
+            eprint(f"[ERROR] No se encontró '{emu_bin}' en PATH. Especifica --emu-cmd o ajusta tu entorno.")
+            sys.exit(1)
+        emu_bin = wb
+
+    db = Path(args.db).resolve()
+    if not db.exists():
+        eprint(f"[ERROR] Base de EMU no existe: {db}")
+        sys.exit(1)
+
+    # Descubrir FASTQ(s)
+    fastqs = discover_fastqs(args)
+    if not fastqs:
+        eprint("[ERROR] No se encontraron FASTQ(s). Usa --input-glob o --input-dir/--pattern.")
+        sys.exit(1)
+
+    eprint(f"[INFO] FASTQ(s) detectados: {len(fastqs)}")
+    # Manifiesto
+    manifest_rows = []
+
+    per_sample_rel: Dict[str, Path] = {}
+    per_sample_counts: Dict[str, Path] = {}
+    per_sample_assigns: Dict[str, Path] = {}
+
+    # Ejecutar EMU por muestra
+    for fq in fastqs:
+        sample = safe_basename_noext(fq)
+        sdir = outdir / sample
+        ensure_dir(sdir)
+        try:
+            rel, cnt, asg = run_emu_for_sample(
+                emu_cmd=emu_bin,
+                db=db,
+                fastq=fq,
+                outdir_sample=sdir,
+                sample=sample,
+                threads=args.threads,
+                keep_counts=args.keep_counts,
+                keep_assignments=args.keep_assignments
+            )
+        except subprocess.CalledProcessError as e:
+            eprint(f"[ERROR] EMU falló para {fq}: {e}")
+            continue
+
+        if rel and rel.exists():
+            per_sample_rel[sample] = rel
+        if cnt and cnt.exists():
+            per_sample_counts[sample] = cnt
+        if asg and asg.exists():
+            per_sample_assigns[sample] = asg
+
+        manifest_rows.append({
+            "sample": sample,
+            "fastq": str(fq),
+            "outdir_sample": str(sdir),
+            "rel_abundance_tsv": str(rel) if rel else "",
+            "counts_tsv": str(cnt) if cnt else "",
+            "assignments_tsv": str(asg) if asg else ""
+        })
+
+    # Guardar manifiesto
+    manifest = pd.DataFrame(manifest_rows)
+    manifest_path = outdir / "manifest.tsv"
+    if not manifest.empty:
+        manifest.to_csv(manifest_path, sep="\t", index=False)
+        eprint(f"[OK] Manifiesto: {manifest_path}")
+    else:
+        eprint("[ERROR] No hay resultados para agregar. Revisa logs anteriores.")
+        sys.exit(1)
+
+    if not per_sample_rel:
+        eprint("[ERROR] No se hallaron archivos *rel-abundance.tsv*. ¿EMU generó salidas?")
+        sys.exit(1)
+
+    # Agregar tablas
+    counts_tsv, rel_tsv, tax_tsv, alpha_tsv = aggregate_tables(
+        per_sample_counts=per_sample_counts,
+        per_sample_rel=per_sample_rel,
+        outdir=outdir,
+        rank=args.rank,
+        min_abundance=args.min_abundance
+    )
+
+    # Merge assignments (opcional)
+    if args.merge_assignments and per_sample_assigns:
+        merge_assignments(per_sample_assigns, outdir)
+
+    eprint("\n=== Listo. Archivos principales ===")
+    eprint(f"- {manifest_path}")
+    eprint(f"- {counts_tsv}")
+    eprint(f"- {rel_tsv}")
+    eprint(f"- {tax_tsv}")
+    eprint(f"- {alpha_tsv}")
+    eprint("Puedes usar 'feature_table_counts.tsv' + 'taxonomy.tsv' para beta-diversidad (Bray-Curtis/Jaccard).")
+    eprint("Para UniFrac/PD, genera un árbol filogenético aparte y úsalo con esa tabla.")
+    eprint("Si necesitas BIOM, instala 'biom-format' y el script lo exportará automáticamente.")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
