@@ -229,7 +229,7 @@ Para ejecutar el código se usa el siguiente comando:
 8. `--pconfig` es la ruta con la dirección de los primers.
 
 # Taxonomía
-EMU
+En esta etapa del pipeline se realiza la estimación de abundancias taxonómicas a partir de lecturas 16S rRNA ya depuradas (post Denoising y Trimming). El objetivo es obtener tablas sólidas —conteos, abundancias relativas, asignación de lecturas y mapeo taxonómico— listas para análisis de diversidad alfa y beta. Además, el script integra un módulo opcional para calcular Bray–Curtis/Jaccard y su PCoA directamente desde la tabla de conteos.
 ```
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
