@@ -106,7 +106,7 @@ Los paquetes que se importanron fueron:
 Una vez creado el script con el código, se ejecúta:
 ```
 python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
-  "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
+  "/home/fenrir/Documentos/Muestras_16S/sterile_sentinels" \
   -r \
   --primers "/home/fenrir/resources/primers_stesen.fasta" \
   -o "/home/fenrir/og_stats/estadisticas_og_stesen.txt" \
