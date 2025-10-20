@@ -211,7 +211,7 @@ Los paquetes importados fueron:
 Para ejecutar el código se usa el siguiente comando:
 ```
 /home/fenrir/scriptsbioinf/dentrim.py \
-  -i "/home/fenrir/Documentos/Muestras 16S/sterile_sentinels" \
+  -i "/home/fenrir/Documentos/Muestras_16S/sterile_sentinels" \
   -o "dentrim_stesen" \
   --minlen 1000 --maxlen 1700 \
   -Q 12 -t 8 \
