@@ -255,25 +255,25 @@ Los paquetes importados fueron:
 ## Funciones definidas
 
 Se definieron las siguientes funciones:
-- `eprint(): Imprime mensajes en la salida de error estándar (stderr) para separar claramente los logs y advertencias de las salidas de datos (TSV/BIOM). Esto facilita depuración, permite redirigir resultados sin mezclar mensajes y mantiene limpio el stdout para encadenar el script con otras herramientas.
-- `ensure_dir(path)`: Crea el directorio indicado (y sus padres) si no existe. Se usa antes de escribir salidas por muestra o agregados globales para evitar fallos por rutas inexistentes y asegurar reproducibilidad del flujo.
-- `which(cmd): Resuelve la ruta absoluta de un ejecutable (envoltura de `shutil.which`). Permite validar y ubicar el binario de EMU cuando no está en `PATH` y soportar la opción `--emu-cmd`, reduciendo errores por entornos conda múltiples.
-- `safe_basename_noext(path)`: Deriva un nombre de muestra estable a partir del nombre del FASTQ: prioriza patrones `SRR\d+` y, si no existen, combina carpeta y base del archivo. Garantiza nombres coherentes para subcarpetas y prefijos de salida entre datasets heterogéneos.
-- `read_table_maybe(path)`: Intenta leer un TSV con `pandas` y devuelve `None` si falla, registrando una advertencia. Aporta tolerancia a errores frente a archivos ausentes o malformateados sin detener todo el pipeline.
-- `to_qiime_tax_string(row)`: Construye una cadena taxonómica con el formato QIIME (`k__/p__/c__/o__/f__/g__/s__`) a partir de las columnas presentes. Estandariza la anotación para interoperar con QIIME 2/phyloseq y posibilita colapsos por nivel.
-- `chao1(counts)`: Calcula el estimador de riqueza Chao1 usando singletons y doubletons, con corrección cuando no hay doubletons. Proporciona una métrica alfa sensible a taxones raros directamente desde conteos.
-- `shannon_entropy(p)`: Computa el índice de Shannon sobre proporciones (p), ignorando ceros. Resume simultáneamente riqueza y equidad, útil para comparar diversidad interna entre muestras.
-- `simpson_index(p)`: Calcula el índice de Simpson como (1-\sum p^2), más robusto a dominancias que Shannon. Complementa el panorama alfa destacando homogeneidad de la comunidad.
-- `run_emu_for_sample()`: Orquesta la llamada a `emu abundance` para una muestra con los flags solicitados, verifica el retorno y recoge las rutas a `rel-abundance.tsv`, `counts.tsv` y `read-assignments.tsv` si existen. Encapsula la ejecución y el descubrimiento de salidas por muestra.
-- `select_rank()`: Filtra la tabla de EMU al nivel taxonómico elegido (species, genus, etc.), eliminando filas sin valor en ese nivel. Alinea el análisis al grano taxonómico definido por el usuario.
-- `build_feature_id(row, rank)`: Genera un identificador estable por taxón con el patrón `rank|tax_id|tax_name`, saneando separadores. Evita colisiones entre nombres iguales con distintos tax_id y facilita joins y agregaciones confiables.
-- `aggregate_tables()`: Núcleo del posproceso: armoniza columnas taxonómicas, aplica `select_rank` y el umbral `min_abundance`, construye matrices multi-muestra de conteos y relativas, emite `taxonomy.tsv` en formato QIIME y calcula alfa (Observed/Chao1/Shannon/Simpson), intentando además producir un BIOM si está disponible. Deja el dataset listo para downstream.
-- `compute_beta_pcoa(counts_tsv, outdir, use_relative)`: A partir de la tabla de conteos, calcula distancias Bray–Curtis (con opción a normalizar a relativas) y Jaccard (presencia/ausencia), ejecuta PCoA y escribe matrices de distancia, coordenadas, eigenvalores, varianza explicada y, si puede, figuras PNG. Integra beta-diversidad y ordenación en el mismo flujo.
-- `_write_pcoa_outputs(ord_res, prefix, outdir)`: Serializa los resultados de PCoA en TSV: coordenadas por muestra, eigenvalores y proporción de varianza explicada, usando un prefijo por métrica. Estandariza la salida para análisis y gráficos posteriores.
-- `_plot_pcoa(ord_res, prefix, outdir)`: Genera un scatter PC1 vs PC2 con las proporciones de varianza en etiquetas y anota las muestras. Ofrece una visual rápida de separación/clustering sin depender de notebooks.
-- `discover_fastqs(args)`: Localiza archivos de entrada usando `--input-glob` y/o `--input-dir`+`--pattern`, desduplica y ordena rutas absolutas. Aporta flexibilidad ante distintos layouts y nomenclaturas de datos.
-- `merge_assignments(assign_paths, outdir)`: Concatena las tablas `read-assignments` de todas las muestras en un CSV maestro con columna `sample`, validando columnas clave. Habilita trazabilidad a nivel lectura para auditorías y QC.
-- `main()`: Punto de entrada que parsea argumentos, valida entorno/recursos, descubre FASTQ, corre EMU por muestra, construye el `manifest.tsv`, agrega resultados vía `aggregate_tables`, opcionalmente fusiona asignaciones y ejecuta `compute_beta_pcoa`, y reporta un resumen final. Garantiza una ejecución secuencial, robusta y reproducible.
+- `eprint()`: Imprime mensajes en la salida en caso de error del procesamiento de una muestra o de todo el script.
+- `ensure_dir(path)`: Crea el directorio indicado si no existe.
+- `which(cmd)`: Permite validar y ubicar el binario de EMU, para evitar conflictos en el entorno.
+- `safe_basename_noext(path)`: Garantiza nombres coherentes para subcarpetas y prefijos de salida, para conservar el ID de la muestra.
+- `read_table_maybe(path)`: Intenta leer un TSV con `pandas` y devuelve `None` si falla, registrando una advertencia.
+- `to_qiime_tax_string(row)`: Construye una cadena taxonómica separado por columnas. 
+- `chao1(counts)`: Calcula el estimador de riqueza Chao1 usando singletons y doubletons.
+- `shannon_entropy(p)`: Calcula el índice de Shannon sobre proporciones (p), ignorando ceros.
+- `simpson_index(p)`: Calcula el índice de Simpson como `(1-\sum p^2)`.
+- `run_emu_for_sample()`: Llama a `emu abundance` por muestra, verifica el retorno y envía las salidas (`rel-abundance.tsv`, `counts.tsv` y `read-assignments.tsv`) a la ruta solicitada.
+- `select_rank()`: Filtra la tabla de EMU al nivel taxonómico elegido.
+- `build_feature_id(row, rank)`: Genera un identificador por taxón con el patrón `rank|tax_id|tax_name`, evitando confuciones entre nombres iguales con distintos `tax_id`.
+- `aggregate_tables()`: Pricipal encargado de generar tablas, pues organiza columnas taxonómicas, aplica `select_rank` y el umbral `min_abundance`, construye matrices multi-muestra de conteos y relativas, emite `taxonomy.tsv` y calcula alfa (Observed/Chao1/Shannon/Simpson).
+- `compute_beta_pcoa(counts_tsv, outdir, use_relative)`: A partir de la tabla de conteos, calcula distancias Bray–Curtis y Jaccard, ejecuta PCoA y escribe matrices de distancia, coordenadas, eigenvalores, varianza explicada y, si puede, figuras.
+- `_write_pcoa_outputs(ord_res, prefix, outdir)`: Estandariza las salidas de PCoA en TSV. 
+- `_plot_pcoa(ord_res, prefix, outdir)`: Genera un scatter PC1 vs PC2 con las proporciones de varianza en etiquetas y anota las muestras.
+- `discover_fastqs(args)`: Localiza archivos de entrada usando `--input-glob` y `--input-dir`+`--pattern`, desduplica y ordena rutas absolutas. 
+- `merge_assignments(assign_paths, outdir)`: Une las tablas `read-assignments` de todas las muestras en un CSV con columna `sample`.
+- `main()`: Parsea argumentos, valida el entorno, descubre FASTQ, corre EMU por muestra, construye el `manifest.tsv`, agrega resultados vía `aggregate_tables`, fusiona asignaciones y ejecuta `compute_beta_pcoa`, y reporta un resumen final.
 
 ## Ejecución del código
 ```
