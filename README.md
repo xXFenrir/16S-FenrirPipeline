@@ -288,9 +288,17 @@ python /home/fenrir/scriptsbioinf/EMU.py \
 ```
 # Diversidad
 ```
-python /home/fenrir/scriptsbioinf/metricas.py \
-  --emu-outdir /home/fenrir/results_dentrim_Q12/EMU_Q12 \
+python /home/fenrir/scriptsbioinf/EMU.py \
+  --db /home/fenrir/emu_db \
+  --emu-cmd /home/fenrir/anaconda3/envs/pipelinefenrir/bin/emu \
+  --input-dir /home/fenrir/results_dentrim_Q12 \
+  --pattern '*_clean.fastq' \
+  --outdir /home/fenrir/results_dentrim_Q12/EMU_Q12 \
+  --threads 8 \
+  --rank species \
+  --keep-counts --keep-assignments \
+  --do-pcoa --pcoa-relative \
   --plots-static --plots-interactive \
-  --topn-genus 12 \
-  --metadata /ruta/a/metadata.tsv
+  --metadata /home/fenrir/metricas/metadata_Q12.tsv \
+  --topn-genus 12
 ```
