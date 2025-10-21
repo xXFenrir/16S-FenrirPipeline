@@ -297,8 +297,5 @@ python /home/fenrir/scriptsbioinf/EMU.py \
   --threads 8 \
   --rank species \
   --keep-counts --keep-assignments \
-  --do-pcoa --pcoa-relative \
-  --plots-static --plots-interactive \
-  --metadata /home/fenrir/metricas/metadata_Q12.tsv \
-  --topn-genus 12
+  --do-pcoa --pcoa-relative
 ```
