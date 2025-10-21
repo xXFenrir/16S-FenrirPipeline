@@ -288,5 +288,9 @@ python /home/fenrir/scriptsbioinf/EMU.py \
 ```
 # Diversidad
 ```
-
+python /home/fenrir/scriptsbioinf/metricas.py \
+  --emu-outdir /home/fenrir/results_dentrim_Q12/EMU_Q12 \
+  --plots-static --plots-interactive \
+  --topn-genus 12 \
+  --metadata /ruta/a/metadata.tsv
 ```
