@@ -2,741 +2,132 @@
 # -*- coding: utf-8 -*-
 
 """
-EMU.py — Ejecuta EMU sobre FASTQ 16S, agrega resultados y calcula diversidad alfa/beta + PCoA.
+EMU.py — Ejecuta EMU sobre FASTQ 16S y guarda SOLO las salidas típicas por muestra:
+- <sample>_rel-abundance.tsv
+- <sample>_counts.tsv (si --keep-counts)
+- <sample>_read-assignments.tsv (si --keep-assignments)
+- manifest.tsv (trazabilidad)
 
-Entradas:
-  - FASTQ (comprimidos o no), vía --input-dir + --pattern (o --input-glob)
-  - Base de datos EMU (--db)
-  - Binario EMU (detectado en PATH o forzado con --emu-cmd)
-
-Salidas (en --outdir):
-  - Por muestra (subcarpeta):
-      sample_rel-abundance.tsv, sample_counts.tsv (opcional), sample_read-assignments.tsv (opcional)
-  - Globales:
-      feature_table_counts.tsv
-      feature_table_relabund.tsv
-      taxonomy.tsv               (cadena k__/p__/.../s__)
-      alpha_diversity.tsv        (Observed, Chao1, Shannon, Simpson)
-      manifest.tsv               (trazabilidad entradas/salidas)
-      read_assignments_all.csv   (si --keep-assignments)
-      braycurtis_dm.tsv, pcoa_braycurtis_coords.tsv, pcoa_braycurtis_eigvals.tsv, pcoa_braycurtis_variance.tsv (+ pcoa_braycurtis.png)
-      jaccard_dm.tsv,    pcoa_jaccard_coords.tsv,    pcoa_jaccard_eigvals.tsv,    pcoa_jaccard_variance.tsv    (+ pcoa_jaccard.png)
+NO calcula métricas ni PCoA. Úsalo antes de 'metricas.py'.
 """
 
 from __future__ import annotations
-
-import argparse
-import os
-import re
-import sys
-import shlex
-import shutil
-import subprocess as sp
+import argparse, os, re, sys, shlex, shutil, subprocess as sp
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional, List, Tuple, Dict
 
-import numpy as np
-import pandas as pd
+def eprint(*a, **k): print(*a, file=sys.stderr, **k)
+def ensure_dir(p: Path): p.mkdir(parents=True, exist_ok=True)
+def which(cmd: str) -> Optional[str]: return shutil.which(cmd)
 
-# matplotlib es opcional (solo para PNGs)
-try:
-    import matplotlib.pyplot as plt
-    _HAS_MPL = True
-except Exception:
-    _HAS_MPL = False
+def safe_sample_name(fq: Path) -> str:
+    m = re.search(r"(SRR|ERR|DRR)\d{5,}", fq.name)
+    if m: return m.group(0)
+    base = re.sub(r"(\.fastq(\.gz)?|\.fq(\.gz)?)$", "", fq.name, flags=re.I)
+    return f"{fq.parent.name}_{base}"
 
+def discover_fastqs(input_dir: Optional[Path], pattern: Optional[str], input_glob: Optional[str]) -> List[Path]:
+    paths: List[Path] = []
+    if input_glob:
+        for p in Path(".").glob(input_glob):
+            if p.is_file(): paths.append(p.resolve())
+    if input_dir and pattern:
+        for p in input_dir.rglob(pattern):
+            if p.is_file(): paths.append(p.resolve())
+    return sorted(set(paths))
 
-# ----------------------------- utilidades básicas -----------------------------
-
-def eprint(*args, **kwargs):
-    """Imprime a stderr (para logs/avisos sin contaminar stdout)."""
-    print(*args, file=sys.stderr, **kwargs)
-
-
-def ensure_dir(p: Path):
-    """Crea el directorio (y padres) si no existe."""
-    p.mkdir(parents=True, exist_ok=True)
-
-
-def which(cmd: str) -> Optional[str]:
-    """Ruta absoluta del ejecutable (o None)."""
-    return shutil.which(cmd)
-
-
-def safe_basename_noext(p: Path) -> str:
-    """
-    Nombre de muestra estable a partir de un FASTQ:
-    - prioriza patrón SRR/ERR/DRR####
-    - si no, usa la carpeta contenedora + base
-    """
-    stem = p.name
-    m = re.search(r"(SRR|ERR|DRR)\d{5,}", stem)
-    if m:
-        return m.group(0)
-    # Quita sufijos .fastq(.gz) o similares
-    base = re.sub(r"(\.fastq(\.gz)?|\.fq(\.gz)?)$", "", stem, flags=re.IGNORECASE)
-    parent = p.parent.name
-    return f"{parent}_{base}"
-
-
-def read_table_maybe(path: Path) -> Optional[pd.DataFrame]:
-    """Lee TSV si existe y retorna DataFrame (None si falla)."""
-    try:
-        return pd.read_csv(path, sep="\t")
-    except Exception as e:
-        eprint(f"[WARN] No se pudo leer {path}: {e}")
-        return None
-
-
-# ------------------------ helpers de taxonomía y métricas ---------------------
-
-TAX_COLS = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
-
-def _norm_cols(cols: List[str]) -> Dict[str, str]:
-    """Mapa lower->original para detección robusta de columnas."""
-    return {c.lower(): c for c in cols}
-
-
-def to_qiime_tax_string(row: pd.Series) -> str:
-    """Construye cadena 'k__/p__/c__/o__/f__/g__/s__' desde columnas disponibles."""
-    labels = ["k__", "p__", "c__", "o__", "f__", "g__", "s__"]
-    out = []
-    for lab, key in zip(labels, TAX_COLS):
-        val = str(row.get(key, "Unassigned") or "Unassigned")
-        out.append(f"{lab}{val}")
-    return "; ".join(out)
-
-
-def chao1(counts: np.ndarray) -> float:
-    """Chao1 = Sobs + f1^2/(2*f2), con corrección si f2=0."""
-    counts = np.asarray(counts, dtype=float)
-    Sobs = np.sum(counts > 0)
-    f1 = np.sum(counts == 1)
-    f2 = np.sum(counts == 2)
-    if f2 > 0:
-        return float(Sobs + (f1 * f1) / (2.0 * f2))
-    # corrección conservadora cuando no hay doubletons
-    return float(Sobs + (f1 * (f1 - 1.0)) / 2.0)
-
-
-def shannon_entropy(p: np.ndarray) -> float:
-    p = np.asarray(p, dtype=float)
-    p = p[p > 0]
-    if p.size == 0:
-        return 0.0
-    return float(-np.sum(p * np.log(p)))
-
-
-def simpson_index(p: np.ndarray) -> float:
-    p = np.asarray(p, dtype=float)
-    return float(1.0 - np.sum(p * p))
-
-
-# ----------------------- ejecución de EMU por cada muestra --------------------
-
-def run_emu_for_sample(
-    emu_cmd: str,
-    db: Path,
-    fastq: Path,
-    outdir_sample: Path,
-    sample: str,
-    threads: int = 1,
-    keep_counts: bool = False,
-    keep_assignments: bool = False,
-) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
-    """
-    Ejecuta `emu abundance` para una muestra. Devuelve rutas a:
-    (rel_abundance_tsv, counts_tsv, read_assignments_tsv) si existen.
-    """
+def run_emu(emu_cmd: str, db: Path, fastq: Path, outdir_sample: Path, sample: str,
+            threads: int, keep_counts: bool, keep_assignments: bool
+            ) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
     ensure_dir(outdir_sample)
     cmd = [
         emu_cmd, "abundance",
         "--db", str(db),
         "--threads", str(threads),
         "--output-dir", str(outdir_sample),
-        "--output-basename", sample,
+        "--output-basename", sample
     ]
-    if keep_counts:
-        cmd.append("--keep-counts")
-    if keep_assignments:
-        cmd.append("--keep-read-assignments")
+    if keep_counts: cmd.append("--keep-counts")
+    if keep_assignments: cmd.append("--keep-read-assignments")
     cmd.append(str(fastq))
-
-    eprint("[EMU]", " ".join(shlex.quote(c) for c in cmd))
+    eprint("[EMU]", " ".join(shlex.quote(x) for x in cmd))
     try:
         sp.run(cmd, check=True)
     except sp.CalledProcessError as e:
         eprint(f"[ERROR] EMU falló para {fastq}: {e}")
         return (None, None, None)
 
-    # Detectar archivos generados (nombres robustos)
-    rel_tsv = None
-    counts_tsv = None
-    assigns_tsv = None
+    rel = counts = assigns = None
     for f in outdir_sample.glob("*.tsv"):
         name = f.name.lower()
-        if "rel" in name and "abundance" in name:
-            rel_tsv = f
-        elif "count" in name:
-            counts_tsv = f
-        elif "assign" in name or "read-assign" in name:
-            assigns_tsv = f
+        if "rel" in name and "abundance" in name: rel = f
+        elif "count" in name: counts = f
+        elif "assign" in name: assigns = f
 
-    # Fallback: por si EMU usa nombres exactos esperados
-    if rel_tsv is None:
-        candidate = outdir_sample / f"{sample}_rel-abundance.tsv"
-        if candidate.exists():
-            rel_tsv = candidate
-    if counts_tsv is None:
-        candidate = outdir_sample / f"{sample}_counts.tsv"
-        if candidate.exists():
-            counts_tsv = candidate
-    if assigns_tsv is None:
-        candidate = outdir_sample / f"{sample}_read-assignments.tsv"
-        if candidate.exists():
-            assigns_tsv = candidate
-
-    return (rel_tsv, counts_tsv, assigns_tsv)
-
-
-# ------------------------- agregación y tablas finales ------------------------
-
-def select_rank(df: pd.DataFrame, rank: str) -> pd.DataFrame:
-    """Filtra filas que tengan valor en el nivel taxonómico elegido."""
-    col_low = _norm_cols(df.columns)
-    at = col_low.get(rank.lower())
-    if at is None:
-        return df
-    keep = df[at].fillna("").astype(str) != ""
-    return df.loc[keep].copy()
-
-
-def build_feature_id(row: pd.Series, rank: str) -> str:
-    """ID estable: rank|tax_id|tax_name (limpia separadores '|' si aparecen)."""
-    r = rank.lower()
-    tax_id = str(row.get("tax_id", "NA"))
-    # buscar la columna real del rank (case-insensitive)
-    name = None
-    for k in TAX_COLS:
-        if k == r:
-            name = str(row.get(k, "Unassigned") or "Unassigned")
-            break
-    if name is None:
-        name = str(row.get(r, "Unassigned") or "Unassigned")
-    safe = name.replace("|", "_")
-    tid = tax_id.replace("|", "_")
-    return f"{r}|{tid}|{safe}"
-
-
-def _detect_rel_col(df: pd.DataFrame) -> Optional[str]:
-    """Detecta columna de abundancia relativa (abundance/relative_abundance/...)"""
-    candidates = [c for c in df.columns if re.search(r"abund", c, re.I)]
-    if candidates:
-        # elegir la que sume aprox 1.0
-        for c in candidates:
-            s = df[c]
-            try:
-                if np.isfinite(s.astype(float)).all():
-                    sm = float(s.astype(float).sum())
-                    if 0.9 <= sm <= 1.1:
-                        return c
-            except Exception:
-                pass
-        return candidates[0]
-    # fallback: primera numérica que sume ~1
-    num = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-    for c in num:
-        sm = float(df[c].sum())
-        if 0.9 <= sm <= 1.1:
-            return c
-    return None
-
-
-def _detect_count_col(df: pd.DataFrame) -> Optional[str]:
-    """Detecta columna de conteo (count/counts/... numérica que no suma 1)."""
-    candidates = [c for c in df.columns if re.fullmatch(r"count[s]?", c, re.I)]
-    for c in candidates:
-        if pd.api.types.is_numeric_dtype(df[c]):
-            return c
-    # fallback: numérica que no suma ~1
-    num = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-    for c in num:
-        sm = float(df[c].sum())
-        if sm > 1.1:
-            return c
-    return None
-
-
-def aggregate_tables(
-    per_sample_rel: Dict[str, Path],
-    per_sample_counts: Dict[str, Path],
-    outdir: Path,
-    rank: str,
-    min_abundance: float = 0.0,
-) -> Tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
-    """
-    Agrega tablas por muestra y genera:
-      - feature_table_relabund.tsv
-      - feature_table_counts.tsv
-      - taxonomy.tsv
-      - alpha_diversity.tsv
-    """
-    ensure_dir(outdir)
-    # Tablas acumuladas
-    rel_tabs = []
-    cnt_tabs = []
-    tax_rows = {}  # feature_id -> taxonomy string (QIIME)
-
-    for sample, tsv in per_sample_rel.items():
-        df = read_table_maybe(tsv)
-        if df is None:
-            continue
-        # Normaliza nombres taxonómicos
-        colmap = _norm_cols(df.columns)
-        # renombra si hay variantes
-        for std in TAX_COLS:
-            if std not in df.columns:
-                src = colmap.get(std)
-                if src:
-                    df.rename(columns={src: std}, inplace=True)
-
-        # filtra al rank
-        df = select_rank(df, rank)
-
-        # identifica col de relativas
-        rel_col = _detect_rel_col(df)
-        if rel_col is None:
-            eprint(f"[WARN] No se detectó columna de relativas en {tsv}")
-            continue
-
-        # aplica umbral de abundancia mínima (si > 0)
-        if min_abundance > 0:
-            df = df[df[rel_col] >= float(min_abundance)].copy()
-
-        # crea feature_id y taxonomy string
-        feats = []
-        tax_strings = []
-        for _, row in df.iterrows():
-            fid = build_feature_id(row, rank)
-            feats.append(fid)
-            tax_strings.append(to_qiime_tax_string(row))
-        df["_feature_id"] = feats
-        df["_tax_str"] = tax_strings
-
-        # guarda taxonomy
-        for fid, tstr in zip(df["_feature_id"], df["_tax_str"]):
-            tax_rows[fid] = tstr
-
-        # arma columna para esta muestra
-        rel_tabs.append(
-            df[["_feature_id", rel_col]].rename(columns={rel_col: sample}).set_index("_feature_id")
-        )
-
-    # Repeat para counts
-    for sample, tsv in per_sample_counts.items():
-        df = read_table_maybe(tsv)
-        if df is None:
-            continue
-        colmap = _norm_cols(df.columns)
-        for std in TAX_COLS:
-            if std not in df.columns:
-                src = colmap.get(std)
-                if src:
-                    df.rename(columns={src: std}, inplace=True)
-        df = select_rank(df, rank)
-
-        count_col = _detect_count_col(df)
-        if count_col is None:
-            eprint(f"[WARN] No se detectó columna de conteos en {tsv}")
-            continue
-
-        feats = []
-        tax_strings = []
-        for _, row in df.iterrows():
-            fid = build_feature_id(row, rank)
-            feats.append(fid)
-            tax_strings.append(to_qiime_tax_string(row))
-        df["_feature_id"] = feats
-        df["_tax_str"] = tax_strings
-
-        for fid, tstr in zip(df["_feature_id"], df["_tax_str"]):
-            tax_rows[fid] = tstr
-
-        cnt_tabs.append(
-            df[["_feature_id", count_col]].rename(columns={count_col: sample}).set_index("_feature_id")
-        )
-
-    # Concat multi-muestra
-    rel_path = cnt_path = tax_path = alpha_path = None
-
-    if rel_tabs:
-        rel_df = pd.concat(rel_tabs, axis=1).fillna(0.0)
-        rel_path = outdir / "feature_table_relabund.tsv"
-        rel_df.to_csv(rel_path, sep="\t")
-
-    if cnt_tabs:
-        cnt_df = pd.concat(cnt_tabs, axis=1).fillna(0.0)
-        cnt_path = outdir / "feature_table_counts.tsv"
-        cnt_df.to_csv(cnt_path, sep="\t")
-
-    # taxonomy.tsv
-    if tax_rows:
-        tax_df = pd.DataFrame({"feature_id": list(tax_rows.keys()),
-                               "taxonomy": list(tax_rows.values())})
-        tax_df = tax_df.sort_values("feature_id")
-        tax_path = outdir / "taxonomy.tsv"
-        tax_df.to_csv(tax_path, sep="\t", index=False)
-
-    # alpha_diversity.tsv
-    if cnt_tabs or rel_tabs:
-        # prefer counts
-        table = None
-        if cnt_tabs:
-            table = pd.concat(cnt_tabs, axis=1).fillna(0.0)
-        elif rel_tabs:
-            table = pd.concat(rel_tabs, axis=1).fillna(0.0)
-
-        alpha_rows = []
-        for sample in table.columns:
-            x = table[sample].values
-            if cnt_tabs:
-                # counts -> proporciones para Shannon/Simpson
-                total = x.sum()
-                p = x / total if total > 0 else x
-                obs = int(np.sum(x > 0))
-                c1 = chao1(x)
-            else:
-                # relativas -> Observed y Chao1 no estrictos (approx)
-                p = x
-                obs = int(np.sum(p > 0))
-                c1 = float(obs)
-            H = shannon_entropy(p)
-            S = simpson_index(p)
-            alpha_rows.append({"sample": sample,
-                               "observed": obs,
-                               "chao1": c1,
-                               "shannon": H,
-                               "simpson": S})
-        alpha_df = pd.DataFrame(alpha_rows).set_index("sample")
-        alpha_path = outdir / "alpha_diversity.tsv"
-        alpha_df.to_csv(alpha_path, sep="\t")
-
-    return (cnt_path, rel_path, tax_path, alpha_path)
-
-
-# ----------------------- Beta-diversidad + PCoA (sin skbio) -------------------
-
-def _bray_curtis_dm(X: np.ndarray) -> np.ndarray:
-    """Bray–Curtis sobre filas (muestras x features)."""
-    n = X.shape[0]
-    D = np.zeros((n, n), dtype=float)
-    for i in range(n):
-        xi = X[i]
-        for j in range(i + 1, n):
-            xj = X[j]
-            num = np.abs(xi - xj).sum()
-            den = (xi + xj).sum()
-            D[i, j] = D[j, i] = 0.0 if den == 0 else num / den
-    return D
-
-
-def _jaccard_dm_bin(Xbin: np.ndarray) -> np.ndarray:
-    """Jaccard sobre binario (muestras x features)."""
-    n = Xbin.shape[0]
-    D = np.zeros((n, n), dtype=float)
-    for i in range(n):
-        ai = Xbin[i] > 0
-        for j in range(i + 1, n):
-            aj = Xbin[j] > 0
-            inter = np.logical_and(ai, aj).sum()
-            union = np.logical_or(ai, aj).sum()
-            D[i, j] = D[j, i] = 1.0 if union == 0 else 1.0 - (inter / union)
-    return D
-
-
-def _classical_pcoa(D: np.ndarray):
-    """PCoA por doble centrado. Devuelve (coords, eigvals, var)."""
-    n = D.shape[0]
-    D2 = D ** 2
-    J = np.eye(n) - np.ones((n, n)) / n
-    B = -0.5 * J @ D2 @ J
-    eigvals, eigvecs = np.linalg.eigh(B)
-    order = np.argsort(eigvals)[::-1]
-    eigvals = eigvals[order]
-    eigvecs = eigvecs[:, order]
-    pos = eigvals > 1e-12
-    eigvals_pos = eigvals[pos]
-    eigvecs_pos = eigvecs[:, pos]
-    coords = eigvecs_pos * np.sqrt(eigvals_pos)
-    var = eigvals_pos / eigvals_pos.sum() if eigvals_pos.size else np.array([])
-    return coords, eigvals_pos, var
-
-
-def _save_dm_and_pcoa(D: np.ndarray, sample_ids: List[str], outdir: Path, prefix: str) -> Dict[str, Optional[Path]]:
-    """Escribe DM (.tsv), coords/var/eigvals (.tsv) y figura PNG opcional."""
-    ensure_dir(outdir)
-    dm_path = outdir / f"{prefix}_dm.tsv"
-    pd.DataFrame(D, index=sample_ids, columns=sample_ids).to_csv(dm_path, sep="\t")
-
-    coords, eigvals, var = _classical_pcoa(D)
-    k = min(3, coords.shape[1]) if coords.size else 0
-
-    coords_path = outdir / f"pcoa_{prefix}_coords.tsv"
-    eig_path    = outdir / f"pcoa_{prefix}_eigvals.tsv"
-    var_path    = outdir / f"pcoa_{prefix}_variance.tsv"
-
-    pd.DataFrame(coords[:, :k], index=sample_ids,
-                 columns=[f"PC{i+1}" for i in range(k)]).to_csv(coords_path, sep="\t")
-    pd.DataFrame({"eigenvalue": eigvals}).to_csv(eig_path, sep="\t", index=False)
-    pd.DataFrame({"proportion_explained": var}).to_csv(var_path, sep="\t", index=False)
-
-    fig_path = None
-    if _HAS_MPL and k >= 2:
-        plt.figure()
-        plt.scatter(coords[:, 0], coords[:, 1])
-        for i, sid in enumerate(sample_ids):
-            plt.text(coords[i, 0], coords[i, 1], str(sid))
-        pc1 = f"{(var[0]*100):.1f}%" if var.size > 0 else ""
-        pc2 = f"{(var[1]*100):.1f}%" if var.size > 1 else ""
-        plt.xlabel(f"PC1 ({pc1})"); plt.ylabel(f"PC2 ({pc2})")
-        plt.title(f"PCoA — {prefix}")
-        plt.tight_layout()
-        fig_path = outdir / f"pcoa_{prefix}.png"
-        plt.savefig(fig_path, dpi=150)
-        plt.close()
-
-    return {"dm": dm_path, "coords": coords_path, "eigvals": eig_path, "variance": var_path, "figure": fig_path}
-
-
-def write_beta_and_pcoa_from_table(feature_table_tsv: Path, outdir: Path,
-                                   mode: str, normalize_to_relative: bool = False) -> Dict[str, Optional[Path]]:
-    """
-    mode = 'braycurtis' (abundancias) o 'jaccard' (presencia/ausencia).
-    Lee una tabla features x muestras y escribe DM + PCoA.
-    """
-    df = pd.read_csv(feature_table_tsv, sep="\t", index_col=0)
-    # Asegurar orientación: filas=features, columnas=muestras
-    if any(pd.Series(df.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)):
-        df = df.T
-    X = df.values.T  # samples x features
-    sample_ids = list(df.columns)
-
-    if mode.lower() == "braycurtis":
-        if normalize_to_relative:
-            row_sums = X.sum(axis=1, keepdims=True)
-            row_sums[row_sums == 0] = 1.0
-            X = X / row_sums
-        D = _bray_curtis_dm(X)
-        return _save_dm_and_pcoa(D, sample_ids, outdir, "braycurtis")
-
-    elif mode.lower() == "jaccard":
-        Xbin = (X > 0).astype(int)
-        D = _jaccard_dm_bin(Xbin)
-        return _save_dm_and_pcoa(D, sample_ids, outdir, "jaccard")
-
-    else:
-        raise ValueError("mode debe ser 'braycurtis' o 'jaccard'")
-
-
-# ----------------------------- descubrimiento inputs --------------------------
-
-def discover_fastqs(input_dir: Optional[Path], pattern: Optional[str], input_glob: Optional[str]) -> List[Path]:
-    """Obtiene lista de FASTQ a procesar desde --input-dir/--pattern o --input-glob."""
-    paths: List[Path] = []
-    if input_glob:
-        for p in Path(".").glob(input_glob):
-            if p.is_file():
-                paths.append(p.resolve())
-    if input_dir and pattern:
-        for p in input_dir.rglob(pattern):
-            if p.is_file():
-                paths.append(p.resolve())
-    # dedup y ordenar
-    uniq = sorted(set(paths))
-    return uniq
-
-
-def merge_assignments(assign_paths: Dict[str, Path], out_csv: Path) -> Optional[Path]:
-    """Concatena read-assignments de todas las muestras a un CSV maestro."""
-    rows = []
-    for sample, p in assign_paths.items():
-        df = read_table_maybe(p)
-        if df is None:
-            continue
-        # añade columna sample
-        df.insert(0, "sample", sample)
-        rows.append(df)
-    if not rows:
-        return None
-    big = pd.concat(rows, axis=0, ignore_index=True)
-    big.to_csv(out_csv, index=False)
-    return out_csv
-
-
-# ----------------------------------- CLI --------------------------------------
+    # Fallbacks
+    if rel is None:
+        c = outdir_sample / f"{sample}_rel-abundance.tsv"
+        if c.exists(): rel = c
+    if counts is None:
+        c = outdir_sample / f"{sample}_counts.tsv"
+        if c.exists(): counts = c
+    if assigns is None:
+        c = outdir_sample / f"{sample}_read-assignments.tsv"
+        if c.exists(): assigns = c
+    return (rel, counts, assigns)
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Pipeline EMU: clasificación taxonómica y métricas de diversidad (16S).",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="Corre EMU por muestra y solo guarda salidas típicas (sin métricas).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    p.add_argument("--db", required=True, type=Path, help="Ruta a la base de datos de EMU.")
-    p.add_argument("--emu-cmd", default=None, help="Ruta al ejecutable 'emu' (si no está en PATH).")
-
-    inp = p.add_mutually_exclusive_group(required=True)
-    inp.add_argument("--input-dir", type=Path, help="Carpeta raíz con FASTQ.")
-    inp.add_argument("--input-glob", type=str, help="Glob alternativo para FASTQ (p.ej., 'results/*/*_final.fastq').")
-
-    p.add_argument("--pattern", type=str, default="*_final.fastq",
-                   help="Patrón (rglob) para FASTQ bajo --input-dir.")
+    p.add_argument("--db", required=True, type=Path, help="Ruta a la base de datos EMU.")
+    p.add_argument("--emu-cmd", default=None, help="Ruta al ejecutable 'emu' si no está en PATH.")
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--input-dir", type=Path, help="Carpeta raíz con FASTQ.")
+    g.add_argument("--input-glob", type=str, help="Patrón glob alternativo para FASTQ.")
+    p.add_argument("--pattern", type=str, default="*_final.fastq", help="Patrón de búsqueda bajo --input-dir.")
     p.add_argument("--outdir", required=True, type=Path, help="Directorio de salida.")
     p.add_argument("--threads", type=int, default=8, help="Hilos para EMU.")
-    p.add_argument("--rank", type=str, default="species",
-                   choices=[*TAX_COLS], help="Nivel taxonómico para agregación.")
-    p.add_argument("--min-abundance", type=float, default=0.0,
-                   help="Umbral de abundancia relativa mínima para incluir un taxón.")
-    p.add_argument("--keep-counts", action="store_true", help="Pedir a EMU que guarde conteos por taxón.")
-    p.add_argument("--keep-assignments", action="store_true", help="Pedir a EMU que guarde asignaciones por lectura.")
-    p.add_argument("--do-pcoa", action="store_true", help="Calcular Bray–Curtis/Jaccard y PCoA.")
-    p.add_argument("--pcoa-relative", action="store_true",
-                   help="Para Bray–Curtis, usar relativas (si existen) o normalizar counts a relativas.")
+    p.add_argument("--keep-counts", action="store_true", help="Guardar conteos por taxón.")
+    p.add_argument("--keep-assignments", action="store_true", help="Guardar asignaciones por lectura.")
     return p
-
-
-# ---------------------------------- main --------------------------------------
 
 def main() -> int:
     args = build_parser().parse_args()
-
-    # Validaciones básicas
-    if not args.db.exists():
-        eprint(f"[ERROR] No existe la BD de EMU: {args.db}")
-        return 2
-
     emu_cmd = args.emu_cmd or which("emu")
     if not emu_cmd:
-        eprint("[ERROR] No se encontró 'emu' en PATH. Especifica --emu-cmd o ajusta tu entorno.")
+        eprint("[ERROR] No se encontró 'emu' en PATH. Usa --emu-cmd.")
         return 2
-
+    if not args.db.exists():
+        eprint(f"[ERROR] No existe BD EMU: {args.db}")
+        return 2
     ensure_dir(args.outdir)
-
-    # Descubrir FASTQ
     fastqs = discover_fastqs(args.input_dir, args.pattern, args.input_glob)
     if not fastqs:
         eprint("[WARN] No se encontraron FASTQ con los criterios dados.")
         return 0
 
-    eprint(f"=== EMU pipeline ===")
-    eprint(f"- DB: {args.db}")
-    eprint(f"- EMU: {emu_cmd}")
-    eprint(f"- FASTQ encontrados: {len(fastqs)}")
-    eprint(f"- Salida: {args.outdir}")
-    eprint(f"- Rank: {args.rank}  | min-abundance: {args.min_abundance}")
-
-    # Ejecutar EMU por muestra
-    per_sample_rel: Dict[str, Path] = {}
-    per_sample_cnt: Dict[str, Path] = {}
-    per_sample_assign: Dict[str, Path] = {}
-    manifest_rows = []
-
+    eprint(f"FASTQ a procesar: {len(fastqs)}")
+    manifest_rows: List[Dict[str, str]] = []
     for fq in fastqs:
         fq = Path(fq)
-        sample = safe_basename_noext(fq)
-        sample_dir = args.outdir / sample
-        ensure_dir(sample_dir)
-
-        eprint(f">>> Procesando: {sample}")
-        rel_tsv, cnt_tsv, asg_tsv = run_emu_for_sample(
-            emu_cmd=emu_cmd,
-            db=args.db,
-            fastq=fq,
-            outdir_sample=sample_dir,
-            sample=sample,
-            threads=args.threads,
-            keep_counts=args.keep_counts,
-            keep_assignments=args.keep_assignments,
-        )
+        sample = safe_sample_name(fq)
+        sd = args.outdir / sample
+        rel, cnt, asg = run_emu(emu_cmd, args.db, fq, sd, sample, args.threads, args.keep_counts, args.keep_assignments)
         manifest_rows.append({
             "sample": sample,
             "fastq": str(fq),
-            "outdir_sample": str(sample_dir),
-            "rel_abundance_tsv": str(rel_tsv) if rel_tsv else "",
-            "counts_tsv": str(cnt_tsv) if cnt_tsv else "",
-            "assignments_tsv": str(asg_tsv) if asg_tsv else "",
+            "outdir_sample": str(sd),
+            "rel_abundance_tsv": str(rel) if rel else "",
+            "counts_tsv": str(cnt) if cnt else "",
+            "assignments_tsv": str(asg) if asg else "",
         })
-        if rel_tsv:
-            per_sample_rel[sample] = rel_tsv
-        if cnt_tsv:
-            per_sample_cnt[sample] = cnt_tsv
-        if asg_tsv:
-            per_sample_assign[sample] = asg_tsv
 
-    # manifest.tsv
-    manifest = pd.DataFrame(manifest_rows).sort_values("sample")
-    manifest_path = args.outdir / "manifest.tsv"
-    manifest.to_csv(manifest_path, sep="\t", index=False)
-
-    # Agregados globales (feature tables, taxonomy, alpha)
-    cnt_path, rel_path, tax_path, alpha_path = aggregate_tables(
-        per_sample_rel=per_sample_rel,
-        per_sample_counts=per_sample_cnt,
-        outdir=args.outdir,
-        rank=args.rank,
-        min_abundance=args.min_abundance,
-    )
-
-    # Merge assignments (opcional)
-    merged_assign = None
-    if per_sample_assign:
-        merged_assign = merge_assignments(per_sample_assign, args.outdir / "read_assignments_all.csv")
-
-    # Beta + PCoA (opcional)
-    beta_files = {}
-    if args.do_pcoa:
-        # Bray–Curtis
-        if args.pcoa_relative and rel_path and rel_path.exists():
-            beta_files["braycurtis"] = write_beta_and_pcoa_from_table(rel_path, args.outdir,
-                                                                      mode="braycurtis",
-                                                                      normalize_to_relative=False)
-        else:
-            # counts (normaliza a relativas para estabilidad si así lo deseas)
-            if cnt_path and cnt_path.exists():
-                beta_files["braycurtis"] = write_beta_and_pcoa_from_table(cnt_path, args.outdir,
-                                                                          mode="braycurtis",
-                                                                          normalize_to_relative=True)
-            elif rel_path and rel_path.exists():
-                beta_files["braycurtis"] = write_beta_and_pcoa_from_table(rel_path, args.outdir,
-                                                                          mode="braycurtis",
-                                                                          normalize_to_relative=False)
-
-        # Jaccard (presencia/ausencia)
-        if cnt_path and cnt_path.exists():
-            beta_files["jaccard"] = write_beta_and_pcoa_from_table(cnt_path, args.outdir, mode="jaccard")
-        elif rel_path and rel_path.exists():
-            beta_files["jaccard"] = write_beta_and_pcoa_from_table(rel_path, args.outdir, mode="jaccard")
-
-    # Resumen final
-    eprint("\n=== Resumen de salidas ===")
-    eprint(f"- manifest:              {manifest_path}")
-    eprint(f"- feature_table_counts:  {cnt_path if cnt_path else 'NA'}")
-    eprint(f"- feature_table_relabund:{rel_path if rel_path else 'NA'}")
-    eprint(f"- taxonomy.tsv:          {tax_path if tax_path else 'NA'}")
-    eprint(f"- alpha_diversity.tsv:   {alpha_path if alpha_path else 'NA'}")
-    if merged_assign:
-        eprint(f"- read_assignments_all:  {merged_assign}")
-    if args.do_pcoa:
-        for k, d in beta_files.items():
-            if not d:
-                continue
-            eprint(f"- {k} DM:               {d.get('dm')}")
-            eprint(f"- {k} PCoA coords:      {d.get('coords')}")
-            eprint(f"- {k} PCoA eigvals:     {d.get('eigvals')}")
-            eprint(f"- {k} PCoA variance:    {d.get('variance')}")
-            if d.get("figure"):
-                eprint(f"- {k} PCoA figure:      {d.get('figure')}")
-    eprint("OK.\n")
+    import pandas as pd
+    pd.DataFrame(manifest_rows).sort_values("sample").to_csv(args.outdir / "manifest.tsv", sep="\t", index=False)
+    eprint("Listo. Salidas por muestra + manifest.tsv")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
