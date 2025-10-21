@@ -287,5 +287,4 @@ python /home/fenrir/scriptsbioinf/EMU.py \
   --keep-counts \
   --keep-assignments \
   --emu-cmd /home/fenrir/anaconda3/envs/pipelinefenrir/bin/emu \
-  --do-pcoa --pcoa-relative
 ```
