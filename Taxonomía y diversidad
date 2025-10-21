@@ -3,39 +3,20 @@
 
 """
 EMU.py — Ejecuta EMU sobre FASTQ 16S, agrega resultados y calcula diversidad alfa/beta + PCoA,
-y genera figuras estáticas (matplotlib) e interactivas (Plotly, opcional).
+con ejecución atómica y limpieza en fallos (no deja salidas parciales).
 
-Entradas:
-  - FASTQ (comprimidos o no), vía --input-dir + --pattern (o --input-glob)
-  - Base de datos EMU (--db)
-  - Binario EMU (detectado en PATH o forzado con --emu-cmd)
-  - (Opcional) metadata TSV con columnas: sample, [group]
-
-Salidas (en --outdir):
-  Por muestra (subcarpeta):
-    sample_rel-abundance.tsv, sample_counts.tsv (si --keep-counts),
-    sample_read-assignments.tsv (si --keep-assignments)
-  Globales (tablas):
-    manifest.tsv
-    feature_table_counts.tsv
-    feature_table_relabund.tsv
-    taxonomy.tsv               (cadena k__/p__/.../s__)
-    alpha_diversity.tsv        (Observed, Chao1, Shannon, Simpson)
-    braycurtis_dm.tsv
-    jaccard_dm.tsv
-    pcoa_braycurtis_coords.tsv / pcoa_braycurtis_eigvals.tsv / pcoa_braycurtis_variance.tsv
-    pcoa_jaccard_coords.tsv    / pcoa_jaccard_eigvals.tsv    / pcoa_jaccard_variance.tsv
-  Figuras (si --plots-static):
-    pcoa_braycurtis.png, pcoa_jaccard.png
-    pcoa_braycurtis_by_group.png, pcoa_jaccard_by_group.png (si metadata con group)
-    heatmap_braycurtis.png, heatmap_jaccard.png
-    alpha_bar_[observed|chao1|shannon|simpson].png
-    alpha_box_[observed|chao1|shannon|simpson].png (si metadata con group)
-    taxa_stacked_top{N}_{rank}.png
-    taxa_heatmap_top{N}_{rank}.png
-  Interactivas (si --plots-interactive y Plotly instalado):
-    pcoa_braycurtis.html, pcoa_jaccard.html
-    taxa_stacked_top{N}_{rank}.html
+Salidas (solo si TODO OK, en --outdir):
+  - Por muestra (subcarpeta):
+      sample_rel-abundance.tsv, sample_counts.tsv (si --keep-counts),
+      sample_read-assignments.tsv (si --keep-assignments)
+  - Globales:
+      manifest.tsv
+      feature_table_counts.tsv
+      feature_table_relabund.tsv
+      taxonomy.tsv
+      alpha_diversity.tsv
+      braycurtis_dm.tsv, pcoa_braycurtis_coords.tsv, pcoa_braycurtis_eigvals.tsv, pcoa_braycurtis_variance.tsv
+      jaccard_dm.tsv,    pcoa_jaccard_coords.tsv,    pcoa_jaccard_eigvals.tsv,    pcoa_jaccard_variance.tsv
 """
 
 from __future__ import annotations
@@ -53,29 +34,13 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-# matplotlib (estático)
 try:
     import matplotlib.pyplot as plt
     _HAS_MPL = True
 except Exception:
     _HAS_MPL = False
 
-# plotly (interactivo)
-try:
-    import plotly.express as px
-    _HAS_PLOTLY = True
-except Exception:
-    _HAS_PLOTLY = False
-
-# scipy (clustering para heatmaps; opcional)
-try:
-    from scipy.cluster.hierarchy import linkage, leaves_list
-    _HAS_SCIPY = True
-except Exception:
-    _HAS_SCIPY = False
-
-
-# ----------------------------- utilidades básicas -----------------------------
+# ---------- utilidades básicas ----------
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -85,6 +50,21 @@ def ensure_dir(p: Path):
 
 def which(cmd: str) -> Optional[str]:
     return shutil.which(cmd)
+
+def atomic_write_df(df: pd.DataFrame, path: Path, sep: str = "\t", index: bool = True):
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    df.to_csv(tmp, sep=sep, index=index)
+    os.replace(tmp, path)
+
+def atomic_move_tree(src: Path, dst: Path):
+    try:
+        os.replace(src, dst)  # rename atómico (misma partición)
+    except OSError:
+        # fallback a copytree + rmtree si diferente FS
+        if dst.exists():
+            shutil.rmtree(dst, ignore_errors=True)
+        shutil.copytree(src, dst, dirs_exist_ok=False)
+        shutil.rmtree(src, ignore_errors=True)
 
 def safe_basename_noext(p: Path) -> str:
     stem = p.name
@@ -102,16 +82,15 @@ def read_table_maybe(path: Path) -> Optional[pd.DataFrame]:
         eprint(f"[WARN] No se pudo leer {path}: {e}")
         return None
 
+# ---------- taxonomía y métricas ----------
 
-# ------------------------ helpers de taxonomía y métricas ---------------------
-
-TAX_COLS = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
+TAX_COLS = ["superkingdom","phylum","class","order","family","genus","species"]
 
 def _norm_cols(cols: List[str]) -> Dict[str, str]:
     return {c.lower(): c for c in cols}
 
 def to_qiime_tax_string(row: pd.Series) -> str:
-    labels = ["k__", "p__", "c__", "o__", "f__", "g__", "s__"]
+    labels = ["k__","p__","c__","o__","f__","g__","s__"]
     out = []
     for lab, key in zip(labels, TAX_COLS):
         val = str(row.get(key, "Unassigned") or "Unassigned")
@@ -120,81 +99,87 @@ def to_qiime_tax_string(row: pd.Series) -> str:
 
 def chao1(counts: np.ndarray) -> float:
     counts = np.asarray(counts, dtype=float)
-    Sobs = np.sum(counts > 0); f1 = np.sum(counts == 1); f2 = np.sum(counts == 2)
+    Sobs = np.sum(counts > 0)
+    f1 = np.sum(counts == 1)
+    f2 = np.sum(counts == 2)
     if f2 > 0:
         return float(Sobs + (f1 * f1) / (2.0 * f2))
     return float(Sobs + (f1 * (f1 - 1.0)) / 2.0)
 
 def shannon_entropy(p: np.ndarray) -> float:
-    p = np.asarray(p, dtype=float); p = p[p > 0]
-    return 0.0 if p.size == 0 else float(-np.sum(p * np.log(p)))
+    p = np.asarray(p, dtype=float)
+    p = p[p > 0]
+    if p.size == 0:
+        return 0.0
+    return float(-np.sum(p * np.log(p)))
 
 def simpson_index(p: np.ndarray) -> float:
     p = np.asarray(p, dtype=float)
     return float(1.0 - np.sum(p * p))
 
-
-# ----------------------- ejecución de EMU por cada muestra --------------------
+# ---------- EMU por muestra ----------
 
 def run_emu_for_sample(
     emu_cmd: str,
     db: Path,
     fastq: Path,
-    outdir_sample: Path,
+    outdir_sample_tmp: Path,
     sample: str,
     threads: int = 1,
     keep_counts: bool = False,
     keep_assignments: bool = False,
-) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
-    ensure_dir(outdir_sample)
+) -> Tuple[Path, Optional[Path], Optional[Path]]:
+    ensure_dir(outdir_sample_tmp)
     cmd = [
         emu_cmd, "abundance",
         "--db", str(db),
         "--threads", str(threads),
-        "--output-dir", str(outdir_sample),
+        "--output-dir", str(outdir_sample_tmp),
         "--output-basename", sample,
     ]
-    if keep_counts: cmd.append("--keep-counts")
-    if keep_assignments: cmd.append("--keep-read-assignments")
+    if keep_counts:
+        cmd.append("--keep-counts")
+    if keep_assignments:
+        cmd.append("--keep-read-assignments")
     cmd.append(str(fastq))
 
     eprint("[EMU]", " ".join(shlex.quote(c) for c in cmd))
-    try:
-        sp.run(cmd, check=True)
-    except sp.CalledProcessError as e:
-        eprint(f"[ERROR] EMU falló para {fastq}: {e}")
-        return (None, None, None)
+    sp.run(cmd, check=True)
 
     rel_tsv = counts_tsv = assigns_tsv = None
-    for f in outdir_sample.glob("*.tsv"):
+    for f in outdir_sample_tmp.glob("*.tsv"):
         name = f.name.lower()
-        if "rel" in name and "abundance" in name: rel_tsv = f
-        elif "count" in name: counts_tsv = f
-        elif "assign" in name or "read-assign" in name: assigns_tsv = f
+        if "rel" in name and "abundance" in name:
+            rel_tsv = f
+        elif "count" in name:
+            counts_tsv = f
+        elif "assign" in name or "read-assign" in name:
+            assigns_tsv = f
+
     if rel_tsv is None:
-        cand = outdir_sample / f"{sample}_rel-abundance.tsv"
-        if cand.exists(): rel_tsv = cand
-    if counts_tsv is None:
-        cand = outdir_sample / f"{sample}_counts.tsv"
-        if cand.exists(): counts_tsv = cand
-    if assigns_tsv is None:
-        cand = outdir_sample / f"{sample}_read-assignments.tsv"
-        if cand.exists(): assigns_tsv = cand
-    return (rel_tsv, counts_tsv, assigns_tsv)
+        # fallback
+        cand = outdir_sample_tmp / f"{sample}_rel-abundance.tsv"
+        if cand.exists():
+            rel_tsv = cand
 
+    if rel_tsv is None:
+        raise RuntimeError(f"No se encontró la tabla de abundancia relativa para {sample}.")
 
-# ------------------------- agregación y tablas finales ------------------------
+    return rel_tsv, counts_tsv, assigns_tsv
+
+# ---------- agregación y validaciones ----------
 
 def select_rank(df: pd.DataFrame, rank: str) -> pd.DataFrame:
     col_low = _norm_cols(df.columns)
     at = col_low.get(rank.lower())
-    if at is None: return df
+    if at is None:
+        return df
     keep = df[at].fillna("").astype(str) != ""
     return df.loc[keep].copy()
 
 def build_feature_id(row: pd.Series, rank: str) -> str:
     r = rank.lower()
-    tax_id = str(row.get("tax_id", "NA")).replace("|", "_")
+    tax_id = str(row.get("tax_id", "NA"))
     name = None
     for k in TAX_COLS:
         if k == r:
@@ -202,28 +187,40 @@ def build_feature_id(row: pd.Series, rank: str) -> str:
             break
     if name is None:
         name = str(row.get(r, "Unassigned") or "Unassigned")
-    return f"{r}|{tax_id}|{name.replace('|','_')}"
+    safe = name.replace("|", "_")
+    tid = tax_id.replace("|", "_")
+    return f"{r}|{tid}|{safe}"
 
 def _detect_rel_col(df: pd.DataFrame) -> Optional[str]:
     candidates = [c for c in df.columns if re.search(r"abund", c, re.I)]
-    for c in candidates:
-        try:
-            sm = float(df[c].astype(float).sum())
-            if 0.9 <= sm <= 1.1: return c
-        except Exception: pass
+    if candidates:
+        for c in candidates:
+            s = df[c]
+            try:
+                vals = s.astype(float)
+                sm = float(vals.sum())
+                if 0.9 <= sm <= 1.1:
+                    return c
+            except Exception:
+                pass
+        return candidates[0]
     num = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
     for c in num:
         sm = float(df[c].sum())
-        if 0.9 <= sm <= 1.1: return c
+        if 0.9 <= sm <= 1.1:
+            return c
     return None
 
 def _detect_count_col(df: pd.DataFrame) -> Optional[str]:
     candidates = [c for c in df.columns if re.fullmatch(r"count[s]?", c, re.I)]
     for c in candidates:
-        if pd.api.types.is_numeric_dtype(df[c]): return c
+        if pd.api.types.is_numeric_dtype(df[c]):
+            return c
     num = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
     for c in num:
-        if float(df[c].sum()) > 1.1: return c
+        sm = float(df[c].sum())
+        if sm > 1.1:
+            return c
     return None
 
 def aggregate_tables(
@@ -232,101 +229,134 @@ def aggregate_tables(
     outdir: Path,
     rank: str,
     min_abundance: float = 0.0,
+    min_reads_per_sample: int = 0,
 ) -> Tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
     ensure_dir(outdir)
     rel_tabs, cnt_tabs = [], []
     tax_rows: Dict[str, str] = {}
+    kept_samples: List[str] = []
 
     # relativas
     for sample, tsv in per_sample_rel.items():
         df = read_table_maybe(tsv)
-        if df is None: continue
+        if df is None:
+            continue
         colmap = _norm_cols(df.columns)
         for std in TAX_COLS:
             if std not in df.columns:
                 src = colmap.get(std)
-                if src: df.rename(columns={src: std}, inplace=True)
+                if src:
+                    df.rename(columns={src: std}, inplace=True)
         df = select_rank(df, rank)
         rel_col = _detect_rel_col(df)
         if rel_col is None:
-            eprint(f"[WARN] No se detectó columna de relativas en {tsv}")
-            continue
+            raise RuntimeError(f"No se detectó columna de abundancia relativa en {tsv}")
         if min_abundance > 0:
             df = df[df[rel_col] >= float(min_abundance)].copy()
+
         feats, tax_strings = [], []
         for _, row in df.iterrows():
             fid = build_feature_id(row, rank)
-            feats.append(fid); tax_strings.append(to_qiime_tax_string(row))
-        df["_feature_id"] = feats; df["_tax_str"] = tax_strings
-        for fid, tstr in zip(df["_feature_id"], df["_tax_str"]): tax_rows[fid] = tstr
+            feats.append(fid)
+            tax_strings.append(to_qiime_tax_string(row))
+        df["_feature_id"] = feats
+        df["_tax_str"] = tax_strings
+        for fid, tstr in zip(df["_feature_id"], df["_tax_str"]):
+            tax_rows[fid] = tstr
         rel_tabs.append(df[["_feature_id", rel_col]].rename(columns={rel_col: sample}).set_index("_feature_id"))
+        kept_samples.append(sample)
 
     # conteos
     for sample, tsv in per_sample_counts.items():
         df = read_table_maybe(tsv)
-        if df is None: continue
+        if df is None:
+            continue
         colmap = _norm_cols(df.columns)
         for std in TAX_COLS:
             if std not in df.columns:
                 src = colmap.get(std)
-                if src: df.rename(columns={src: std}, inplace=True)
+                if src:
+                    df.rename(columns={src: std}, inplace=True)
         df = select_rank(df, rank)
         count_col = _detect_count_col(df)
         if count_col is None:
             eprint(f"[WARN] No se detectó columna de conteos en {tsv}")
             continue
+        # filtro por lecturas mínimas por muestra (si aplica)
+        tot = float(df[count_col].sum())
+        if min_reads_per_sample > 0 and tot < min_reads_per_sample:
+            eprint(f"[WARN] Muestra {sample} descartada por pocas lecturas: {tot} < {min_reads_per_sample}")
+            continue
+
         feats, tax_strings = [], []
         for _, row in df.iterrows():
             fid = build_feature_id(row, rank)
-            feats.append(fid); tax_strings.append(to_qiime_tax_string(row))
-        df["_feature_id"] = feats; df["_tax_str"] = tax_strings
-        for fid, tstr in zip(df["_feature_id"], df["_tax_str"]): tax_rows[fid] = tstr
+            feats.append(fid)
+            tax_strings.append(to_qiime_tax_string(row))
+        df["_feature_id"] = feats
+        df["_tax_str"] = tax_strings
+        for fid, tstr in zip(df["_feature_id"], df["_tax_str"]):
+            tax_rows[fid] = tstr
         cnt_tabs.append(df[["_feature_id", count_col]].rename(columns={count_col: sample}).set_index("_feature_id"))
 
     rel_path = cnt_path = tax_path = alpha_path = None
-    rel_df = cnt_df = None
 
     if rel_tabs:
         rel_df = pd.concat(rel_tabs, axis=1).fillna(0.0)
+        if (rel_df.sum().sum() <= 0) or (rel_df.shape[1] == 0):
+            raise RuntimeError("Tabla de abundancias relativas vacía o con solo ceros.")
         rel_path = outdir / "feature_table_relabund.tsv"
-        rel_df.to_csv(rel_path, sep="\t")
+        atomic_write_df(rel_df, rel_path, sep="\t", index=True)
 
     if cnt_tabs:
         cnt_df = pd.concat(cnt_tabs, axis=1).fillna(0.0)
+        if (cnt_df.sum().sum() <= 0) or (cnt_df.shape[1] == 0):
+            raise RuntimeError("Tabla de conteos vacía o con solo ceros.")
         cnt_path = outdir / "feature_table_counts.tsv"
-        cnt_df.to_csv(cnt_path, sep="\t")
+        atomic_write_df(cnt_df, cnt_path, sep="\t", index=True)
 
     if tax_rows:
         tax_df = pd.DataFrame({"feature_id": list(tax_rows.keys()),
                                "taxonomy": list(tax_rows.values())}).sort_values("feature_id")
         tax_path = outdir / "taxonomy.tsv"
-        tax_df.to_csv(tax_path, sep="\t", index=False)
+        atomic_write_df(tax_df, tax_path, sep="\t", index=False)
 
-    # alpha
-    table = cnt_df if cnt_df is not None else rel_df
-    if table is not None:
-        alpha_rows = []
+    # alpha-diversidad
+    if cnt_tabs or rel_tabs:
+        table = None
+        if cnt_tabs:
+            table = pd.concat(cnt_tabs, axis=1).fillna(0.0)
+        elif rel_tabs:
+            table = pd.concat(rel_tabs, axis=1).fillna(0.0)
+
+        rows = []
         for sample in table.columns:
             x = table[sample].values
-            if cnt_df is not None:
+            if cnt_tabs:
                 total = x.sum()
                 p = x / total if total > 0 else x
-                obs = int(np.sum(x > 0)); c1 = chao1(x)
+                obs = int(np.sum(x > 0))
+                c1 = chao1(x)
             else:
-                p = x; obs = int(np.sum(p > 0)); c1 = float(obs)
-            H = shannon_entropy(p); S = simpson_index(p)
-            alpha_rows.append({"sample": sample, "observed": obs, "chao1": c1, "shannon": H, "simpson": S})
-        alpha_df = pd.DataFrame(alpha_rows).set_index("sample")
+                p = x
+                obs = int(np.sum(p > 0))
+                c1 = float(obs)
+            H = shannon_entropy(p)
+            S = simpson_index(p)
+            rows.append({"sample": sample, "observed": obs, "chao1": c1, "shannon": H, "simpson": S})
+        alpha_df = pd.DataFrame(rows).set_index("sample")
+        if alpha_df.isna().any().any():
+            raise RuntimeError("Alpha-diversidad contiene NaNs inesperados.")
         alpha_path = outdir / "alpha_diversity.tsv"
-        alpha_df.to_csv(alpha_path, sep="\t")
+        atomic_write_df(alpha_df, alpha_path, sep="\t", index=True)
 
     return (cnt_path, rel_path, tax_path, alpha_path)
 
-
-# ----------------------- Beta-diversidad + PCoA (sin skbio) -------------------
+# ---------- Beta + PCoA ----------
 
 def _bray_curtis_dm(X: np.ndarray) -> np.ndarray:
-    n = X.shape[0]; D = np.zeros((n, n), dtype=float)
+    n = X.shape[0]
+    D = np.zeros((n, n), dtype=float)
     for i in range(n):
         xi = X[i]
         for j in range(i + 1, n):
@@ -337,25 +367,29 @@ def _bray_curtis_dm(X: np.ndarray) -> np.ndarray:
     return D
 
 def _jaccard_dm_bin(Xbin: np.ndarray) -> np.ndarray:
-    n = Xbin.shape[0]; D = np.zeros((n, n), dtype=float)
+    n = Xbin.shape[0]
+    D = np.zeros((n, n), dtype=float)
     for i in range(n):
         ai = Xbin[i] > 0
         for j in range(i + 1, n):
             aj = Xbin[j] > 0
             inter = np.logical_and(ai, aj).sum()
-            union = np.logical_or(ai, aj).sum()
-            D[i, j] = D[j, i] = 1.0 if union == 0 else 1.0 - (inter / union)
+            uni = np.logical_or(ai, aj).sum()
+            D[i, j] = D[j, i] = 1.0 if uni == 0 else 1.0 - (inter / uni)
     return D
 
 def _classical_pcoa(D: np.ndarray):
-    n = D.shape[0]; D2 = D ** 2
+    n = D.shape[0]
+    D2 = D ** 2
     J = np.eye(n) - np.ones((n, n)) / n
     B = -0.5 * J @ D2 @ J
     eigvals, eigvecs = np.linalg.eigh(B)
     order = np.argsort(eigvals)[::-1]
-    eigvals = eigvals[order]; eigvecs = eigvecs[:, order]
+    eigvals = eigvals[order]
+    eigvecs = eigvecs[:, order]
     pos = eigvals > 1e-12
-    eigvals_pos = eigvals[pos]; eigvecs_pos = eigvecs[:, pos]
+    eigvals_pos = eigvals[pos]
+    eigvecs_pos = eigvecs[:, pos]
     coords = eigvecs_pos * np.sqrt(eigvals_pos)
     var = eigvals_pos / eigvals_pos.sum() if eigvals_pos.size else np.array([])
     return coords, eigvals_pos, var
@@ -363,28 +397,49 @@ def _classical_pcoa(D: np.ndarray):
 def _save_dm_and_pcoa(D: np.ndarray, sample_ids: List[str], outdir: Path, prefix: str) -> Dict[str, Optional[Path]]:
     ensure_dir(outdir)
     dm_path = outdir / f"{prefix}_dm.tsv"
-    pd.DataFrame(D, index=sample_ids, columns=sample_ids).to_csv(dm_path, sep="\t")
+    atomic_write_df(pd.DataFrame(D, index=sample_ids, columns=sample_ids), dm_path, sep="\t", index=True)
+
     coords, eigvals, var = _classical_pcoa(D)
     k = min(3, coords.shape[1]) if coords.size else 0
+
     coords_path = outdir / f"pcoa_{prefix}_coords.tsv"
     eig_path    = outdir / f"pcoa_{prefix}_eigvals.tsv"
     var_path    = outdir / f"pcoa_{prefix}_variance.tsv"
-    pd.DataFrame(coords[:, :k], index=sample_ids,
-                 columns=[f"PC{i+1}" for i in range(k)]).to_csv(coords_path, sep="\t")
-    pd.DataFrame({"eigenvalue": eigvals}).to_csv(eig_path, sep="\t", index=False)
-    pd.DataFrame({"proportion_explained": var}).to_csv(var_path, sep="\t", index=False)
-    return {"dm": dm_path, "coords": coords_path, "eigvals": eig_path, "variance": var_path}
+
+    atomic_write_df(pd.DataFrame(coords[:, :k], index=sample_ids,
+                                 columns=[f"PC{i+1}" for i in range(k)]), coords_path, sep="\t", index=True)
+    atomic_write_df(pd.DataFrame({"eigenvalue": eigvals}), eig_path, sep="\t", index=False)
+    atomic_write_df(pd.DataFrame({"proportion_explained": var}), var_path, sep="\t", index=False)
+
+    fig_path = None
+    if _HAS_MPL and k >= 2:
+        plt.figure()
+        plt.scatter(coords[:, 0], coords[:, 1])
+        for i, sid in enumerate(sample_ids):
+            plt.text(coords[i, 0], coords[i, 1], str(sid))
+        pc1 = f"{(var[0]*100):.1f}%" if var.size > 0 else ""
+        pc2 = f"{(var[1]*100):.1f}%" if var.size > 1 else ""
+        plt.xlabel(f"PC1 ({pc1})"); plt.ylabel(f"PC2 ({pc2})")
+        plt.title(f"PCoA — {prefix}")
+        plt.tight_layout()
+        fig_path = outdir / f"pcoa_{prefix}.png"
+        plt.savefig(fig_path, dpi=150)
+        plt.close()
+
+    return {"dm": dm_path, "coords": coords_path, "eigvals": eig_path, "variance": var_path, "figure": fig_path}
 
 def write_beta_and_pcoa_from_table(feature_table_tsv: Path, outdir: Path,
                                    mode: str, normalize_to_relative: bool = False) -> Dict[str, Optional[Path]]:
     df = pd.read_csv(feature_table_tsv, sep="\t", index_col=0)
-    # filas=features, columnas=muestras (si está al revés, lo detectamos por SRR/ERR/DRR al inicio del índice)
-    if any(pd.Series(df.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)): df = df.T
+    if any(pd.Series(df.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)):
+        df = df.T
     X = df.values.T  # samples x features
     sample_ids = list(df.columns)
+
     if mode.lower() == "braycurtis":
         if normalize_to_relative:
-            row_sums = X.sum(axis=1, keepdims=True); row_sums[row_sums == 0] = 1.0
+            row_sums = X.sum(axis=1, keepdims=True)
+            row_sums[row_sums == 0] = 1.0
             X = X / row_sums
         D = _bray_curtis_dm(X)
         return _save_dm_and_pcoa(D, sample_ids, outdir, "braycurtis")
@@ -395,205 +450,85 @@ def write_beta_and_pcoa_from_table(feature_table_tsv: Path, outdir: Path,
     else:
         raise ValueError("mode debe ser 'braycurtis' o 'jaccard'")
 
+# ---------- descubrimiento inputs ----------
 
-# ----------------------------- metadata y plots -------------------------------
+def discover_fastqs(input_dir: Optional[Path], pattern: Optional[str], input_glob: Optional[str]) -> List[Path]:
+    paths: List[Path] = []
+    if input_glob:
+        for p in Path(".").glob(input_glob):
+            if p.is_file():
+                paths.append(p.resolve())
+    if input_dir and pattern:
+        for p in input_dir.rglob(pattern):
+            if p.is_file():
+                paths.append(p.resolve())
+    return sorted(set(paths))
 
-def _load_metadata(meta_path: Optional[Path]) -> Optional[pd.DataFrame]:
-    if meta_path is None: return None
-    if not meta_path.exists():
-        eprint(f"[WARN] Metadata no encontrada: {meta_path}. Continuo sin metadata.")
+def merge_assignments(assign_paths: Dict[str, Path], out_csv: Path) -> Optional[Path]:
+    rows = []
+    for sample, p in assign_paths.items():
+        df = read_table_maybe(p)
+        if df is None:
+            continue
+        df.insert(0, "sample", sample)
+        rows.append(df)
+    if not rows:
         return None
+    big = pd.concat(rows, axis=0, ignore_index=True)
+    atomic_write_df(big, out_csv, sep=",", index=False)
+    return out_csv
+
+# ---------- pre-chequeos/atomicidad ----------
+
+def preflight_checks(args) -> Tuple[str, Path, List[Path]]:
+    # EMU
+    emu_cmd = args.emu_cmd or which("emu")
+    if not emu_cmd:
+        raise RuntimeError("No se encontró 'emu' en PATH. Especifica --emu-cmd o ajusta tu entorno.")
     try:
-        df = pd.read_csv(meta_path, sep="\t")
-    except Exception as e:
-        eprint(f"[WARN] No pude leer metadata ({e}). Continuo sin metadata.")
-        return None
-    low = {c.lower(): c for c in df.columns}
-    if "sample" not in low:
-        eprint("[WARN] Metadata sin columna 'sample'. Continuo sin metadata.")
-        return None
-    if "sample" != low["sample"]:
-        df.rename(columns={low["sample"]: "sample"}, inplace=True)
-    if "group" in low and "group" != low["group"]:
-        df.rename(columns={low["group"]: "group"}, inplace=True)
-    return df
+        sp.run([emu_cmd, "--version"], stdout=sp.PIPE, stderr=sp.PIPE, check=True)
+    except Exception:
+        eprint("[WARN] No se pudo verificar 'emu --version' (continuo de todas formas).")
 
-def _align_meta(meta: Optional[pd.DataFrame], sample_ids: List[str]) -> Optional[pd.DataFrame]:
-    if meta is None: return None
-    m = meta.copy()
-    m = m[m["sample"].astype(str).isin(sample_ids)]
-    return m if not m.empty else None
+    # BD
+    if not args.db.exists() or not args.db.is_dir():
+        raise RuntimeError(f"La BD de EMU no existe o no es carpeta: {args.db}")
+    if not any(args.db.iterdir()):
+        raise RuntimeError(f"La BD de EMU está vacía: {args.db}")
 
-def _plot_pcoa(coords_tsv: Path, var_tsv: Path, outdir: Path, prefix: str,
-               meta: Optional[pd.DataFrame], do_static: bool, do_interactive: bool):
-    if not coords_tsv.exists(): return
-    coords = pd.read_csv(coords_tsv, sep="\t", index_col=0)
-    var = pd.read_csv(var_tsv, sep="\t")["proportion_explained"].values if var_tsv.exists() else None
-    coords = coords.iloc[:, :min(2, coords.shape[1])]
-    coords.columns = ["PC1", "PC2"][:coords.shape[1]]
-    coords["sample"] = coords.index.astype(str)
-    if do_static and _HAS_MPL and coords.shape[1] >= 2:
-        plt.figure()
-        if meta is not None and "group" in meta.columns:
-            merged = coords.merge(meta[["sample","group"]], on="sample", how="left")
-            groups = merged["group"].astype(str).fillna("NA").unique()
-            for g in groups:
-                sub = merged[merged["group"].astype(str).fillna("NA")==g]
-                plt.scatter(sub["PC1"], sub["PC2"], label=str(g))
-            plt.legend(title="group", fontsize=8)
-        else:
-            plt.scatter(coords["PC1"], coords["PC2"])
-        for _, r in coords.iterrows():
-            plt.text(r["PC1"], r["PC2"], r["sample"], fontsize=7)
-        pc1 = f"{(var[0]*100):.1f}%" if var is not None and var.size>0 else ""
-        pc2 = f"{(var[1]*100):.1f}%" if var is not None and var.size>1 else ""
-        plt.xlabel(f"PC1 ({pc1})"); plt.ylabel(f"PC2 ({pc2})")
-        plt.title(f"PCoA — {prefix}")
-        plt.tight_layout()
-        out = outdir / f"pcoa_{prefix}{'_by_group' if meta is not None and 'group' in meta.columns else ''}.png"
-        plt.savefig(out, dpi=150); plt.close()
-    if do_interactive and _HAS_PLOTLY and coords.shape[1] >= 2:
-        if meta is not None and "group" in meta.columns:
-            coords = coords.merge(meta[["sample","group"]], on="sample", how="left")
-        fig = px.scatter(coords, x="PC1", y="PC2", color="group" if "group" in coords.columns else None,
-                         hover_name="sample", title=f"PCoA — {prefix}")
-        fig.write_html(str(outdir / f"pcoa_{prefix}.html"))
+    # OUTDIR build
+    outdir = args.outdir.resolve()
+    build = outdir.parent / (outdir.name + ".__build__")
+    if build.exists():
+        shutil.rmtree(build, ignore_errors=True)
+    ensure_dir(build)
 
-def _plot_heatmap(D_tsv: Path, outdir: Path, prefix: str, do_static: bool):
-    if not do_static or not _HAS_MPL or not D_tsv.exists(): return
-    dm = pd.read_csv(D_tsv, sep="\t", index_col=0)
-    order = dm.index.tolist()
-    if _HAS_SCIPY and dm.shape[0] >= 3:
-        try:
-            Z = linkage(dm.values, method="average")
-            ord_idx = leaves_list(Z)
-            order = [dm.index[i] for i in ord_idx]
-            dm = dm.loc[order, order]
-        except Exception:
-            pass
-    plt.figure(figsize=(6,5))
-    im = plt.imshow(dm.values, aspect="auto")
-    plt.colorbar(im, fraction=0.046, pad=0.04)
-    plt.xticks(range(len(order)), order, rotation=90, fontsize=7)
-    plt.yticks(range(len(order)), order, fontsize=7)
-    plt.title(f"Distance heatmap — {prefix}")
-    plt.tight_layout()
-    plt.savefig(outdir / f"heatmap_{prefix}.png", dpi=150); plt.close()
+    # FASTQ
+    fastqs = discover_fastqs(args.input_dir, args.pattern, args.input_glob)
+    if not fastqs:
+        raise RuntimeError("No se encontraron FASTQ con los criterios dados.")
+    return emu_cmd, build, fastqs
 
-def _coerce_relabund(rel_path: Optional[Path], cnt_path: Optional[Path]) -> Optional[pd.DataFrame]:
-    if rel_path and rel_path.exists():
-        rel = pd.read_csv(rel_path, sep="\t", index_col=0)
-        if any(pd.Series(rel.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)):
-            rel = rel.T
-        return rel
-    if cnt_path and cnt_path.exists():
-        cnt = pd.read_csv(cnt_path, sep="\t", index_col=0)
-        if any(pd.Series(cnt.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)):
-            cnt = cnt.T
-        sums = cnt.sum(axis=0)
-        sums[sums==0] = 1.0
-        return cnt / sums
-    return None
+def finalize_success(build: Path, outdir: Path, force: bool):
+    if outdir.exists():
+        if not force:
+            raise RuntimeError(f"--outdir ya existe: {outdir}. Use --force para reemplazar.")
+        shutil.rmtree(outdir, ignore_errors=True)
+    atomic_move_tree(build, outdir)
 
-def _feature_name_from_id(fid: str) -> str:
-    # r|taxid|Name  -> Name
-    parts = str(fid).split("|")
-    return parts[-1] if parts else str(fid)
+def abort_and_cleanup(build: Path, msg: str, code: int = 1):
+    try:
+        if build and build.exists():
+            shutil.rmtree(build, ignore_errors=True)
+    finally:
+        eprint(f"[ERROR] {msg}")
+        sys.exit(code)
 
-def _plot_taxa_stacked(rel_path: Optional[Path], cnt_path: Optional[Path], outdir: Path,
-                       rank: str, topn: int, do_static: bool, do_interactive: bool):
-    rel = _coerce_relabund(rel_path, cnt_path)
-    if rel is None: return
-    # map feature_id -> taxon name
-    rel.index = [ _feature_name_from_id(i) for i in rel.index ]
-    # top-N por media
-    means = rel.mean(axis=1).sort_values(ascending=False)
-    top = list(means.head(max(1, topn)).index)
-    rel_top = rel.loc[top].copy()
-    # colapsar resto en "Other"
-    other = 1.0 - rel_top.sum(axis=0)
-    other[other < 0] = 0.0
-    rel_top.loc[f"Other"] = other.values
-    # ordenar taxones por media
-    rel_top = rel_top.loc[list(rel_top.mean(axis=1).sort_values(ascending=False).index)]
-    # long format
-    df_long = rel_top.reset_index().melt(id_vars="index", var_name="sample", value_name="rel_abund")
-    df_long.rename(columns={"index": "taxon"}, inplace=True)
-
-    if do_static and _HAS_MPL:
-        samples = rel_top.columns.tolist()
-        taxa = rel_top.index.tolist()
-        bottoms = np.zeros(len(samples))
-        plt.figure(figsize=(max(6, 0.4*len(samples)), 4.5))
-        for tax in taxa:
-            vals = rel_top.loc[tax].values
-            plt.bar(range(len(samples)), vals, bottom=bottoms, label=tax)
-            bottoms += vals
-        plt.xticks(range(len(samples)), samples, rotation=90, fontsize=7)
-        plt.ylabel("Relative abundance")
-        plt.title(f"Composition (Top {topn} {rank})")
-        if len(taxa) <= 25: plt.legend(bbox_to_anchor=(1.02,1), loc="upper left", fontsize=7)
-        plt.tight_layout()
-        plt.savefig(outdir / f"taxa_stacked_top{topn}_{rank}.png", dpi=150); plt.close()
-
-    if do_interactive and _HAS_PLOTLY:
-        fig = px.bar(df_long, x="sample", y="rel_abund", color="taxon", title=f"Composition (Top {topn} {rank})",
-                     labels={"rel_abund":"Relative abundance"}, barmode="stack")
-        fig.write_html(str(outdir / f"taxa_stacked_top{topn}_{rank}.html"))
-
-def _plot_taxa_heatmap(rel_path: Optional[Path], cnt_path: Optional[Path], outdir: Path,
-                       rank: str, topn: int, do_static: bool):
-    if not do_static or not _HAS_MPL: return
-    rel = _coerce_relabund(rel_path, cnt_path)
-    if rel is None or rel.empty: return
-    rel.index = [ _feature_name_from_id(i) for i in rel.index ]
-    means = rel.mean(axis=1).sort_values(ascending=False)
-    top = list(means.head(max(1, topn)).index)
-    X = rel.loc[top].values  # taxon x sample
-    plt.figure(figsize=(max(6, 0.35*rel.shape[1]), 0.35*len(top)+2.5))
-    im = plt.imshow(X, aspect="auto")
-    plt.colorbar(im, fraction=0.046, pad=0.04, label="Relative abundance")
-    plt.xticks(range(rel.shape[1]), rel.columns.tolist(), rotation=90, fontsize=7)
-    plt.yticks(range(len(top)), top, fontsize=8)
-    plt.title(f"Top {topn} {rank} — heatmap")
-    plt.tight_layout()
-    plt.savefig(outdir / f"taxa_heatmap_top{topn}_{rank}.png", dpi=150); plt.close()
-
-def _plot_alpha(alpha_tsv: Optional[Path], outdir: Path,
-                meta: Optional[pd.DataFrame], do_static: bool):
-    if not do_static or not _HAS_MPL or alpha_tsv is None or not alpha_tsv.exists(): return
-    df = pd.read_csv(alpha_tsv, sep="\t", index_col=0)
-    df["sample"] = df.index.astype(str)
-    metrics = ["observed","chao1","shannon","simpson"]
-    # barras por muestra
-    for m in metrics:
-        plt.figure(figsize=(max(6, 0.35*df.shape[0]), 3.5))
-        plt.bar(range(df.shape[0]), df[m].values)
-        plt.xticks(range(df.shape[0]), df["sample"].tolist(), rotation=90, fontsize=7)
-        plt.ylabel(m.capitalize())
-        plt.title(f"Alpha diversity — {m}")
-        plt.tight_layout()
-        plt.savefig(outdir / f"alpha_bar_{m}.png", dpi=150); plt.close()
-    # boxplots por grupo (si hay)
-    if meta is not None and "group" in meta.columns:
-        merged = df.merge(meta[["sample","group"]], on="sample", how="left")
-        for m in metrics:
-            plt.figure(figsize=(5,4))
-            data = [ merged[merged["group"]==g][m].values for g in merged["group"].dropna().unique() ]
-            labels = [ str(g) for g in merged["group"].dropna().unique() ]
-            if len(data) >= 1:
-                plt.boxplot(data, labels=labels)
-                plt.ylabel(m.capitalize()); plt.xlabel("group")
-                plt.title(f"Alpha diversity — {m} (by group)")
-                plt.tight_layout()
-                plt.savefig(outdir / f"alpha_box_{m}.png", dpi=150); plt.close()
-
-
-# ----------------------------------- CLI --------------------------------------
+# ---------- CLI ----------
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Pipeline EMU: taxonomía + diversidad alfa/beta + PCoA + figuras (16S).",
+        description="Pipeline EMU: clasificación taxonómica y métricas de diversidad (16S) con ejecución atómica.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("--db", required=True, type=Path, help="Ruta a la base de datos de EMU.")
@@ -604,178 +539,149 @@ def build_parser() -> argparse.ArgumentParser:
     inp.add_argument("--input-glob", type=str, help="Glob alternativo para FASTQ (p.ej., 'results/*/*_final.fastq').")
 
     p.add_argument("--pattern", type=str, default="*_final.fastq", help="Patrón (rglob) para FASTQ bajo --input-dir.")
-    p.add_argument("--outdir", required=True, type=Path, help="Directorio de salida.")
+    p.add_argument("--outdir", required=True, type=Path, help="Directorio de salida final.")
     p.add_argument("--threads", type=int, default=8, help="Hilos para EMU.")
     p.add_argument("--rank", type=str, default="species", choices=[*TAX_COLS], help="Nivel taxonómico para agregación.")
     p.add_argument("--min-abundance", type=float, default=0.0, help="Umbral de abundancia relativa mínima.")
     p.add_argument("--keep-counts", action="store_true", help="Pedir a EMU que guarde conteos por taxón.")
     p.add_argument("--keep-assignments", action="store_true", help="Pedir a EMU que guarde asignaciones por lectura.")
-
-    # beta + pcoa + plots
     p.add_argument("--do-pcoa", action="store_true", help="Calcular Bray–Curtis/Jaccard y PCoA.")
     p.add_argument("--pcoa-relative", action="store_true",
                    help="Para Bray–Curtis, usar relativas (si existen) o normalizar counts a relativas.")
-    p.add_argument("--metadata", type=Path, default=None,
-                   help="TSV con columnas: sample, [group] para colorear PCoA/boxplots.")
-    p.add_argument("--plots-static", action="store_true", help="Guardar figuras PNG (matplotlib).")
-    p.add_argument("--plots-interactive", action="store_true", help="Guardar figuras HTML (Plotly).")
-    p.add_argument("--topn-genus", type=int, default=12, help="Top-N taxones (del rank elegido) para gráficos de composición.")
+    p.add_argument("--min-reads-per-sample", type=int, default=0,
+                   help="Descarta muestras con menos de N lecturas en counts antes de métricas.")
+    p.add_argument("--stop-on-error", dest="stop_on_error", action="store_true", default=True,
+                   help="Abortar todo si una muestra falla (por defecto ON).")
+    p.add_argument("--no-stop-on-error", dest="stop_on_error", action="store_false",
+                   help="No abortar todo; continuar saltando muestras fallidas.")
+    p.add_argument("--force", action="store_true",
+                   help="Si --outdir existe, reemplazarlo al finalizar exitosamente.")
     return p
 
-
-# ---------------------------------- main --------------------------------------
+# ---------- main ----------
 
 def main() -> int:
     args = build_parser().parse_args()
 
-    if not args.db.exists():
-        eprint(f"[ERROR] No existe la BD de EMU: {args.db}"); return 2
+    try:
+        emu_cmd, build_dir, fastqs = preflight_checks(args)
+    except Exception as e:
+        abort_and_cleanup(build=None, msg=str(e), code=2)  # no build aún
 
-    emu_cmd = args.emu_cmd or which("emu")
-    if not emu_cmd:
-        eprint("[ERROR] No se encontró 'emu' en PATH. Especifica --emu-cmd o ajusta tu entorno."); return 2
-
-    ensure_dir(args.outdir)
-
-    # Descubrir FASTQ
-    fastqs = []
-    if args.input_glob:
-        fastqs += [p.resolve() for p in Path(".").glob(args.input_glob) if p.is_file()]
-    if args.input_dir and args.pattern:
-        fastqs += [p.resolve() for p in args.input_dir.rglob(args.pattern) if p.is_file()]
-    fastqs = sorted(set(fastqs))
-    if not fastqs:
-        eprint("[WARN] No se encontraron FASTQ con los criterios dados."); return 0
-
-    eprint(f"=== EMU pipeline ===")
+    eprint("=== EMU pipeline (ejecución atómica) ===")
     eprint(f"- DB: {args.db}")
     eprint(f"- EMU: {emu_cmd}")
-    eprint(f"- FASTQ encontrados: {len(fastqs)}")
-    eprint(f"- Salida: {args.outdir}")
-    eprint(f"- Rank: {args.rank}  | min-abundance: {args.min_abundance}")
+    eprint(f"- FASTQ: {len(fastqs)}")
+    eprint(f"- Rank: {args.rank} | min-abundance: {args.min_abundance}")
+    eprint(f"- Stop on error: {args.stop_on_error}")
+    eprint(f"- Build dir: {build_dir}")
+
+    # subcarpeta para salidas por muestra
+    samples_root = build_dir / "samples"
+    ensure_dir(samples_root)
 
     per_sample_rel: Dict[str, Path] = {}
     per_sample_cnt: Dict[str, Path] = {}
     per_sample_assign: Dict[str, Path] = {}
     manifest_rows = []
 
+    # Ejecutar EMU por muestra dentro del build
     for fq in fastqs:
         fq = Path(fq)
         sample = safe_basename_noext(fq)
-        sample_dir = args.outdir / sample
-        ensure_dir(sample_dir)
+        sample_tmp = samples_root / (sample + ".__tmp__")
+        sample_final = samples_root / sample
 
-        eprint(f">>> Procesando: {sample}")
-        rel_tsv, cnt_tsv, asg_tsv = run_emu_for_sample(
-            emu_cmd=emu_cmd, db=args.db, fastq=fq, outdir_sample=sample_dir,
-            sample=sample, threads=args.threads, keep_counts=args.keep_counts,
-            keep_assignments=args.keep_assignments,
+        try:
+            ensure_dir(sample_tmp)
+            rel_tsv, cnt_tsv, asg_tsv = run_emu_for_sample(
+                emu_cmd=emu_cmd, db=args.db, fastq=fq,
+                outdir_sample_tmp=sample_tmp, sample=sample,
+                threads=args.threads,
+                keep_counts=args.keep_counts,
+                keep_assignments=args.keep_assignments,
+            )
+            # mover carpeta tmp -> final (atómico)
+            atomic_move_tree(sample_tmp, sample_final)
+
+            manifest_rows.append({
+                "sample": sample,
+                "fastq": str(fq),
+                "outdir_sample": str(sample_final),
+                "rel_abundance_tsv": str(sample_final / Path(rel_tsv).name),
+                "counts_tsv": str(sample_final / Path(cnt_tsv).name) if cnt_tsv else "",
+                "assignments_tsv": str(sample_final / Path(asg_tsv).name) if asg_tsv else "",
+            })
+
+            if rel_tsv:
+                per_sample_rel[sample] = sample_final / Path(rel_tsv).name
+            if cnt_tsv:
+                per_sample_cnt[sample] = sample_final / Path(cnt_tsv).name
+            if asg_tsv:
+                per_sample_assign[sample] = sample_final / Path(asg_tsv).name
+
+        except Exception as e:
+            # limpiar tmp de esa muestra y decidir continuar o abortar
+            shutil.rmtree(sample_tmp, ignore_errors=True)
+            msg = f"Fallo procesando la muestra '{sample}': {e}"
+            if args.stop_on_error:
+                abort_and_cleanup(build=build_dir, msg=msg, code=3)
+            else:
+                eprint("[WARN]", msg)
+                continue
+
+    # Verificación: ¿quedó al menos 1 muestra válida?
+    if not per_sample_rel:
+        abort_and_cleanup(build=build_dir, msg="No hay muestras válidas con tabla de abundancias.", code=4)
+
+    # manifest
+    try:
+        manifest_df = pd.DataFrame(manifest_rows).sort_values("sample")
+        atomic_write_df(manifest_df, build_dir / "manifest.tsv", sep="\t", index=False)
+    except Exception as e:
+        abort_and_cleanup(build=build_dir, msg=f"Error escribiendo manifest: {e}", code=5)
+
+    # Agregados globales
+    try:
+        cnt_path, rel_path, tax_path, alpha_path = aggregate_tables(
+            per_sample_rel=per_sample_rel,
+            per_sample_counts=per_sample_cnt,
+            outdir=build_dir,
+            rank=args.rank,
+            min_abundance=args.min_abundance,
+            min_reads_per_sample=args.min_reads_per_sample,
         )
-        manifest_rows.append({
-            "sample": sample, "fastq": str(fq), "outdir_sample": str(sample_dir),
-            "rel_abundance_tsv": str(rel_tsv) if rel_tsv else "",
-            "counts_tsv": str(cnt_tsv) if cnt_tsv else "",
-            "assignments_tsv": str(asg_tsv) if asg_tsv else "",
-        })
-        if rel_tsv: per_sample_rel[sample] = rel_tsv
-        if cnt_tsv: per_sample_cnt[sample] = cnt_tsv
-        if asg_tsv: per_sample_assign[sample] = asg_tsv
-
-    manifest = pd.DataFrame(manifest_rows).sort_values("sample")
-    manifest_path = args.outdir / "manifest.tsv"
-    manifest.to_csv(manifest_path, sep="\t", index=False)
-
-    cnt_path, rel_path, tax_path, alpha_path = aggregate_tables(
-        per_sample_rel=per_sample_rel, per_sample_counts=per_sample_cnt,
-        outdir=args.outdir, rank=args.rank, min_abundance=args.min_abundance,
-    )
-
-    merged_assign = None
-    if per_sample_assign:
-        # merge assignments a CSV maestro
-        rows = []
-        for sample, p in per_sample_assign.items():
-            df = read_table_maybe(p)
-            if df is None: continue
-            df.insert(0, "sample", sample); rows.append(df)
-        if rows:
-            big = pd.concat(rows, axis=0, ignore_index=True)
-            merged_assign = args.outdir / "read_assignments_all.csv"
-            big.to_csv(merged_assign, index=False)
-
-    # Metadata
-    meta = _load_metadata(args.metadata)
-    if meta is not None:
-        # aseguramos limitar a las muestras que tenemos en tablas
-        samples_present = None
-        if rel_path and rel_path.exists():
-            tmp = pd.read_csv(rel_path, sep="\t", index_col=0)
-            samples_present = tmp.columns.tolist() if not any(pd.Series(tmp.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)) else tmp.index.tolist()
-        elif cnt_path and cnt_path.exists():
-            tmp = pd.read_csv(cnt_path, sep="\t", index_col=0)
-            samples_present = tmp.columns.tolist() if not any(pd.Series(tmp.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)) else tmp.index.tolist()
-        if samples_present:
-            meta = _align_meta(meta, [str(s) for s in samples_present])
+        if not (cnt_path or rel_path):
+            raise RuntimeError("No se pudo construir ninguna feature table.")
+    except Exception as e:
+        abort_and_cleanup(build=build_dir, msg=f"Error agregando tablas: {e}", code=6)
 
     # Beta + PCoA
-    beta_files = {}
     if args.do_pcoa:
-        # Bray–Curtis
-        if args.pcoa_relative and rel_path and rel_path.exists():
-            beta_files["braycurtis"] = write_beta_and_pcoa_from_table(rel_path, args.outdir,
-                                                                      mode="braycurtis", normalize_to_relative=False)
-        else:
+        try:
+            if args.pcoa_relative and rel_path and rel_path.exists():
+                write_beta_and_pcoa_from_table(rel_path, build_dir, mode="braycurtis", normalize_to_relative=False)
+            else:
+                if cnt_path and cnt_path.exists():
+                    write_beta_and_pcoa_from_table(cnt_path, build_dir, mode="braycurtis", normalize_to_relative=True)
+                elif rel_path and rel_path.exists():
+                    write_beta_and_pcoa_from_table(rel_path, build_dir, mode="braycurtis", normalize_to_relative=False)
+
             if cnt_path and cnt_path.exists():
-                beta_files["braycurtis"] = write_beta_and_pcoa_from_table(cnt_path, args.outdir,
-                                                                          mode="braycurtis", normalize_to_relative=True)
+                write_beta_and_pcoa_from_table(cnt_path, build_dir, mode="jaccard")
             elif rel_path and rel_path.exists():
-                beta_files["braycurtis"] = write_beta_and_pcoa_from_table(rel_path, args.outdir,
-                                                                          mode="braycurtis", normalize_to_relative=False)
-        # Jaccard
-        if cnt_path and cnt_path.exists():
-            beta_files["jaccard"] = write_beta_and_pcoa_from_table(cnt_path, args.outdir, mode="jaccard")
-        elif rel_path and rel_path.exists():
-            beta_files["jaccard"] = write_beta_and_pcoa_from_table(rel_path, args.outdir, mode="jaccard")
+                write_beta_and_pcoa_from_table(rel_path, build_dir, mode="jaccard")
+        except Exception as e:
+            abort_and_cleanup(build=build_dir, msg=f"Error en beta-diversidad/PCoA: {e}", code=7)
 
-    # Figuras
-    if args.plots_static or args.plots_interactive:
-        # PCoA (lee coords/var y dibuja)
-        for pref, pack in beta_files.items():
-            if not pack: continue
-            coords = pack.get("coords"); var = pack.get("variance"); dm = pack.get("dm")
-            _plot_pcoa(coords, var, args.outdir, pref, meta,
-                       do_static=args.plots_static, do_interactive=args.plots_interactive)
-            _plot_heatmap(dm, args.outdir, pref, do_static=args.plots_static)
+    # Finalizar: mover build -> outdir
+    try:
+        finalize_success(build_dir, args.outdir.resolve(), force=args.force)
+    except Exception as e:
+        abort_and_cleanup(build=build_dir, msg=f"No se pudo mover salidas a {args.outdir}: {e}", code=8)
 
-        # Alfa diversidad
-        _plot_alpha(alpha_path, args.outdir, meta, do_static=args.plots_static)
-
-        # Composición taxonómica (Top-N del rank)
-        _plot_taxa_stacked(rel_path, cnt_path, args.outdir, args.rank, args.topn_genus,
-                           do_static=args.plots_static, do_interactive=args.plots_interactive)
-        _plot_taxa_heatmap(rel_path, cnt_path, args.outdir, args.rank, args.topn_genus,
-                           do_static=args.plots_static)
-
-    # Resumen
-    eprint("\n=== Resumen de salidas ===")
-    eprint(f"- manifest:              {manifest_path}")
-    eprint(f"- feature_table_counts:  {cnt_path if cnt_path else 'NA'}")
-    eprint(f"- feature_table_relabund:{rel_path if rel_path else 'NA'}")
-    eprint(f"- taxonomy.tsv:          {tax_path if tax_path else 'NA'}")
-    eprint(f"- alpha_diversity.tsv:   {alpha_path if alpha_path else 'NA'}")
-    if merged_assign: eprint(f"- read_assignments_all:  {merged_assign}")
-    if args.do_pcoa:
-        for k, d in beta_files.items():
-            if not d: continue
-            eprint(f"- {k} DM:               {d.get('dm')}")
-            eprint(f"- {k} PCoA coords:      {d.get('coords')}")
-            eprint(f"- {k} PCoA eigvals:     {d.get('eigvals')}")
-            eprint(f"- {k} PCoA variance:    {d.get('variance')}")
-    if args.plots_static or args.plots_interactive:
-        eprint(f"- Figuras: ver PNG/HTML en {args.outdir}")
-    eprint("OK.\n")
+    eprint("\n=== OK. Salidas en:", args.outdir)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
