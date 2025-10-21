@@ -279,12 +279,14 @@ Se definieron las siguientes funciones:
 ```
 python /home/fenrir/scriptsbioinf/EMU.py \
   --db /home/fenrir/emu_db \
-  --input-dir /home/fenrir/results_dentrim_Q10 \
-  --pattern '*_final.fastq' \
-  --outdir /home/fenrir/results_dentrim_Q10/EMU_Q10 \
+  --input-dir /home/fenrir/results_dentrim_Q12 \
+  --pattern '*_clean.fastq' \
+  --outdir /home/fenrir/results_dentrim_Q12/EMU_Q12 \
   --threads 8 \
-  --rank species \
-  --keep-counts \
-  --keep-assignments \
-  --emu-cmd /home/fenrir/anaconda3/envs/pipelinefenrir/bin/emu \
+  --keep-counts --keep-assignments \
+  --emu-cmd /home/fenrir/anaconda3/envs/pipelinefenrir/bin/emu
+```
+# Diversidad
+```
+
 ```
