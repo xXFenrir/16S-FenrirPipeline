@@ -283,17 +283,36 @@ Tras la clasificación taxonómica con EMU, en esta etapa se calcula y visualiza
 
 ## Descripción del código
 
-El script de [Métricas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa) toma como punto de partida las salidas generadas en la taxonomía (`--emu-outdir`), que son la tabla de conteos, la tabla de abundancias relativas, y el mapeo taxonómico. Para diversidad alfa, el código calcula por muestra la riqueza observada (número de taxones con conteo > 0), el estimador Chao1 basado en singletons y doubletons, y los índices Shannon y Simpson sobre proporciones por muestra, lo que resulta en una tabla con una fila por muestra y columnas para cada métrica. Para diversidad beta, el flujo construye dos matrices de distancia entre muestras, una es Bray–Curtis y la otra es Jaccard, donde cada matriz de distancias. Posteriormente se aplica PCoA, que toma la matriz de distancias entre muestras donde las muestras que se parecen quedan más cerca y las distintas más lejos. Luego, se guardan las matrices de distancias, las coordenadas del mapa, el peso de cada eje y el porcentaje de variación. 
+El script de [Métricas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/M%C3%A9tricas%20alfa%20y%20beta) toma como punto de partida las salidas generadas en la taxonomía (`--emu-outdir`), que son la tabla de conteos, la tabla de abundancias relativas, y el mapeo taxonómico. Para diversidad alfa, el código calcula por muestra la riqueza observada (número de taxones con conteo > 0), el estimador Chao1 basado en singletons y doubletons, y los índices Shannon y Simpson sobre proporciones por muestra, lo que resulta en una tabla con una fila por muestra y columnas para cada métrica. Para diversidad beta, el flujo construye dos matrices de distancia entre muestras, una es Bray–Curtis y la otra es Jaccard, donde cada matriz de distancias. Posteriormente se aplica PCoA, que toma la matriz de distancias entre muestras donde las muestras que se parecen quedan más cerca y las distintas más lejos. Luego, se guardan las matrices de distancias, las coordenadas del mapa, el peso de cada eje y el porcentaje de variación. 
 
 En la parte de visualización, el script genera, si se solicita, figuras estáticas con Matplotlib (PNG) y figuras interactivas con Plotly (HTML). Produce scatter plots de PCoA (PC1 vs PC2) con el porcentaje de varianza en los ejes, etiquetas de muestra y color opcional por grupos de metadata. Para explorar composición, construye barras apiladas por muestra y, si hay metadata, por grupo, usando los Top N géneros (`--topn-genus`). De forma complementaria puede generar un heatmap de composición a nivel de taxón, útil para detectar gradientes o clústeres visuales que luego se contrastan en PCoA. 
 
 ## Paquetes importados
 
-
+Los paquetes importados fueron:
+- argparse: CLI para rutas de entrada, flags de figuras e hiperparámetros (Top N, etc.).
+- pathlib, os, sys, re, typing: manejo de rutas, errores claros, utilidades varias.
+- pandas: lectura/escritura de TSV, unión/filtrado/alineación de tablas y metadata.
+- numpy: operaciones vectorizadas, normalizaciones y métricas alfa.
+- matplotlib.pyplot: figuras estáticas (PCoA, barras apiladas, heatmap PNG).
+- plotly (opcional): figuras interactivas en HTML (PCoA y barras apiladas).
+- scipy (opcional): utilidades de clustering/ordenación si activas ciertos dendrogramas.
 
 ## Funciones definidas
 
-
+Se definieron las siguientes funciones:
+- _load_feature_table_counts() / _load_feature_table_relabund(): leen las matrices desde TSV, detectan orientación, fuerzan numéricos y devuelven DataFrame limpio.
+- _align_samples_and_prune(): intersecta muestras entre tabla y metadata (si existe) y elimina features de suma 0.
+- chao1(counts), shannon_entropy(p), simpson_index(p): implementaciones numéricas directas; cuentan singletons/doubletons para Chao1 y usan proporciones para Shannon/Simpson.
+- alpha_diversity_from_counts(): aplica las métricas a cada muestra y guarda alpha_diversity.tsv.
+- _bray_curtis_dm(X): ∑|xi–xj| / ∑(xi+xj) por pares de muestras (X en relativas por fila).
+- _jaccard_dm_bin(Xbin): 1 – |∩|/|∪| sobre binario.
+- _classical_pcoa(D): doble centrado, descomposición espectral, coords y varianza explicada.
+- _save_dm_and_pcoa(...): serializa DM y PCoA a TSV; genera PNG (y HTML si se pidió).
+- plot_pcoa_*(): scatter PC1 vs PC2 con % de varianza en ejes; etiquetas por muestra (y color por grupo si hay metadata).
+- plot_bars_topn_genus(): barras apiladas por muestra/grupo usando los Top N taxones (resto en “Otros”).
+- plot_heatmap_composition() (opcional): heatmap de proporciones o CLR/z-score (según config).
+- main(): orquesta el pipeline: parsea argumentos, carga tablas, calcula alfa/beta/PCoA, y emite TSV + figuras (estáticas e interactivas) dentro de --emu-outdir.
 
 ## Ejecución del código
 ```
