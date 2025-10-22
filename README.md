@@ -229,10 +229,18 @@ Para ejecutar el código se usa el siguiente comando:
 8. `--pconfig` es la ruta con la dirección de los primers.
 
 # Taxonomía
-Una de la herramientas más utilizadas según la bibliografía revisada para la clasificación taxonómica, es EMU. Pues es una herramienta basada en minimap 2 (otro clasificador taxonómico), pero que ya integra las bases de datos de referencia y permite extraer la abundancia relativa de las muestras. El objetivo de este paso es obtener tablas conteos, abundancias relativas, asignación de lecturas y mapeo taxonómico, que esten listas para análisis de diversidad alfa y beta. Por lo que, el script integra un módulo opcional para calcular Bray–Curtis/Jaccard y su PCoA directamente desde la tabla de conteos.
+Para la clasificación taxonómica utilizamos EMU, una herramienta diseñada para perfilar comunidades microbianas (p. ej., 16S rRNA) a nivel de especie. EMU se apoya en minimap2 como alineador de lecturas contra una base de datos de referencia (p. ej., rrnDB/NCBI 16S RefSeq). Luego, aplica un algoritmo de Expectation–Maximization (EM) para resolver lecturas multiasignadas y estimar abundancias relativas de forma consistente entre especies cercanas. El objetivo de esta etapa es producir, por muestra, tablas de abundancias relativas, conteos (opcional), asignaciones de lecturas (opcional) y un mapeo taxonómico estandarizado, dejando todo listo para la etapa posterior de métricas de diversidad.
 
 ## Descripción del código
 El script para la [Taxonomía](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa) recibe como entrada los archivos FASTQ filtrados. Donde ejecuta `emu abundance` por muestra usando la base de datos que la documentación proporciona ([rrnDB v5.6](https://rrndb.umms.med.umich.edu/?_x_tr_sl=en&_x_tr_tl=fr&_x_tr_hl=fr&_x_tr_pto=sc) y [NCBI 16S RefSeq](https://www.ncbi.nlm.nih.gov/refseq/targetedloci/16S_process/)). Además, guarda abundancias relativas, conteos, lecturas asignadas, genera un mapeo de la clasificación taxonómica, y calcula métricas de diversidad alfa (Observed, Chao1, Shannon, Simpson). Usando `--do-pcoa`, construye distancias Bray–Curtis y Jaccard, realiza PCoA y escribe coordenadas, varianza explicada y figuras.
+
+El script recibe como entrada los archivos FASTQ depurados y la ruta a la base de datos de EMU (--db). Descubre las muestras mediante --input-dir+--pattern (o un --input-glob alternativo), resuelve el ejecutable de emu (o acepta --emu-cmd) y crea una carpeta de trabajo por muestra. Para cada FASTQ ejecuta emu abundance con el número de hilos indicado, y captura de forma robusta los archivos de salida que EMU genera por muestra: abundancias relativas (*_rel-abundance.tsv), conteos (*_counts.tsv, si se solicita con --keep-counts) y asignaciones por lectura (*_read-assignments.tsv, si se usa --keep-read-assignments). Cualquier error de ejecución se reporta claramente y no contamina las tablas agregadas.
+
+Una vez generado el material por muestra, el script armoniza los nombres de columnas taxonómicas (p. ej., superkingdom, phylum, …, species) y filtra filas al nivel (--rank) indicado. Para cada taxón construye un identificador estable (feature_id) con el patrón rank|tax_id|tax_name, evitando colisiones entre nombres iguales con distintos tax_id. En paralelo compone una cadena taxonómica estilo QIIME (k__…; p__…; …; s__…) que facilitará la interoperabilidad con herramientas downstream.
+
+Con las tablas ya normalizadas, el script agrega las salidas por muestra en matrices globales: feature_table_relabund.tsv y, si existen conteos, feature_table_counts.tsv. Ambas siguen la misma orientación: features (taxones) en filas y muestras en columnas, con ceros explícitos cuando un taxón no aparece en una muestra. Además, genera taxonomy.tsv (mapeo feature_id → cadena QIIME) para anotar los taxones de la tabla de features sin duplicar información.
+
+Como soporte de trazabilidad, el script escribe manifest.tsv, donde queda registrado para cada muestra el FASTQ de entrada, la carpeta de salida y las rutas a los TSV generados por EMU. Si se solicitó conservar las asignaciones por lectura, une todos los *_read-assignments.tsv en un único read_assignments_all.csv con una columna sample, útil para auditoría y análisis de reasignaciones. Esta etapa de Taxonomía no calcula métricas de diversidad ni genera PCoA; su responsabilidad es dejar listas las tablas limpias, consistentes y estandarizadas que consumirá la etapa de Métricas.
 
 ## Paquetes importados
 
@@ -240,15 +248,11 @@ Los paquetes importados fueron:
 - `argparse ()`: Permite construir la interfaz de línea de comandos definiendo las entradas y variables.
 - `os ()`: Verifica la existencia de los archivos de entrada, crea carpetas de salida por muestra, compone rutas portables y elimina salidas parciales si la ejecución falla.
 - `sys ()`: Proporciona control sobre la salida y la terminación del programa por medio de avisos.
-- `glob ()`: Sirve para encontrar archivos con sufijo `FASTQ` independientemente de si está o no comprimido. En caso de no encontrar nada, el programa avisa y termina.
+- `shlex ()`: Permite que las rutas que tengan espacios en sus nombres no generen conflictos.
 - `subprocess ()`: Permite que se ejecuten subprocesos, como dirigir cada salida de EMU (`emu abundance`, etc), captura fallos y continúa con otras muestras sin cortar el ciclo.
 - `pathlib.Path ()`: Obtiene el nombre base del archivo quitando sus sufijos.
 - `typing ()`: Permite que se informe de errores antes de correr el script.
-- `numpy`: Usa las métricas para calcular alfa diversidad (Shannon, Simpson, Chao1), normalizaciones y operaciones rápidas sobre matrices.
 - `pandas`: Esencial para las tablas, pues lee los TSV de EMU, armoniza columnas taxonómicas y construye matrices de conteos.
-- `biom ()`: Exporta la tabla de conteos a BIOM para interoperar con phyloseq. (Aún en revisión)
-- `scikit-bio ()`: Obtiene la beta-diversidad con Bray–Curtis y Jaccard, y realiza la PCoA, escribiendo las distancias y coordenadas. (Aún en revisión)
-- `matplotlib.pyplot ()`: Genera las figuras de los PCoA. (Aún en revisión)
 - `re ()`: Reconoce una expresión regular para detectar espécíficamente el archivo deseado en un grupo de datos.
 - `shutil.which ()`: Localiza la ruta de EMU.
 
@@ -261,16 +265,10 @@ Se definieron las siguientes funciones:
 - `safe_basename_noext(path)`: Garantiza nombres coherentes para subcarpetas y prefijos de salida, para conservar el ID de la muestra.
 - `read_table_maybe(path)`: Intenta leer un TSV con `pandas` y devuelve `None` si falla, registrando una advertencia.
 - `to_qiime_tax_string(row)`: Construye una cadena taxonómica separado por columnas. 
-- `chao1(counts)`: Calcula el estimador de riqueza Chao1 usando singletons y doubletons.
-- `shannon_entropy(p)`: Calcula el índice de Shannon sobre proporciones (p), ignorando ceros.
-- `simpson_index(p)`: Calcula el índice de Simpson como `(1-\sum p^2)`.
 - `run_emu_for_sample()`: Llama a `emu abundance` por muestra, verifica el retorno y envía las salidas (`rel-abundance.tsv`, `counts.tsv` y `read-assignments.tsv`) a la ruta solicitada.
 - `select_rank()`: Filtra la tabla de EMU al nivel taxonómico elegido.
 - `build_feature_id(row, rank)`: Genera un identificador por taxón con el patrón `rank|tax_id|tax_name`, evitando confuciones entre nombres iguales con distintos `tax_id`.
 - `aggregate_tables()`: Pricipal encargado de generar tablas, pues organiza columnas taxonómicas, aplica `select_rank` y el umbral `min_abundance`, construye matrices multi-muestra de conteos y relativas, emite `taxonomy.tsv` y calcula alfa (Observed/Chao1/Shannon/Simpson).
-- `compute_beta_pcoa(counts_tsv, outdir, use_relative)`: A partir de la tabla de conteos, calcula distancias Bray–Curtis y Jaccard, ejecuta PCoA y escribe matrices de distancia, coordenadas, eigenvalores, varianza explicada y, si puede, figuras.
-- `_write_pcoa_outputs(ord_res, prefix, outdir)`: Estandariza las salidas de PCoA en TSV. 
-- `_plot_pcoa(ord_res, prefix, outdir)`: Genera un scatter PC1 vs PC2 con las proporciones de varianza en etiquetas y anota las muestras.
 - `discover_fastqs(args)`: Localiza archivos de entrada usando `--input-glob` y `--input-dir`+`--pattern`, desduplica y ordena rutas absolutas. 
 - `merge_assignments(assign_paths, outdir)`: Une las tablas `read-assignments` de todas las muestras en un CSV con columna `sample`.
 - `main()`: Parsea argumentos, valida el entorno, descubre FASTQ, corre EMU por muestra, construye el `manifest.tsv`, agrega resultados vía `aggregate_tables`, fusiona asignaciones y ejecuta `compute_beta_pcoa`, y reporta un resumen final.
@@ -287,6 +285,22 @@ python /home/fenrir/scriptsbioinf/EMU.py \
   --emu-cmd /home/fenrir/anaconda3/envs/pipelinefenrir/bin/emu
 ```
 # Diversidad
+
+
+
+## Descripción del código
+
+
+
+## Paquetes importados
+
+
+
+## Funciones definidas
+
+
+
+## Ejecución del código
 ```
 python /home/fenrir/scriptsbioinf/EMU.py \
   --db /home/fenrir/emu_db \
