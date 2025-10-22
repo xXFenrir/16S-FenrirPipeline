@@ -2,549 +2,580 @@
 # -*- coding: utf-8 -*-
 
 """
-metricas.py — Agrega salidas de EMU y calcula:
-- feature_table_counts.tsv, feature_table_relabund.tsv, taxonomy.tsv (si no existen)
-- alpha_diversity.tsv (Observed, Chao1, Shannon, Simpson)
-- braycurtis_dm.tsv / pcoa_braycurtis_*.tsv (+ PNG)
-- jaccard_dm.tsv   / pcoa_jaccard_*.tsv   (+ PNG)
+metricas.py — Calcula diversidad alfa/beta + PCoA y genera figuras a partir de salidas de EMU.
 
-Además genera gráficas SOLO con Python:
-- Estáticas (matplotlib): barras/box alpha, PCoA, heatmaps (distancias y abundancias), dendrograma, stacked bars, rank-abundance, treemap.
-- Interactivas (plotly): PCoA, stacked bars, heatmap, treemap/sunburst, alpha.
+Entradas esperadas en --emu-outdir:
+  - feature_table_counts.tsv           (preferida; features x muestras)
+  - feature_table_relabund.tsv         (respaldo si no hay counts; features x muestras)
+  - taxonomy.tsv                       (feature_id, taxonomy estilo QIIME; opcional para barras por género)
+  - metadata.tsv                       (opcional vía --metadata; filas=muestras)
 
-Requisitos: numpy, pandas, matplotlib, scipy, scikit-learn, squarify, plotly
+Salidas escritas en --emu-outdir:
+  - alpha_diversity.tsv
+  - braycurtis_dm.tsv, jaccard_dm.tsv
+  - pcoa_braycurtis_coords.tsv / _eigvals.tsv / _variance.tsv (+ pcoa_braycurtis.png / .html)
+  - pcoa_jaccard_coords.tsv  / _eigvals.tsv  / _variance.tsv  (+ pcoa_jaccard.png  / .html)
+  - plots_static/bars_topN_genus.png (si taxonomy y --plots-static)
+  - plots_interactive/bars_topN_genus.html (si taxonomy y --plots-interactive)
 """
 
 from __future__ import annotations
-import argparse, os, re, sys, shlex, subprocess as sp
+
+import argparse
+import os
+import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
-# --- opcionales (plots) ---
-_HAS_MPL = False
-_HAS_SCIPY = False
-_HAS_SQUARIFY = False
-_HAS_PLOTLY = False
-
+# Matplotlib (figuras estáticas)
 try:
     import matplotlib.pyplot as plt
-    _HAS_MPL = True
+    HAS_MPL = True
 except Exception:
-    pass
+    HAS_MPL = False
 
-try:
-    from scipy.cluster.hierarchy import linkage, dendrogram, leaves_list
-    from scipy.spatial.distance import squareform
-    _HAS_SCIPY = True
-except Exception:
-    pass
-
-try:
-    import squarify
-    _HAS_SQUARIFY = True
-except Exception:
-    pass
-
+# Plotly (figuras interactivas)
 try:
     import plotly.express as px
-    import plotly.graph_objects as go
-    _HAS_PLOTLY = True
+    HAS_PLOTLY = True
 except Exception:
-    pass
+    HAS_PLOTLY = False
 
-TAX_COLS = ["superkingdom","phylum","class","order","family","genus","species"]
 
-def eprint(*a, **k): print(*a, file=sys.stderr, **k)
-def ensure_dir(p: Path): p.mkdir(parents=True, exist_ok=True)
-def _norm_cols(cols: List[str]) -> Dict[str,str]: return {c.lower(): c for c in cols}
+# ----------------------------- utilidades básicas -----------------------------
 
-# ------------- utilidades para leer/armar tablas -------------
-def _detect_rel_col(df: pd.DataFrame) -> Optional[str]:
-    cands = [c for c in df.columns if re.search(r"abund", c, re.I)]
-    for c in cands:
-        try:
-            sm = float(pd.to_numeric(df[c], errors="coerce").fillna(0).sum())
-            if 0.9 <= sm <= 1.1: return c
-        except Exception: pass
-    for c in df.columns:
-        if pd.api.types.is_numeric_dtype(df[c]):
-            sm = float(pd.to_numeric(df[c], errors="coerce").fillna(0).sum())
-            if 0.9 <= sm <= 1.1: return c
-    return None
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
-def _detect_count_col(df: pd.DataFrame) -> Optional[str]:
-    cands = [c for c in df.columns if re.fullmatch(r"count[s]?", c, re.I)]
-    for c in cands:
-        if pd.api.types.is_numeric_dtype(df[c]): return c
-    for c in df.columns:
-        if pd.api.types.is_numeric_dtype(df[c]):
-            if float(pd.to_numeric(df[c], errors="coerce").fillna(0).sum()) > 1.1:
-                return c
-    return None
 
-def _taxonomy_string(row: pd.Series) -> str:
-    labels = ["k__","p__","c__","o__","f__","g__","s__"]
-    out = []
-    for lab, key in zip(labels, TAX_COLS):
-        val = str(row.get(key, "Unassigned") or "Unassigned")
-        out.append(f"{lab}{val}")
-    return "; ".join(out)
+def ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
 
-def _feature_id(row: pd.Series) -> str:
-    tax_id = str(row.get("tax_id", "") or "")
-    if tax_id: return f"id|{tax_id}"
-    return "tax|" + "|".join(str(row.get(k, "Unassigned") or "Unassigned").replace("|","_") for k in TAX_COLS)
 
-def _read_tsv(path: Path) -> Optional[pd.DataFrame]:
-    try:
-        return pd.read_csv(path, sep="\t")
-    except Exception as e:
-        eprint(f"[WARN] No pude leer {path}: {e}"); return None
+def _read_tsv(path: Path, index_col: Optional[int | str] = 0) -> pd.DataFrame:
+    df = pd.read_csv(path, sep="\t", index_col=index_col)
+    return df
 
-def _find_per_sample_tsvs(emu_outdir: Path, kind: str) -> Dict[str, Path]:
-    pattern = "*rel*abundance*.tsv" if kind=="rel" else "*count*.tsv"
-    hits: Dict[str, Path] = {}
-    for p in emu_outdir.rglob(pattern):
-        sample = p.parent.name
-        hits[sample] = p
-    return hits
 
-def aggregate_from_per_sample(emu_outdir: Path, outdir: Path, min_abundance: float=0.0
-                              ) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
-    rel_paths = _find_per_sample_tsvs(emu_outdir, "rel")
-    cnt_paths = _find_per_sample_tsvs(emu_outdir, "counts")
-    rel_tabs, cnt_tabs = [], []
-    tax_map: Dict[str,str] = {}
+def _to_numeric_df(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for c in out.columns:
+        out[c] = pd.to_numeric(out[c], errors="coerce")
+    out = out.fillna(0.0)
+    return out
 
-    for sample, tsv in rel_paths.items():
-        df = _read_tsv(tsv); 
-        if df is None: continue
-        colmap = _norm_cols(df.columns)
-        for std in TAX_COLS:
-            src = colmap.get(std)
-            if (std not in df.columns) and src: df.rename(columns={src:std}, inplace=True)
-        rel_col = _detect_rel_col(df)
-        if rel_col is None:
-            eprint(f"[WARN] Sin columna de relativas en {tsv}"); continue
-        if min_abundance>0:
-            df = df[pd.to_numeric(df[rel_col], errors="coerce").fillna(0) >= float(min_abundance)].copy()
-        df["_feature_id"] = df.apply(_feature_id, axis=1)
-        df["_tax"] = df.apply(_taxonomy_string, axis=1)
-        for fid,t in zip(df["_feature_id"], df["_tax"]): tax_map[fid]=t
-        rel_tabs.append(df[["_feature_id", rel_col]].rename(columns={rel_col: sample}).set_index("_feature_id"))
 
-    for sample, tsv in cnt_paths.items():
-        df = _read_tsv(tsv)
-        if df is None: continue
-        colmap = _norm_cols(df.columns)
-        for std in TAX_COLS:
-            src = colmap.get(std)
-            if (std not in df.columns) and src: df.rename(columns={src:std}, inplace=True)
-        cnt_col = _detect_count_col(df)
-        if cnt_col is None:
-            eprint(f"[WARN] Sin columna de conteos en {tsv}"); continue
-        df["_feature_id"] = df.apply(_feature_id, axis=1)
-        df["_tax"] = df.apply(_taxonomy_string, axis=1)
-        for fid,t in zip(df["_feature_id"], df["_tax"]): tax_map[fid]=t
-        cnt_tabs.append(df[["_feature_id", cnt_col]].rename(columns={cnt_col: sample}).set_index("_feature_id"))
+def _looks_like_sample(name: str) -> bool:
+    return bool(re.match(r"^(SRR|ERR|DRR)\d+", str(name)))
 
-    rel_path = cnt_path = tax_path = None
-    if rel_tabs:
-        rel_df = pd.concat(rel_tabs, axis=1).fillna(0.0)
-        rel_path = outdir / "feature_table_relabund.tsv"
-        rel_df.to_csv(rel_path, sep="\t")
-    if cnt_tabs:
-        cnt_df = pd.concat(cnt_tabs, axis=1).fillna(0.0)
-        cnt_path = outdir / "feature_table_counts.tsv"
-        cnt_df.to_csv(cnt_path, sep="\t")
-    if tax_map:
-        tax_df = pd.DataFrame({"feature_id": list(tax_map.keys()), "taxonomy": list(tax_map.values())}).sort_values("feature_id")
-        tax_path = outdir / "taxonomy.tsv"
-        tax_df.to_csv(tax_path, sep="\t", index=False)
-    return cnt_path, rel_path, tax_path
 
-# ------------------ métricas (Python puro) -------------------
+def _ensure_features_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Garantiza orientación: filas=features, columnas=muestras.
+    Heurística:
+      - Si columnas parecen muestras (SRR/ERR/DRR), se deja como está.
+      - Si el índice parece muestras, se transpone.
+      - Si no hay pista, se deja como está.
+    """
+    cols_samples = sum(_looks_like_sample(c) for c in df.columns)
+    idx_samples = sum(_looks_like_sample(i) for i in df.index)
+    if idx_samples > cols_samples:
+        return df.T
+    return df
+
+
+def _align_with_metadata(df: pd.DataFrame, meta: Optional[pd.DataFrame]) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
+    if meta is None:
+        return df, None
+    common = [c for c in df.columns if c in meta.index]
+    if len(common) < 2:
+        eprint("[WARN] Menos de 2 muestras en común entre tabla y metadata; se ignorará metadata.")
+        return df, None
+    df2 = df[common].copy()
+    meta2 = meta.loc[common].copy()
+    return df2, meta2
+
+
+def _drop_all_zero_features(df: pd.DataFrame) -> pd.DataFrame:
+    mask = df.sum(axis=1) > 0
+    dropped = (~mask).sum()
+    if dropped > 0:
+        eprint(f"[INFO] Eliminadas {dropped} features con suma total 0.")
+    return df[mask]
+
+
+def _drop_zero_samples(df: pd.DataFrame) -> pd.DataFrame:
+    mask = df.sum(axis=0) > 0
+    dropped = (~mask).sum()
+    if dropped > 0:
+        eprint(f"[INFO] Eliminadas {dropped} muestras con suma total 0.")
+    return df.loc[:, mask]
+
+
+# ------------------------------- carga de datos -------------------------------
+
+def load_feature_tables(emu_outdir: Path) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
+    counts_p = emu_outdir / "feature_table_counts.tsv"
+    rel_p    = emu_outdir / "feature_table_relabund.tsv"
+
+    counts_df = None
+    rel_df = None
+
+    if counts_p.exists():
+        df = _read_tsv(counts_p, index_col=0)
+        df = _ensure_features_rows(df)
+        df = _to_numeric_df(df)
+        counts_df = df
+        eprint(f"[OK] Cargada tabla de conteos: {counts_p}")
+    else:
+        eprint("[WARN] No se encontró feature_table_counts.tsv")
+
+    if rel_p.exists():
+        df = _read_tsv(rel_p, index_col=0)
+        df = _ensure_features_rows(df)
+        df = _to_numeric_df(df)
+        rel_df = df
+        eprint(f"[OK] Cargada tabla de abundancias relativas: {rel_p}")
+    else:
+        eprint("[WARN] No se encontró feature_table_relabund.tsv")
+
+    if counts_df is None and rel_df is None:
+        raise FileNotFoundError("No se encontraron ni 'feature_table_counts.tsv' ni 'feature_table_relabund.tsv'.")
+
+    return counts_df, rel_df
+
+
+def load_taxonomy(emu_outdir: Path) -> Optional[pd.DataFrame]:
+    tax_p = emu_outdir / "taxonomy.tsv"
+    if not tax_p.exists():
+        eprint("[WARN] taxonomy.tsv no encontrado; se omitirán barras por género.")
+        return None
+    df = pd.read_csv(tax_p, sep="\t")
+    if "feature_id" not in df.columns or "taxonomy" not in df.columns:
+        eprint("[WARN] taxonomy.tsv no tiene columnas esperadas; se omiten barras por género.")
+        return None
+    df = df[["feature_id", "taxonomy"]].dropna()
+    return df
+
+
+def _load_metadata(meta_path: Optional[Path]) -> Optional[pd.DataFrame]:
+    if meta_path is None:
+        return None
+    if not meta_path.exists():
+        eprint(f"[WARN] Metadata no encontrada: {meta_path}. Se continúa sin metadata.")
+        return None
+    df = pd.read_csv(meta_path, sep="\t")
+    if df.empty:
+        eprint("[WARN] Metadata vacía; se ignora.")
+        return None
+    # La primera columna que parezca ID de muestra se usa como índice; de lo contrario, usa la primera
+    if "sample" in df.columns:
+        df = df.set_index("sample")
+    else:
+        df = df.set_index(df.columns[0])
+    return df
+
+
+# ------------------------------ alfa diversidad -------------------------------
+
 def chao1(counts: np.ndarray) -> float:
-    x = np.asarray(counts, dtype=float)
-    Sobs = np.sum(x>0); f1 = np.sum(x==1); f2 = np.sum(x==2)
-    return float(Sobs + (f1*f1)/(2*f2)) if f2>0 else float(Sobs + (f1*(f1-1))/2)
+    counts = np.asarray(counts, dtype=float)
+    Sobs = np.sum(counts > 0)
+    f1 = np.sum(counts == 1)
+    f2 = np.sum(counts == 2)
+    if f2 > 0:
+        return float(Sobs + (f1 * f1) / (2.0 * f2))
+    return float(Sobs + (f1 * (f1 - 1.0)) / 2.0)
 
-def shannon(p: np.ndarray) -> float:
-    p = np.asarray(p, dtype=float); p = p[p>0]; 
-    return float(-np.sum(p*np.log(p))) if p.size else 0.0
 
-def simpson(p: np.ndarray) -> float:
-    p = np.asarray(p, dtype=float); 
-    return float(1.0 - np.sum(p*p))
+def shannon_entropy(p: np.ndarray) -> float:
+    p = np.asarray(p, dtype=float)
+    p = p[p > 0]
+    return float(-np.sum(p * np.log(p))) if p.size else 0.0
 
-def alpha_from_table(table: pd.DataFrame, is_counts: bool) -> pd.DataFrame:
-    rows=[]
+
+def simpson_index(p: np.ndarray) -> float:
+    p = np.asarray(p, dtype=float)
+    return float(1.0 - np.sum(p * p))
+
+
+def alpha_from_table(counts_df: Optional[pd.DataFrame], rel_df: Optional[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Prefiere counts para Observed/Chao1.
+    Si no hay counts, usa relativas; Observed=features>0, Chao1≈Observed.
+    """
+    if counts_df is not None:
+        table = _drop_all_zero_features(_drop_zero_samples(counts_df))
+        if table.shape[1] == 0:
+            eprint("[WARN] Todas las muestras de counts tienen suma 0; se intentará con relativas.")
+            table = None
+    else:
+        table = None
+
+    if table is None:
+        assert rel_df is not None
+        table = _drop_all_zero_features(_drop_zero_samples(rel_df))
+        use_counts = False
+    else:
+        use_counts = True
+
+    rows = []
     for sample in table.columns:
-        x = table[sample].values
-        if is_counts:
+        x = table[sample].values.astype(float)
+        if use_counts:
             total = x.sum()
-            p = x/total if total>0 else x
-            obs = int(np.sum(x>0)); c1 = chao1(x)
+            p = x / total if total > 0 else x
+            obs = int(np.sum(x > 0))
+            c1 = chao1(x)
         else:
-            p = x; obs = int(np.sum(p>0)); c1 = float(obs)
-        rows.append({"sample":sample,"observed":obs,"chao1":c1,"shannon":shannon(p),"simpson":simpson(p)})
+            p = x
+            obs = int(np.sum(p > 0))
+            c1 = float(obs)
+        H = shannon_entropy(p)
+        S = simpson_index(p)
+        rows.append({"sample": sample, "observed": obs, "chao1": c1, "shannon": H, "simpson": S})
+
     return pd.DataFrame(rows).set_index("sample")
 
-def bray_curtis(X: np.ndarray) -> np.ndarray:
-    n = X.shape[0]; D = np.zeros((n,n))
+
+# ------------------------------ beta + PCoA -----------------------------------
+
+def _bray_curtis_dm(X: np.ndarray) -> np.ndarray:
+    n = X.shape[0]
+    D = np.zeros((n, n), dtype=float)
     for i in range(n):
         xi = X[i]
-        for j in range(i+1,n):
+        for j in range(i + 1, n):
             xj = X[j]
-            num = np.abs(xi-xj).sum(); den = (xi+xj).sum()
-            D[i,j] = D[j,i] = 0.0 if den==0 else num/den
+            num = np.abs(xi - xj).sum()
+            den = (xi + xj).sum()
+            D[i, j] = D[j, i] = 0.0 if den == 0 else num / den
     return D
 
-def jaccard_bin(Xbin: np.ndarray) -> np.ndarray:
-    n = Xbin.shape[0]; D = np.zeros((n,n))
+
+def _jaccard_dm_bin(Xbin: np.ndarray) -> np.ndarray:
+    n = Xbin.shape[0]
+    D = np.zeros((n, n), dtype=float)
     for i in range(n):
-        ai = Xbin[i]>0
-        for j in range(i+1,n):
-            aj = Xbin[j]>0
-            inter = np.logical_and(ai,aj).sum(); union = np.logical_or(ai,aj).sum()
-            D[i,j] = D[j,i] = 1.0 if union==0 else 1.0 - inter/union
+        ai = Xbin[i] > 0
+        for j in range(i + 1, n):
+            aj = Xbin[j] > 0
+            inter = np.logical_and(ai, aj).sum()
+            union = np.logical_or(ai, aj).sum()
+            D[i, j] = D[j, i] = 1.0 if union == 0 else 1.0 - (inter / union)
     return D
 
-def pcoa(D: np.ndarray):
-    n = D.shape[0]; D2 = D**2
-    J = np.eye(n) - np.ones((n,n))/n
+
+def _classical_pcoa(D: np.ndarray):
+    n = D.shape[0]
+    if n < 2:
+        return np.zeros((n, 0)), np.array([]), np.array([])
+    D2 = D ** 2
+    J = np.eye(n) - np.ones((n, n)) / n
     B = -0.5 * J @ D2 @ J
     eigvals, eigvecs = np.linalg.eigh(B)
     order = np.argsort(eigvals)[::-1]
-    eigvals = eigvals[order]; eigvecs = eigvecs[:,order]
+    eigvals = eigvals[order]
+    eigvecs = eigvecs[:, order]
     pos = eigvals > 1e-12
-    eigvals = eigvals[pos]; eigvecs = eigvecs[:,pos]
-    coords = eigvecs * np.sqrt(eigvals)
-    var = eigvals / eigvals.sum() if eigvals.size else np.array([])
-    return coords, eigvals, var
+    eigvals_pos = eigvals[pos]
+    eigvecs_pos = eigvecs[:, pos]
+    coords = eigvecs_pos * np.sqrt(eigvals_pos)
+    var = eigvals_pos / eigvals_pos.sum() if eigvals_pos.size else np.array([])
+    return coords, eigvals_pos, var
 
-def save_dm_pcoa(D: np.ndarray, sids: List[str], outdir: Path, prefix: str):
+
+def _save_dm_and_pcoa(D: np.ndarray, sample_ids: List[str], outdir: Path, prefix: str,
+                      make_png: bool, make_html: bool, meta: Optional[pd.DataFrame], group_col: Optional[str]):
+    ensure_dir(outdir)
+    # DM
     dm_path = outdir / f"{prefix}_dm.tsv"
-    pd.DataFrame(D, index=sids, columns=sids).to_csv(dm_path, sep="\t")
-    coords, eig, var = pcoa(D)
+    pd.DataFrame(D, index=sample_ids, columns=sample_ids).to_csv(dm_path, sep="\t")
+
+    # PCoA
+    coords, eigvals, var = _classical_pcoa(D)
     k = min(3, coords.shape[1]) if coords.size else 0
+
     coords_path = outdir / f"pcoa_{prefix}_coords.tsv"
-    pd.DataFrame(coords[:, :k], index=sids, columns=[f"PC{i+1}" for i in range(k)]).to_csv(coords_path, sep="\t")
-    pd.DataFrame({"eigenvalue": eig}).to_csv(outdir / f"pcoa_{prefix}_eigvals.tsv", sep="\t", index=False)
-    pd.DataFrame({"proportion_explained": var}).to_csv(outdir / f"pcoa_{prefix}_variance.tsv", sep="\t", index=False)
-    # PNG básico
-    if _HAS_MPL and k>=2:
-        plt.figure()
-        plt.scatter(coords[:,0], coords[:,1])
-        for i,s in enumerate(sids): plt.text(coords[i,0], coords[i,1], str(s))
-        xl = f"PC1 ({var[0]*100:.1f}%)" if var.size>0 else "PC1"
-        yl = f"PC2 ({var[1]*100:.1f}%)" if var.size>1 else "PC2"
-        plt.xlabel(xl); plt.ylabel(yl); plt.title(f"PCoA — {prefix}")
-        plt.tight_layout(); plt.savefig(outdir / f"pcoa_{prefix}.png", dpi=150); plt.close()
-    return {"dm":dm_path,"coords":coords_path}
+    eig_path    = outdir / f"pcoa_{prefix}_eigvals.tsv"
+    var_path    = outdir / f"pcoa_{prefix}_variance.tsv"
 
-# ---------------------- helpers taxonómicos -------------------
-def read_taxonomy(tax_path: Path) -> pd.DataFrame:
-    tax = pd.read_csv(tax_path, sep="\t")
-    if "feature_id" not in tax.columns: tax.rename(columns={tax.columns[0]:"feature_id"}, inplace=True)
-    if "taxonomy" not in tax.columns and tax.shape[1]>=2: tax.rename(columns={tax.columns[1]:"taxonomy"}, inplace=True)
-    return tax
+    pd.DataFrame(coords[:, :k], index=sample_ids,
+                 columns=[f"PC{i+1}" for i in range(k)]).to_csv(coords_path, sep="\t")
+    pd.DataFrame({"eigenvalue": eigvals}).to_csv(eig_path, sep="\t", index=False)
+    pd.DataFrame({"proportion_explained": var}).to_csv(var_path, sep="\t", index=False)
 
-def extract_level(series_tax: pd.Series, level: str="genus") -> pd.Series:
-    """ extrae g__... (o phylum, etc.) de una cadena 'k__/p__/...' """
-    prefix = dict(superkingdom="k__", kingdom="k__", phylum="p__", class_="c__", order="o__", family="f__", genus="g__", species="s__")
-    pre = prefix.get(level, "g__")
-    def _one(x:str):
-        if not isinstance(x,str): return "Unassigned"
-        m = re.search(rf"{pre}([^;]+)", x)
-        val = m.group(1) if m else "Unassigned"
-        return val if (val and val!="") else "Unassigned"
-    return series_tax.apply(_one)
+    # Figuras
+    if k >= 2:
+        pc1 = f"{(var[0] * 100):.1f}%" if var.size > 0 else ""
+        pc2 = f"{(var[1] * 100):.1f}%" if var.size > 1 else ""
+        df_plot = pd.DataFrame({
+            "sample": sample_ids,
+            "PC1": coords[:, 0],
+            "PC2": coords[:, 1],
+        }).set_index("sample")
 
-# ------------------- PLOTS (matplotlib / plotly) ---------------
-def plot_alpha_bars(alpha_df: pd.DataFrame, outdir: Path, interactive: bool=False):
-    cols = [c for c in ["observed","chao1","shannon","simpson"] if c in alpha_df.columns]
-    if _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        for c in cols:
-            plt.figure(figsize=(10,4))
-            alpha_df[c].plot(kind="bar")
-            plt.xticks(rotation=90); plt.ylabel(c); plt.title(f"Alpha — {c}")
-            plt.tight_layout(); plt.savefig(od / f"alpha_{c}.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        for c in cols:
-            fig = px.bar(alpha_df.reset_index(), x="sample", y=c, title=f"Alpha — {c}")
-            fig.write_html(str(od / f"alpha_{c}.html"))
+        color_series = None
+        if meta is not None:
+            # Elegir columna de agrupación
+            col = group_col
+            if col and col in meta.columns:
+                color_series = meta[col]
+            else:
+                # Heurística: primera columna categórica con <=20 niveles
+                for c in meta.columns:
+                    if meta[c].dtype == "O" or meta[c].dtype.name.startswith("category"):
+                        if meta[c].nunique() <= 20:
+                            color_series = meta[c]
+                            break
+            if color_series is not None:
+                # Alinear por índice de df_plot
+                color_series = color_series.reindex(df_plot.index)
 
-def plot_alpha_box_by_group(alpha_df: pd.DataFrame, metadata: Optional[pd.DataFrame], metric:str, outdir: Path, interactive: bool=False):
-    if metadata is None or "group" not in metadata.columns or metric not in alpha_df.columns:
-        return
-    df = alpha_df.join(metadata.set_index("sample"), how="left")
-    if _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        plt.figure(figsize=(6,4))
-        groups = sorted(df["group"].dropna().unique())
-        data = [df[df["group"]==g][metric].values for g in groups]
-        plt.boxplot(data, labels=groups, showfliers=False)
-        plt.ylabel(metric); plt.title(f"Alpha por grupo — {metric}")
-        plt.tight_layout(); plt.savefig(od / f"alpha_{metric}_by_group.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        fig = px.box(df, x="group", y=metric, points="all", title=f"Alpha por grupo — {metric}")
-        fig.write_html(str(od / f"alpha_{metric}_by_group.html"))
+        # PNG
+        if make_png and HAS_MPL:
+            plt.figure()
+            if color_series is None:
+                plt.scatter(df_plot["PC1"], df_plot["PC2"])
+            else:
+                groups = color_series.fillna("NA").astype(str).values
+                uniq = pd.unique(groups)
+                for g in uniq:
+                    sel = (groups == g)
+                    plt.scatter(df_plot["PC1"][sel], df_plot["PC2"][sel], label=str(g))
+                plt.legend(frameon=False, fontsize=8)
+            for s, (x, y) in df_plot[["PC1", "PC2"]].iterrows():
+                plt.text(x, y, str(s), fontsize=7)
+            plt.xlabel(f"PC1 ({pc1})"); plt.ylabel(f"PC2 ({pc2})")
+            plt.title(f"PCoA — {prefix}")
+            plt.tight_layout()
+            fig_dir = outdir / "plots_static"
+            ensure_dir(fig_dir)
+            plt.savefig(fig_dir / f"pcoa_{prefix}.png", dpi=150)
+            plt.close()
 
-def plot_distance_heatmap(dm_path: Path, out_name: str, outdir: Path, interactive: bool=False):
-    D = pd.read_csv(dm_path, sep="\t", index_col=0)
-    labels = list(D.index)
-    # reordenar por clustering si scipy está
-    order = list(range(len(labels)))
-    if _HAS_SCIPY:
-        try:
-            Z = linkage(squareform(D.values, checks=False), method="average")
-            order = leaves_list(Z).tolist()
-            # dendrograma PNG
-            if _HAS_MPL:
-                od = outdir / "plots_py"; ensure_dir(od)
-                plt.figure(figsize=(8,4)); dendrogram(Z, labels=labels, leaf_rotation=90)
-                plt.title(f"Dendrograma — {out_name}"); plt.tight_layout()
-                plt.savefig(od / f"dendrogram_{out_name}.png", dpi=150); plt.close()
-        except Exception as e:
-            eprint(f"[WARN] Clustering falló: {e}")
-    D2 = D.values[np.ix_(order,order)]
-    lbl2 = [labels[i] for i in order]
-    if _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        plt.figure(figsize=(7,6))
-        im = plt.imshow(D2, aspect="auto")
-        plt.colorbar(im,label="dist"); plt.xticks(range(len(lbl2)), lbl2, rotation=90); plt.yticks(range(len(lbl2)), lbl2)
-        plt.title(f"Heatmap distancias — {out_name}"); plt.tight_layout()
-        plt.savefig(od / f"heatmap_{out_name}.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        fig = px.imshow(D2, x=lbl2, y=lbl2, aspect="auto", title=f"Heatmap distancias — {out_name}")
-        fig.write_html(str(od / f"heatmap_{out_name}.html"))
+        # HTML
+        if make_html and HAS_PLOTLY:
+            df_html = df_plot.reset_index()
+            if color_series is not None:
+                df_html["group"] = color_series.values
+                fig = px.scatter(df_html, x="PC1", y="PC2", text="sample", color="group",
+                                 title=f"PCoA — {prefix} (PC1 {pc1}, PC2 {pc2})")
+            else:
+                fig = px.scatter(df_html, x="PC1", y="PC2", text="sample",
+                                 title=f"PCoA — {prefix} (PC1 {pc1}, PC2 {pc2})")
+            fig.update_traces(textposition="top center")
+            html_dir = outdir / "plots_interactive"
+            ensure_dir(html_dir)
+            fig.write_html(str(html_dir / f"pcoa_{prefix}.html"), include_plotlyjs="cdn")
 
-def build_rel_with_tax(rel_path: Path, tax_path: Path, level: str="genus") -> pd.DataFrame:
-    rel = pd.read_csv(rel_path, sep="\t")
-    if "feature_id" not in rel.columns: rel.rename(columns={rel.columns[0]:"feature_id"}, inplace=True)
-    tax = read_taxonomy(tax_path)
-    tax[level] = extract_level(tax["taxonomy"], level=level)
-    rel_long = rel.melt(id_vars="feature_id", var_name="sample", value_name="rel")
-    rel_long = rel_long.merge(tax[["feature_id", level]], on="feature_id", how="left").fillna({level:"Unassigned"})
-    # sumar por nivel taxonómico
-    g = rel_long.groupby([level,"sample"], as_index=False)["rel"].sum()
-    return g  # columnas: [level, sample, rel]
 
-def plot_stacked_bar_top_taxa(rel_path: Path, tax_path: Path, outdir: Path, level:str="genus", topn:int=10, interactive: bool=False):
-    g = build_rel_with_tax(rel_path, tax_path, level)
-    # top-N por promedio
-    order = g.groupby(level)["rel"].mean().sort_values(ascending=False)
-    keep = set(order.head(topn).index)
-    g["taxon2"] = np.where(g[level].isin(keep), g[level], "Other")
-    g = g.groupby(["taxon2","sample"], as_index=False)["rel"].sum()
-    # ancho y orden de muestras estable
-    samples = sorted(g["sample"].unique())
-    if _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        pivot = g.pivot(index="sample", columns="taxon2", values="rel").fillna(0.0).reindex(samples)
-        pivot.plot(kind="bar", stacked=True, figsize=(12,5))
-        plt.xticks(rotation=90); plt.ylabel("Relative abundance"); plt.title(f"Stacked bar — Top {topn} {level} (+Other)")
-        plt.tight_layout(); plt.savefig(od / f"stacked_bar_top{topn}_{level}.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        fig = px.bar(g, x="sample", y="rel", color="taxon2", title=f"Stacked bar — Top {topn} {level} (+Other)")
-        fig.update_layout(barmode="stack", xaxis={'categoryorder':'array','categoryarray':samples})
-        fig.write_html(str(od / f"stacked_bar_top{topn}_{level}.html"))
-
-def plot_taxa_heatmap(rel_path: Path, tax_path: Path, outdir: Path, level:str="genus", topn:int=20, log1p: bool=True, interactive: bool=False):
-    g = build_rel_with_tax(rel_path, tax_path, level)
-    top = g.groupby(level)["rel"].mean().sort_values(ascending=False).head(topn).index
-    g2 = g[g[level].isin(top)]
-    mat = g2.pivot(index=level, columns="sample", values="rel").fillna(0.0)
-    if log1p: mat = np.log1p(mat)
-    # reordenar por clustering si scipy está
-    rows = list(range(mat.shape[0])); cols = list(range(mat.shape[1]))
-    rlabels = list(mat.index); clabels = list(mat.columns)
-    if _HAS_SCIPY:
-        try:
-            rZ = linkage(mat.values, method="average"); rows = leaves_list(rZ).tolist()
-            cZ = linkage(mat.values.T, method="average"); cols = leaves_list(cZ).tolist()
-            rlabels = [mat.index[i] for i in rows]; clabels = [mat.columns[j] for j in cols]
-            mat = mat.values[np.ix_(rows, cols)]
-        except Exception as e:
-            eprint(f"[WARN] Clustering heatmap taxon: {e}"); mat = mat.values
+def beta_and_pcoa(counts_df: Optional[pd.DataFrame],
+                  rel_df: Optional[pd.DataFrame],
+                  outdir: Path,
+                  make_png: bool,
+                  make_html: bool,
+                  meta: Optional[pd.DataFrame],
+                  group_col: Optional[str]):
+    # Preparar matriz de trabajo
+    if counts_df is not None:
+        tab = _drop_all_zero_features(_drop_zero_samples(counts_df))
+        if tab.shape[1] < 2:
+            eprint("[WARN] <2 muestras con counts útiles; se intentará con relativas.")
+            tab = None
     else:
-        mat = mat.values
-    if _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        plt.figure(figsize=(10,6))
-        im = plt.imshow(mat, aspect="auto")
-        plt.colorbar(im, label="log1p(rel)" if log1p else "rel")
-        plt.yticks(range(len(rlabels)), rlabels); plt.xticks(range(len(clabels)), clabels, rotation=90)
-        plt.title(f"Heatmap — Top {topn} {level}"); plt.tight_layout()
-        plt.savefig(od / f"heatmap_top{topn}_{level}.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        fig = px.imshow(mat, x=clabels, y=rlabels, aspect="auto", title=f"Heatmap — Top {topn} {level}")
-        fig.write_html(str(od / f"heatmap_top{topn}_{level}.html"))
+        tab = None
 
-def plot_rank_abundance(rel_path: Path, outdir: Path, max_samples:int=12, interactive: bool=False):
-    rel = pd.read_csv(rel_path, sep="\t", index_col=0)  # features x samples
-    # si parece invertido, transpone
-    if any(pd.Series(rel.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)): rel = rel.T
-    samples = list(rel.columns)[:max_samples]
-    Y = [np.sort(rel[s].values)[::-1] for s in samples]
-    if _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        plt.figure(figsize=(8,5))
-        for y,s in zip(Y, samples): plt.plot(range(1,len(y)+1), y, label=s)
-        plt.xlabel("Rango (desc)"); plt.ylabel("Rel. abundance"); plt.yscale("log")
-        plt.title("Rank-abundance (primeras muestras)"); plt.legend(fontsize=7, ncol=2)
-        plt.tight_layout(); plt.savefig(od / "rank_abundance.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        fig = go.Figure()
-        for y,s in zip(Y, samples): fig.add_trace(go.Scatter(x=list(range(1,len(y)+1)), y=y, mode="lines", name=s))
-        fig.update_layout(title="Rank-abundance (primeras muestras)", xaxis_title="Rango (desc)", yaxis_title="Rel. abundance", yaxis_type="log")
-        fig.write_html(str(od / "rank_abundance.html"))
+    if tab is None:
+        if rel_df is None:
+            eprint("[WARN] No hay datos para beta-diversidad.")
+            return
+        tab = _drop_all_zero_features(_drop_zero_samples(rel_df))
 
-def plot_treemap(rel_path: Path, tax_path: Path, outdir: Path, level:str="phylum", interactive: bool=False):
-    g = build_rel_with_tax(rel_path, tax_path, level)
-    tot = g.groupby(level, as_index=False)["rel"].mean().sort_values("rel", ascending=False)
-    if _HAS_SQUARIFY and _HAS_MPL and not interactive:
-        od = outdir / "plots_py"; ensure_dir(od)
-        plt.figure(figsize=(8,6))
-        squarify.plot(sizes=tot["rel"].values, label=tot[level].values)
-        plt.axis('off'); plt.title(f"Treemap — {level} (media relativa)"); plt.tight_layout()
-        plt.savefig(od / f"treemap_{level}.png", dpi=150); plt.close()
-    if _HAS_PLOTLY and interactive:
-        od = outdir / "plots_interactive"; ensure_dir(od)
-        fig = px.treemap(tot, path=[level], values="rel", title=f"Treemap — {level} (media relativa)")
-        fig.write_html(str(od / f"treemap_{level}.html"))
+    # Alinear con metadata
+    tab, meta2 = _align_with_metadata(tab, meta)
 
-def plot_sunburst(rel_path: Path, tax_path: Path, outdir: Path, interactive: bool=True):
-    if not _HAS_PLOTLY: return
-    # construir jerarquía simple: Kingdom -> Phylum -> Class -> Order -> Family -> Genus
-    rel = pd.read_csv(rel_path, sep="\t")
-    if "feature_id" not in rel.columns: rel.rename(columns={rel.columns[0]:"feature_id"}, inplace=True)
-    tax = read_taxonomy(tax_path)
-    # promedio por feature_id (promedio sobre muestras de relabund)
-    rel["mean_rel"] = rel.drop(columns=["feature_id"]).mean(axis=1)
-    df = rel[["feature_id","mean_rel"]].merge(tax, on="feature_id", how="left")
-    # parsear
-    def parse(t):
-        parts = dict(Kingdom="Unassigned", Phylum="Unassigned", Class="Unassigned",
-                     Order="Unassigned", Family="Unassigned", Genus="Unassigned")
-        if isinstance(t,str):
-            for token in t.split(";"):
-                token = token.strip()
-                if token.startswith("k__"): parts["Kingdom"] = token[3:] or "Unassigned"
-                if token.startswith("p__"): parts["Phylum"]  = token[3:] or "Unassigned"
-                if token.startswith("c__"): parts["Class"]   = token[3:] or "Unassigned"
-                if token.startswith("o__"): parts["Order"]   = token[3:] or "Unassigned"
-                if token.startswith("f__"): parts["Family"]  = token[3:] or "Unassigned"
-                if token.startswith("g__"): parts["Genus"]   = token[3:] or "Unassigned"
-        return parts
-    parts = df["taxonomy"].apply(parse).apply(pd.Series)
-    df = pd.concat([df, parts], axis=1)
-    od = outdir / "plots_interactive"; ensure_dir(od)
-    fig = px.sunburst(df, path=["Kingdom","Phylum","Class","Order","Family","Genus"], values="mean_rel",
-                      title="Sunburst — composición promedio")
-    fig.write_html(str(od / "sunburst_taxonomy.html"))
+    if tab.shape[1] < 2:
+        eprint("[WARN] <2 muestras tras alineación; se omite beta/PCoA.")
+        return
 
-# ------------------------- CLI & flujo ------------------------
+    # Bray–Curtis (en relativas)
+    X = tab.values.T.astype(float)  # samples x features
+    # Normalizar a relativas por fila si vienen de counts
+    row_sums = X.sum(axis=1, keepdims=True)
+    row_sums[row_sums == 0] = 1.0
+    X_rel = X / row_sums
+    D_bray = _bray_curtis_dm(X_rel)
+    _save_dm_and_pcoa(D_bray, list(tab.columns), outdir, "braycurtis",
+                      make_png, make_html, meta2, group_col)
+
+    # Jaccard (binario)
+    Xbin = (X > 0).astype(int)
+    D_jac = _jaccard_dm_bin(Xbin)
+    _save_dm_and_pcoa(D_jac, list(tab.columns), outdir, "jaccard",
+                      make_png, make_html, meta2, group_col)
+
+
+# ------------------------------ barras por género -----------------------------
+
+def _extract_genus_from_taxstr(tax: str) -> str:
+    # tax string estilo "k__...; p__...; ...; g__Genus; s__Species"
+    parts = [t.strip() for t in str(tax).split(";")]
+    for p in parts:
+        if p.startswith("g__"):
+            g = p[3:].strip()
+            return g if g else "Unassigned"
+    return "Unassigned"
+
+
+def plot_bars_topn_genus(rel_df: pd.DataFrame,
+                         taxonomy_df: pd.DataFrame,
+                         outdir: Path,
+                         topn: int = 10,
+                         make_png: bool = True,
+                         make_html: bool = False,
+                         meta: Optional[pd.DataFrame] = None,
+                         group_col: Optional[str] = None):
+    # Necesitamos relativas por feature x muestra
+    if rel_df is None or rel_df.empty:
+        eprint("[WARN] No hay tabla de relativas para barras por género.")
+        return
+    # Alinear muestras con metadata (opcional)
+    rel_df2, meta2 = _align_with_metadata(rel_df, meta)
+
+    # Mapear feature -> genus
+    tax_map = taxonomy_df.set_index("feature_id")["taxonomy"].map(_extract_genus_from_taxstr)
+    # Intersectar features
+    feats_common = rel_df2.index.intersection(tax_map.index)
+    if len(feats_common) == 0:
+        eprint("[WARN] taxonomy.tsv no coincide con feature_table; se omiten barras por género.")
+        return
+    rel_use = rel_df2.loc[feats_common].copy()
+    genus = tax_map.loc[feats_common].values
+
+    # Colapsar a género
+    rel_use["__genus__"] = genus
+    rel_genus = rel_use.groupby("__genus__").sum(numeric_only=True)
+
+    # TopN por media global
+    mean_abund = rel_genus.mean(axis=1).sort_values(ascending=False)
+    top_gen = list(mean_abund.head(topn).index)
+    rel_top = rel_genus.loc[top_gen]
+    # "Otros"
+    if rel_genus.shape[0] > len(top_gen):
+        others = rel_genus.drop(index=top_gen).sum(axis=0)
+        rel_top.loc["Otros"] = others
+
+    # Normalizar a 1 por muestra (por si venían de counts)
+    col_sums = rel_top.sum(axis=0)
+    col_sums[col_sums == 0] = 1.0
+    rel_top = rel_top / col_sums
+
+    # --- PNG (matplotlib)
+    if make_png and HAS_MPL:
+        fig_dir = outdir / "plots_static"
+        ensure_dir(fig_dir)
+        rel_top.T.plot(kind="bar", stacked=True, figsize=(12, 5))
+        plt.ylabel("Abundancia relativa")
+        plt.xlabel("Muestras")
+        plt.title(f"Top {topn} géneros (+ Otros)")
+        plt.tight_layout()
+        plt.savefig(fig_dir / "bars_topN_genus.png", dpi=150)
+        plt.close()
+
+    # --- HTML (plotly)
+    if make_html and HAS_PLOTLY:
+        html_dir = outdir / "plots_interactive"
+        ensure_dir(html_dir)
+        df_melt = rel_top.T.reset_index().melt(id_vars="index", var_name="Genus", value_name="Relative Abundance")
+        df_melt = df_melt.rename(columns={"index": "Sample"})
+        color = "Genus"
+        facet_col = None
+        if meta2 is not None:
+            col = group_col
+            if not col or col not in meta2.columns:
+                # Heurística: primera categórica con <= 20 niveles
+                for c in meta2.columns:
+                    if (meta2[c].dtype == "O" or str(meta2[c].dtype).startswith("category")) and meta2[c].nunique() <= 20:
+                        col = c
+                        break
+            if col and col in meta2.columns:
+                df_melt["Group"] = meta2[col].reindex(df_melt["Sample"]).values
+                facet_col = "Group"
+        fig = px.bar(df_melt, x="Sample", y="Relative Abundance", color=color, facet_row=None,
+                     facet_col=facet_col, title=f"Top {topn} géneros (+ Otros)", barmode="stack")
+        fig.write_html(str(html_dir / "bars_topN_genus.html"), include_plotlyjs="cdn")
+
+
+# ----------------------------------- CLI --------------------------------------
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Calcula alfa/beta/PCoA desde salidas EMU y genera plots (Python puro).",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Calcula diversidad alfa/beta + PCoA y genera figuras desde salidas de EMU.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--emu-outdir", required=True, type=Path, help="Carpeta con salidas de EMU (por muestra o agregadas).")
-    p.add_argument("--outdir", type=Path, default=None, help="Carpeta de salida (por defecto = --emu-outdir).")
-    p.add_argument("--min-abundance", type=float, default=0.0, help="Umbral para filtrar relativas al agregar (0 = sin filtro).")
-    p.add_argument("--metadata", type=Path, default=None, help="TSV con columna 'sample' y opcional 'group'.")
-    p.add_argument("--topn-genus", type=int, default=10, help="Top-N géneros en stacked bar/heatmap.")
-    p.add_argument("--plots-static", action="store_true", help="Exportar figuras PNG (matplotlib) en plots_py/.")
-    p.add_argument("--plots-interactive", action="store_true", help="Exportar figuras HTML (plotly) en plots_interactive/.")
+    p.add_argument("--emu-outdir", required=True, type=Path, help="Carpeta con feature_table_*.tsv y taxonomy.tsv")
+    p.add_argument("--metadata", type=Path, default=None, help="TSV con filas=muestras (opcional)")
+    p.add_argument("--group-col", type=str, default=None, help="Columna de metadata para colorear/ facetar")
+    p.add_argument("--plots-static", action="store_true", help="Guardar figuras PNG")
+    p.add_argument("--plots-interactive", action="store_true", help="Guardar figuras HTML interactivas")
+    p.add_argument("--topn-genus", type=int, default=10, help="Top N géneros para barras apiladas")
     return p
+
+
+# ---------------------------------- main --------------------------------------
 
 def main() -> int:
     args = build_parser().parse_args()
-    outdir = args.outdir or args.emu_outdir
+    outdir = args.emu_outdir
     ensure_dir(outdir)
 
-    # 1) Detectar/crear tablas agregadas
-    cnt_path = outdir / "feature_table_counts.tsv"
-    rel_path = outdir / "feature_table_relabund.tsv"
-    tax_path = outdir / "taxonomy.tsv"
+    # Cargar tablas base
+    counts_df, rel_df = load_feature_tables(outdir)
 
-    if not (cnt_path.exists() or rel_path.exists()):
-        eprint("[INFO] Agregando desde TSV por muestra de EMU…")
-        cnt_path, rel_path, tax_path = aggregate_from_per_sample(args.emu_outdir, outdir, args.min_abundance)
+    # Metadata
+    meta = _load_metadata(args.metadata)
 
-    # 2) Leer tabla para métricas
-    table = None; is_counts = False
-    if cnt_path and cnt_path.exists():
-        table = pd.read_csv(cnt_path, sep="\t", index_col=0); is_counts=True
-    elif rel_path and rel_path.exists():
-        table = pd.read_csv(rel_path, sep="\t", index_col=0); is_counts=False
-    else:
-        eprint("[ERROR] No encontré ni counts ni relabund."); return 2
+    # Calcular ALFA
+    eprint("[STEP] Alfa diversidad…")
+    alpha_df = alpha_from_table(counts_df, rel_df)
+    alpha_path = outdir / "alpha_diversity.tsv"
+    alpha_df.to_csv(alpha_path, sep="\t")
+    eprint(f"[OK] Escrito: {alpha_path}")
 
-    # orientar a features x samples
-    if any(pd.Series(table.index.astype(str)).str.match(r"^(SRR|ERR|DRR)", na=False)): table = table.T
+    # Calcular BETA + PCoA
+    eprint("[STEP] Beta diversidad + PCoA…")
+    beta_and_pcoa(counts_df, rel_df, outdir, args.plots_static, args.plots_interactive, meta, args.group_col)
+    eprint("[OK] Beta + PCoA listos.")
 
-    # 3) Alfa
-    alpha = alpha_from_table(table, is_counts=is_counts)
-    alpha.to_csv(outdir / "alpha_diversity.tsv", sep="\t")
-
-    # 4) Beta + PCoA
-    X = table.values.T   # samples x features
-    sids = list(table.columns)
-    X_rel = X / np.clip(X.sum(axis=1, keepdims=True), 1.0, None)
-    D_bray = bray_curtis(X_rel); save_dm_pcoa(D_bray, sids, outdir, "braycurtis")
-    Xbin = (X > 0).astype(int)
-    D_jac = jaccard_bin(Xbin);  save_dm_pcoa(D_jac, sids, outdir, "jaccard")
-
-    # 5) Plots (opcional)
-    meta_df = None
-    if args.metadata and Path(args.metadata).exists():
-        meta_df = pd.read_csv(args.metadata, sep="\t")
-        if "sample" not in meta_df.columns: meta_df.rename(columns={meta_df.columns[0]:"sample"}, inplace=True)
-
-    do_static = bool(args.plots_static)
-    do_inter  = bool(args.plots_interactive)
-
-    # Alpha
-    alpha_reset = alpha.reset_index()
-    plot_alpha_bars(alpha_reset.set_index("sample"), outdir, interactive=False if do_static else False) if do_static else None
-    plot_alpha_bars(alpha_reset.set_index("sample"), outdir, interactive=True) if do_inter else None
-    plot_alpha_box_by_group(alpha_reset.set_index("sample"), meta_df, "shannon", outdir, interactive=False if do_static else False) if do_static else None
-    plot_alpha_box_by_group(alpha_reset.set_index("sample"), meta_df, "shannon", outdir, interactive=True) if do_inter else None
-
-    # Distancias: heatmap y dendrograma
-    plot_distance_heatmap(outdir / "braycurtis_dm.tsv", "braycurtis", outdir, interactive=False if do_static else False) if do_static else None
-    plot_distance_heatmap(outdir / "jaccard_dm.tsv",   "jaccard",   outdir, interactive=False if do_static else False) if do_static else None
-    plot_distance_heatmap(outdir / "braycurtis_dm.tsv", "braycurtis", outdir, interactive=True) if do_inter else None
-    plot_distance_heatmap(outdir / "jaccard_dm.tsv",   "jaccard",   outdir, interactive=True) if do_inter else None
-
-    # Composición / abundancias (requiere relabund + taxonomy)
-    if rel_path.exists() and tax_path.exists():
-        plot_stacked_bar_top_taxa(rel_path, tax_path, outdir, level="genus", topn=args.topn_genus, interactive=False if do_static else False) if do_static else None
-        plot_stacked_bar_top_taxa(rel_path, tax_path, outdir, level="genus", topn=args.topn_genus, interactive=True) if do_inter else None
-        plot_taxa_heatmap(rel_path, tax_path, outdir, level="genus", topn=max(2*args.topn_genus, 20), log1p=True, interactive=False if do_static else False) if do_static else None
-        plot_taxa_heatmap(rel_path, tax_path, outdir, level="genus", topn=max(2*args.topn_genus, 20), log1p=True, interactive=True) if do_inter else None
-        plot_rank_abundance(rel_path, outdir, interactive=False if do_static else False) if do_static else None
-        plot_rank_abundance(rel_path, outdir, interactive=True) if do_inter else None
-        plot_treemap(rel_path, tax_path, outdir, level="phylum", interactive=False if do_static else False) if do_static else None
-        plot_treemap(rel_path, tax_path, outdir, level="phylum", interactive=True) if do_inter else None
-        plot_sunburst(rel_path, tax_path, outdir, interactive=True) if do_inter else None
+    # Barras apiladas por género (requiere taxonomy + relativas)
+    tax_df = load_taxonomy(outdir)
+    if tax_df is not None:
+        # Asegurar relativas (si no había, normalizar desde counts)
+        if rel_df is None and counts_df is not None:
+            tab = _drop_all_zero_features(_drop_zero_samples(counts_df))
+            if tab.shape[1] > 0:
+                rel_df2 = tab / tab.sum(axis=0).replace(0, 1.0)
+            else:
+                rel_df2 = None
+        else:
+            rel_df2 = rel_df
+        if rel_df2 is not None and rel_df2.shape[1] > 0:
+            eprint("[STEP] Barras apiladas por género…")
+            plot_bars_topn_genus(rel_df2, tax_df, outdir, topn=args.topn_genus,
+                                 make_png=args.plots_static, make_html=args.plots_interactive,
+                                 meta=meta, group_col=args.group_col)
+            eprint("[OK] Barras por género listas.")
+        else:
+            eprint("[WARN] No hay relativas utilizables; se omiten barras por género.")
 
     eprint("Listo. Métricas y figuras generadas.")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
