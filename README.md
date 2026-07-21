@@ -16,12 +16,9 @@ La elaboración de este pipeline se hace desde un entorno Linux con Anaconda.
 Este es el primer paso del pipeline, pues aquí se busca convertir los archivos `FAST5` a `FASTQ`. Los archivos `FAST5` son el output de la secuenciación con MinION (Oxford Nanopore Technologies). En este caso, ONT proporciona Dorado como una herramienta para este paso. 
 Para usar esta herramienta es necesario hacer la instalación de la misma para entorno Linux. Esta descarga se hizo por medio de línea de comando desde el Terminal, pues `Dorado` se encuentra como un paquete de `Anaconda` ([Dorado](https://anaconda.org/HCC/dorado)). Se descarga el binario precompilado con:
 ```
-curl "https://cdn.oxfordnanoportal.com/software/analysis/dorado-1.1.1-linux-x64.tar.gz" -o dorado-1.1.1-linux-x64.tar.gz
-```
-
-Luego, se debe extraer el archivo con:
-```
-tar -xzf dorado-1.1.1-linux-x64.tar.gz
+curl "https://cdn.oxfordnanoportal.com/software/analysis/dorado-2.1.0-linux-x64.tar.gz" -o dorado-2.1.0-linux-x64.tar.gz
+tar -xzf dorado-2.1.0-linux-x64.tar.gz
+dorado-2.1.0-linux-x64/bin/dorado --version
 ```
 
 Sin embargo, en las versiones actuales de `Dorado` no se utilizan como entradas los archivos en formato `FAST5` si no archivos `POD5`, por lo que antes de aplicar el comando básido de la herrmaienta se deben convertir los archivos de ser necesario.
