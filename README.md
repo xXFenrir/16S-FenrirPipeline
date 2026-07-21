@@ -23,12 +23,15 @@ dorado-2.1.0-linux-x64/bin/dorado --version
 
 Sin embargo, en las versiones actuales de `Dorado` no se utilizan como entradas los archivos en formato `FAST5` si no archivos `POD5`, por lo que antes de aplicar el comando básido de la herrmaienta se deben convertir los archivos de ser necesario.
 ```
-pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
-
-dorado basecaller hac /ruta/pod5/ \
-  --emit-fastq \
-  --no-trim \
-  -x auto > basecalls.fastq
+pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/ $opcional si no está en pod5$
+```
+```
+~/dorado-2.1.0-linux-x64/bin/dorado basecaller hac \
+/home/fenrir/Documentos/Tesis/datos_gulupa/20260715_1807_MN30942_FAZ24575_f8347d8d/pod5 \
+--output-dir /home/fenrir/Documentos/Tesis/datos_gulupa/dt_gulupa \
+--emit-fastq \
+--no-trim \
+-x auto
 ```
 
 - `hac` es para usar el modelo de alta precicsión.
