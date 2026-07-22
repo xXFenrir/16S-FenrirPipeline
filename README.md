@@ -62,6 +62,21 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 - `--emit-fastq` la salida pasa a ser en formato `FASTQ`.
 - `-o` carpeta donde estaran las salidas.
 
+```
+~/dorado-2.1.0-linux-x64/bin/dorado basecaller hac \
+/home/fenrir/Documentos/Tesis/datos_gulupa/20260715_1807_MN30942_FAZ24575_f8347d8d/pod5 \
+--kit-name SQK-NBD114-96 \
+--trim all \
+--primer-sequences /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa/primers_seq/primers_seq_gulupa.fasta \
+-x auto \
+| ~/dorado-2.1.0-linux-x64/bin/dorado demux \
+--kit-name SQK-NBD114-96 \
+--emit-fastq \
+--no-classify \
+--output-dir /home/fenrir/Documentos/Tesis/datos_gulupa/dt_gulupa
+```
+Este es el que usé para hacer todo de corrido, unifiqué el código con el pipe "|". Básicamente, conforme termine el basecalling, inicia la demux.
+
 # REPORTE DE ESTADÍSTICAS BÁSICAS
 
 Es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de algunos repositorios, estos ya viene filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `FASTQ`, de tal manera que se pueda observar si vale la pena filtrar o no. Adicvionalmente, se podría llevar un registo sobre la calidad en la que estan las secuencias antes y después de filtradas. Por lo que, se usó el código que se encuentra en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas). Este código permite generar un archivo `TXT` y `XLSX` donde se genera una tabla con el reporte de estadísticas básicas de cada una de las secuencais.
