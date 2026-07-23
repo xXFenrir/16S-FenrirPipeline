@@ -66,14 +66,10 @@ dorado demux --no-classify --emit-fastq -o demux_fastq calls.bam
 ~/dorado-2.1.0-linux-x64/bin/dorado basecaller hac \
 /home/fenrir/Documentos/Tesis/datos_gulupa/20260715_1807_MN30942_FAZ24575_f8347d8d/pod5 \
 --kit-name SQK-NBD114-96 \
---trim all \
---primer-sequences /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa/primers_seq/primers_seq_gulupa.fasta \
--x auto \
-| ~/dorado-2.1.0-linux-x64/bin/dorado demux \
---kit-name SQK-NBD114-96 \
---emit-fastq \
---no-classify \
---output-dir /home/fenrir/Documentos/Tesis/datos_gulupa/dt_gulupa
+--min-qscore 8 \
+--emit-summary \
+--output-dir /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/hac_8 \
+> /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/hac8_calls.bam
 ```
 Este es el que usé para hacer todo de corrido, unifiqué el código con el pipe "|". Básicamente, conforme termine el basecalling, inicia la demux.
 
