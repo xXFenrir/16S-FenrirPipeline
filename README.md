@@ -193,18 +193,17 @@ filtlong --min_length 1300 --max_length 1700 \
 
 pequeño cambio
 ```
-(dentrim_env) fenrir@fenrir-Vector-16-HX-AI-A2XWHG:~/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza$ pychopper -m edlib \
-  -b /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers.fasta \
-  -c "+:16sF,-16sR|+:16sR,-16sF" \
-  -Q 8 -z 1000 -t 20 \
-  /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_limp/barcode11/barcode11_raw.fastq \
-  /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_limp/barcode11/test_oriented.fastq
-Traceback (most recent call last):
-  File "/home/fenrir/miniconda3/envs/dentrim_env/bin/pychopper", line 10, in <module>
-    sys.exit(main())
-  File "/home/fenrir/miniconda3/envs/dentrim_env/lib/python3.9/site-packages/pychopper/scripts/pychopper.py", line 318, in main
-    CONFIG = open(args.c, "r").readline().strip()
-FileNotFoundError: [Errno 2] No such file or directory: '+:16sF,-16sR|+:16sR,-16sF'
+python3 dentrim_bam.py \
+  -i /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/sup_8/Microbioma_15072026/Microbioma_15072026/20260715_2307_MN30942_FAZ24575_f8347d8d/bam_pass \
+  -o /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_limp \
+  --primers /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers.fasta \
+  --pconfig /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers_config.txt \
+  --post-minlen 1200 \
+  --post-maxlen 1600 \
+  --max-barcode 73 \
+  -Q 8 \
+  -t 20 \
+  -v
 ```
 
 ## Descripción del código
