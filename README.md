@@ -191,6 +191,22 @@ filtlong --min_length 1300 --max_length 1700 \
 
 `Filtlong` tiene un comando más sencillo de usar, pues es una herramienta especializada en filtrar por rangom de longitud. Por lo que, `--min_length` define el rango mínimo y `--max_length` define el rango máximo. Adicionalmente, se debe inidcar la dirección del archivo a filtrar. Posteriormente, se usa `|` para que los archivos que salen de `Filtlong` entren directamente a `Pychopper`, y se usa `/dev/stdin` para que `Pychopper` lea como entrada lo que entra por `|`. Finalmente, el archivo entregado se espera que sea un archivo `.fastq` filtrado con los parámetros definidos en ambas herramientas.
 
+pequeño cambio
+```
+(dentrim_env) fenrir@fenrir-Vector-16-HX-AI-A2XWHG:~/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza$ pychopper -m edlib \
+  -b /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers.fasta \
+  -c "+:16sF,-16sR|+:16sR,-16sF" \
+  -Q 8 -z 1000 -t 20 \
+  /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_limp/barcode11/barcode11_raw.fastq \
+  /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_limp/barcode11/test_oriented.fastq
+Traceback (most recent call last):
+  File "/home/fenrir/miniconda3/envs/dentrim_env/bin/pychopper", line 10, in <module>
+    sys.exit(main())
+  File "/home/fenrir/miniconda3/envs/dentrim_env/lib/python3.9/site-packages/pychopper/scripts/pychopper.py", line 318, in main
+    CONFIG = open(args.c, "r").readline().strip()
+FileNotFoundError: [Errno 2] No such file or directory: '+:16sF,-16sR|+:16sR,-16sF'
+```
+
 ## Descripción del código
 
 El script para el [Denosing y trimming](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Denoising%20y%20trimming) permite filtrar las secuencias `FASTQ` crudas por longitud, QScore y remover primers.
