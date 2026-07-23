@@ -129,7 +129,7 @@ python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
 4. `-o` ruta del archivo `TXT` de salida.
 5. `--xlsx-out` rutas del archivo `XLSX` de salida. 
 
-# Denoising y Trimming
+# Denoising y Trimming (crear environment, en este caso dentrim_env)
 
 Es uno de los pasos más importantes en un análisis bioinformático de datos de secuenciación 16S rRNA es la depuración de lecturas crudas. Pues el objetivo aquí es mejorar la calidad de los datos y asegurar que únicamente las lecturas confiables y relevantes pasen a la etapa de taxonomía. En este caso se quiere:
 
