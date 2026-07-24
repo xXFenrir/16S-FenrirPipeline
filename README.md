@@ -193,15 +193,17 @@ filtlong --min_length 1300 --max_length 1700 \
 
 pequeño cambio
 ```
-python3 dentrim_bam.py \
+python3 /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/dentrim_bam.py \
   -i /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/sup_8/Microbioma_15072026/Microbioma_15072026/20260715_2307_MN30942_FAZ24575_f8347d8d/bam_pass \
-  -o /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_limp \
+  -o /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/sup_8_trim_edlib \
   --primers /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers.fasta \
   --pconfig /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers_config.txt \
+  --max-barcode 73 \
   --post-minlen 1200 \
   --post-maxlen 1600 \
-  --max-barcode 73 \
   -Q 8 \
+  -m edlib \
+  -q 0.3 \
   -t 20 \
   -v
 ```
