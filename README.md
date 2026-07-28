@@ -366,3 +366,12 @@ python /home/fenrir/scriptsbioinf/EMU.py \
   --emu-cmd /home/fenrir/anaconda3/envs/pipelinefenrir/bin/emu \
   --force
 ```
+Rarefacción
+```
+python /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/rarefaccion.py
+  --counts /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUsup_results/feature_table_counts_sup.tsv
+  --outdir /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUsup_results/figures
+  --map "/home/fenrir/Documentos/Tesis/datos_gulupa/Mapa Barcodes Microbioma.csv"
+  --step 200
+  --min-reads 500
+```
