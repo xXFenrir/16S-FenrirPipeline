@@ -48,67 +48,38 @@ Comando final usado:
 
 **Resultado esperado:** un archivo BAM por carpeta de barcode, con las lecturas ya llamadas y etiquetadas por muestra, más el resumen de secuenciación. Estas carpetas por barcode son la entrada directa del paso de Denoising y Trimming.
 
-# REPORTE DE ESTADÍSTICAS BÁSICAS
+# Reporte de Estadísticas Básicas
 
-Es necesario saber si las muestras necesitan o no ser limpiados, pues en el caso de algunos repositorios, estos ya viene filtrados. Por lo que, se deben tabular la estadísticas básicas de los archivos `FASTQ`, de tal manera que se pueda observar si vale la pena filtrar o no. Adicvionalmente, se podría llevar un registo sobre la calidad en la que estan las secuencias antes y después de filtradas. Por lo que, se usó el código que se encuentra en el archivo de [Reporte de estadísticas](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Reporte%20de%20estad%C3%ADsticas). Este código permite generar un archivo `TXT` y `XLSX` donde se genera una tabla con el reporte de estadísticas básicas de cada una de las secuencais.
+Antes de decidir si una muestra necesita pasar por Denoising y Trimming, hay que saber en qué estado llega: algunas muestras de repositorios públicos ya vienen filtradas, otras no. Generar estas estadísticas también sirve para comparar antes/después del filtrado, justificar los parámetros de limpieza usados y detectar pérdidas o sesgos que haya introducido.
 
-## Paquetes importados
+`stats_fastq.py` calcula, para cada FASTQ (comprimido o no), el número de lecturas, bases totales, longitud media/mínima/máxima, N50, %GC, QScore promedio y el QScore mínimo/máximo por lectura, todo implementado en Python puro sin depender de otra herramienta bioinformática externa. Si se le pasa un FASTA de primers (`--primers`), además estima en qué porcentaje de lecturas aparece alguno de ellos (buscando en ambas hebras, con un número de discrepancias tolerado configurable) escaneando los extremos de cada lectura hasta un máximo de muestras (`--primer-scan`). El resultado se escribe como una tabla TXT alineada a mano y también como XLSX, intentando primero con `pandas`, luego `openpyxl` y, si ninguno está disponible, convirtiendo con LibreOffice en modo headless.
 
-Los paquetes que se importanron fueron:
-- `argparse` evita que se tenga que editar el código si se cambia el formato de la entradaa tanto con una carpeta como con un archivo.
-- `gzip` lee `FASTQ.GZ` sin descomprimir.
-- `os` para saber tamaño del archivo.
-- `pathlib.Path` reconoce espacios, ~, etc.
-- `re` permite reconocer solo las bases nitrogenadas en archivos `FASTA`.
-- `sys` permite imprimir avisos.
-- `time` permite conocer el tiempo que demoró en ejecutarse.
-- `shutil` permite ver si es posible convertir un archivo de `TSV` a `XLSX`.
-- `subprocess` permite separa cada columna en el archivo `XLSX`.
-- `pandas` crea un `XLSX` con las columnas establecidas.
+**Paquetes/herramientas usados:** librería estándar (`argparse`, `gzip`, `re`, `time`, `subprocess`, `fnmatch`), y opcionalmente `pandas` / `openpyxl` (o `LibreOffice` como último respaldo) para el XLSX.
 
-## Funciones definidas
-
-- `is_gzip()`: Detecta si el archivo a analizar posee el sufijo `.GZ`, pues convierte el string en booleano y hace la lectura de este.
-- `open_maybe_gzip()`: Abre un archivo de texto, si es `.GZ`, usa `gzip.open()` para leer el archivo sin descomprimir, si no, usa `open()`.
-- `iter_fastq_reads()`: Itera continuamente sobre un archivo `FASTQ` guardando únicamente la secuencia y su calidad.
-- `n50_from_lengths()`: Ordena las longitudes de mayor a menor y acumula hasta alcanzar al menos el 50 % del total de bases, y esta longitud corresponde al N50. En caso de que no haya datos lo representa como 0.
-- `read_fasta_seqs()`: Carga un archivo `FASTA` y devuelve solo las secuencias. Para cada `FASTA`, concatena líneas de secuencia y aplica una limpieza con `regex` para eliminar cualquier carácter que no sea ACGTN. De esta manera, se estandariza la entrada para la detección de primers.
-- `revcomp()`: Genera la secuencia reverse de ADN. Primero traduce, y luego invierte la cadena, de tal manera, permite buscar primers en ambas hebras.
-- `hamming_leq_k()`: Con una matriz, comprueba que la longitud del fragmento de la secuencia corresponda a la del primer. Además, se usa para saber si hay secuencias N, permitiendo la lectura aún cuando  haya errores de secuenciación.
-- `any_primer_in_window()`: Comprueba si en la lectura forward o reverse aparece algún primer. Donde, si encuentra una coincidencia es `True` y `False` si no hay ninguna.
-- `process_fastq()`: Procesa un archivo `FASTQ` y calcula métricas de número de lecturas, bases totales, longitudes, GC%, QScore promedio y porcentajes de bases ≥Q20, ≥Q30 y % primers.
-- `_fmt()`: Si el valor es float, fija el número de decimales, si es entero, lo convierte a string. Permitiendo que el formato sea el mismo en todas las columnas.
-- `row_to_display()`: Transforma el conjunto de métricas en una lista de strings y en el orden exacto de columnas para el `TXT`.
-- `row_to_excel()`: Convierte el mismo conjunto de métricas en int/float/None, lo que, permite que `pandas` u `openpyxl` escriban un `XLSX`.
-- `write_pretty_table()`: Calcula el ancho máximo de cada columna, rellena con `ljust` e inserta una línea de guiones del mismo largo para cada columna y cada fila.
-- `write_tsv()`: Genera un `TSV` separado por tabulaciones usando los valores de `row_to_excel`.
-- `try_write_xlsx()`: Intenta escribir el `XLSX`. Primero intenta con `pandas`, si falla, usa `openpyxl`, y si tampoco es posible, utiliza LibreOffice headless convirtiendo un `TSV` de `write_tsv()` a `XLSX`. Finalmente, indica `True` si logró crear el Excel y muestra el método usado.
-- `find_fastqs()`: Permite comprobar la ruta sin considerar jerarquías, pues si es un archivo, valida que tenga extensión `FASTQ` o `FQ`. Si es carpeta, usa `glob` o `rglob` según si está o no comprimido. Por último, devuelve las rutas ordenadas y sin duplicados.
-- `parse_args()`: Define la interfaz de línea de comandos, como la entrada, la salida y ruta de los primers.
-- `main()`: Parsea argumentos y anuncia inicio, carga primers si se proporcionan, localiza los `FASTQ`, informa cuántos encontró, procesa cada archivo con `process_fastq`, escribe el `TXT` con `write_pretty_table` y luego intenta el `XLSX` con `try_write_xlsx`. Finalmente, imprime un resumen con la ruta de salida y el tiempo de ejecución.
-
-## Ejecución del código
-
-Una vez creado el script con el código, se ejecúta:
+Comando:
 ```
-python3 "/home/fenrir/scriptsbioinf/fastq_estads.py" \
-  "/home/fenrir/Documentos/Muestras_16S/sterile_sentinels" \
+python3 stats_fastq.py \
+  /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/hac_8_trim_edlib \
   -r \
-  --primers "/home/fenrir/resources/primers_stesen.fasta" \
-  -o "/home/fenrir/og_stats/estadisticas_og_stesen.txt" \
-  --xlsx-out "/home/fenrir/og_stats/estadisticas_og_stesen.xlsx"
+  --primers /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/primers_gulupa/primers.fasta \
+  --name-pattern "*_limpio.fastq*" \
+  -o estadisticas_hac.txt \
+  --xlsx-out estadisticas_hac.xlsx
 ```
-1. Primero se escribe la ruta en la que se encuentra el script.
-2. `-r` busca en subcarpetas.
-3. `--primers` es la ruta del archivo `FASTA` de los primers.
-4. `-o` ruta del archivo `TXT` de salida.
-5. `--xlsx-out` rutas del archivo `XLSX` de salida. 
+
+- `input` (primer argumento) carpeta o archivo FASTQ/FASTQ.GZ a analizar.
+- `-r` busca también en subcarpetas.
+- `--primers` FASTA opcional para estimar el % de lecturas con primer detectado.
+- `--name-pattern` filtra por nombre cuando `input` es una carpeta (el valor por defecto del script es `*_clean.fastq*`; aquí se ajusta a `*_limpio.fastq*`, que es lo que produce `dentrim_bam.py` hoy).
+- `-o` / `--xlsx-out` rutas de salida del TXT y del XLSX.
+
+**Resultado esperado:** una tabla TXT legible y un XLSX con una fila por muestra (lecturas, bases, longitud promedio/mínima/máxima, N50, %GC, QScore promedio y por lectura mín/máx, y % de primers si se indicaron) — útil tanto para decidir si una muestra cruda necesita limpieza como para comparar el efecto del filtrado corriendo el script antes y después de Denoising y Trimming.
 
 # Denoising y Trimming
 
 El objetivo de este paso es depurar las lecturas crudas de 16S para que solo lleguen a la clasificación taxonómica fragmentos confiables: se descartan lecturas incompletas o con una longitud que no corresponde al gen 16S, y se orientan/recortan según la posición de los primers para que todas queden en la misma dirección y contengan únicamente el amplicón de interés. Es necesario porque el basecalling por sí solo no filtra por calidad ni corrige la orientación de las lecturas.
 
-El script [`dentrim_bam.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Denoising%20y%20trimming) (entorno `dentrim_env`) automatiza este filtrado por lotes, un barcode a la vez, con dos herramientas complementarias:
+El script `dentrim_bam.py` (entorno `dentrim_env`) automatiza este filtrado por lotes, un barcode a la vez, con dos herramientas complementarias:
 
 ## Pychopper
 
@@ -168,12 +139,12 @@ La clasificación se hace con **EMU**, que alinea las lecturas de cada muestra c
 
 ## Cómo lo hace el script
 
-[`EMU_propio.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa%20y%20diversidad) orquesta EMU sobre lotes de muestras:
+`EMU_propio.py` orquesta EMU sobre lotes de muestras:
 - Filtra de entrada los FASTQ con menos lecturas que `--min-reads-input`, para no gastar cómputo en muestras demasiado pequeñas para ser representativas.
 - Ejecuta `emu abundance` por muestra en un directorio temporal y solo lo mueve a su ubicación final si terminó sin errores (ejecución atómica), para que una muestra fallida no deje resultados a medias.
 - Agrega las tablas por muestra en dos tablas globales (`tabla_abundancia_relativa.tsv` y `taxonomia.tsv`), normalizando nombres de columnas taxonómicas y construyendo un ID único por taxón (`rank|tax_id|nombre`).
 
-Como EMU entrega abundancias **relativas** y sus conteos por lectura no siempre reflejan el total real de lecturas limpias de cada muestra, [`rebuild_counts.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa%20y%20diversidad) reconstruye una tabla de conteos enteros confiable: multiplica cada abundancia relativa por el total real de lecturas de esa muestra (tomado del `resumen_limpieza.tsv` del paso anterior, con las asignaciones de EMU o el FASTQ original como respaldo) y redondea preservando la suma total (`tabla_conteos.tsv`).
+Como EMU entrega abundancias **relativas** y sus conteos por lectura no siempre reflejan el total real de lecturas limpias de cada muestra, `rebuild_counts.py` reconstruye una tabla de conteos enteros confiable: multiplica cada abundancia relativa por el total real de lecturas de esa muestra (tomado del `resumen_limpieza.tsv` del paso anterior, con las asignaciones de EMU o el FASTQ original como respaldo) y redondea preservando la suma total (`tabla_conteos.tsv`).
 
 Con esa tabla de conteos, `rarefaccion.py` construye curvas de rarefacción: para cada muestra, submuestrea aleatoriamente distintas profundidades de lectura y mide cuántos taxones distintos se observan en promedio (con un paso adaptativo por muestra, proporcional a su propia profundidad, para no comparar curvas con distinta resolución). El objetivo es evaluar si la profundidad de secuenciación alcanzada fue suficiente para capturar la riqueza real del rizobioma, es decir, si la curva alcanza una meseta.
 
@@ -212,7 +183,7 @@ Este es el análisis que responde la pregunta central del proyecto: si la estruc
 
 ## Cómo lo hace el script
 
-[`diversidad_mod.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa%20y%20diversidad) toma la tabla de abundancias relativas de EMU y traduce cada barcode a su sistema agrícola (barcode → ID de finca → Sistema, usando un CSV puente y un Excel de metadatos), y luego corre cuatro análisis con **scikit-bio**, **scipy** y **seaborn/matplotlib**:
+`diversidad_mod.py` toma la tabla de abundancias relativas de EMU y traduce cada barcode a su sistema agrícola (barcode → ID de finca → Sistema, usando un CSV puente y un Excel de metadatos), y luego corre cuatro análisis con **scikit-bio**, **scipy** y **seaborn/matplotlib**:
 
 - **Diversidad alfa** (estructura interna de cada muestra): índice de Simpson y riqueza observada (`skbio.diversity.alpha_diversity`), con prueba de Mann-Whitney U (Wilcoxon de dos muestras) entre cada par de sistemas agrícolas y boxplots comparativos.
 - **Diversidad beta** (disimilitud entre muestras): matrices de distancia de **Bray-Curtis** (cuantitativa, sensible a cambios de abundancia) y **Jaccard** (cualitativa, presencia/ausencia), calculadas con `scipy.spatial.distance.pdist` y visualizadas como heatmaps.
