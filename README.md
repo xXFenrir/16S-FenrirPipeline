@@ -158,7 +158,7 @@ python3 dentrim_bam.py \
 - `-t` número de hilos.
 - `-v` imprime cada comando ejecutado.
 
-**Resultado esperado:** un FASTQ limpio por barcode (`<barcode>_clean.fastq`) con las lecturas orientadas, recortadas y filtradas por longitud/calidad, más un `dentrim_summary.tsv` con las métricas antes/después y el porcentaje de remoción por muestra (lecturas, bases, longitud, N50, QScore).
+**Resultado esperado:** un FASTQ limpio por barcode (`<barcode>_limpio.fastq`) con las lecturas orientadas, recortadas y filtradas por longitud/calidad, más un `resumen_limpieza.tsv` con las métricas antes/después y el porcentaje de remoción por muestra (lecturas, bases, longitud, N50, QScore).
 
 # Taxonomía
 
@@ -171,9 +171,9 @@ La clasificación se hace con **EMU**, que alinea las lecturas de cada muestra c
 [`EMU_propio.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa%20y%20diversidad) orquesta EMU sobre lotes de muestras:
 - Filtra de entrada los FASTQ con menos lecturas que `--min-reads-input`, para no gastar cómputo en muestras demasiado pequeñas para ser representativas.
 - Ejecuta `emu abundance` por muestra en un directorio temporal y solo lo mueve a su ubicación final si terminó sin errores (ejecución atómica), para que una muestra fallida no deje resultados a medias.
-- Agrega las tablas por muestra en dos tablas globales (`feature_table_relabund.tsv` y `taxonomy.tsv`), normalizando nombres de columnas taxonómicas y construyendo un ID único por taxón (`rank|tax_id|nombre`).
+- Agrega las tablas por muestra en dos tablas globales (`tabla_abundancia_relativa.tsv` y `taxonomia.tsv`), normalizando nombres de columnas taxonómicas y construyendo un ID único por taxón (`rank|tax_id|nombre`).
 
-Como EMU entrega abundancias **relativas** y sus conteos por lectura no siempre reflejan el total real de lecturas limpias de cada muestra, [`rebuild_counts.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa%20y%20diversidad) reconstruye una tabla de conteos enteros confiable: multiplica cada abundancia relativa por el total real de lecturas de esa muestra (tomado del `dentrim_summary.tsv` del paso anterior, con las asignaciones de EMU o el FASTQ original como respaldo) y redondea preservando la suma total (`feature_table_counts.tsv`).
+Como EMU entrega abundancias **relativas** y sus conteos por lectura no siempre reflejan el total real de lecturas limpias de cada muestra, [`rebuild_counts.py`](https://github.com/xXFenrir/16S-FenrirPipeline/blob/main/Taxonom%C3%ADa%20y%20diversidad) reconstruye una tabla de conteos enteros confiable: multiplica cada abundancia relativa por el total real de lecturas de esa muestra (tomado del `resumen_limpieza.tsv` del paso anterior, con las asignaciones de EMU o el FASTQ original como respaldo) y redondea preservando la suma total (`tabla_conteos.tsv`).
 
 Con esa tabla de conteos, `rarefaccion.py` construye curvas de rarefacción: para cada muestra, submuestrea aleatoriamente distintas profundidades de lectura y mide cuántos taxones distintos se observan en promedio (con un paso adaptativo por muestra, proporcional a su propia profundidad, para no comparar curvas con distinta resolución). El objetivo es evaluar si la profundidad de secuenciación alcanzada fue suficiente para capturar la riqueza real del rizobioma, es decir, si la curva alcanza una meseta.
 
@@ -185,7 +185,7 @@ Con esa tabla de conteos, `rarefaccion.py` construye curvas de rarefacción: par
 python3 EMU_propio.py \
   --db /home/fenrir/Documentos/Tesis/emu_db \
   --input-dir /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/Limpieza/hac_8_trim_edlib \
-  --pattern "*_clean.fastq" \
+  --pattern "*_limpio.fastq" \
   --outdir /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUhac_results \
   --threads 20 --rank species --min-reads-input 500 \
   --keep-counts --keep-assignments --force
@@ -204,7 +204,7 @@ python3 rarefaccion.py --model hac --dataset results --n-points 30 --iterations 
 - `--keep-counts` / `--keep-assignments` piden a EMU que conserve conteos y asignaciones por lectura.
 - `--model` / `--dataset` en `rebuild_counts.py` y `rarefaccion.py` seleccionan, por convención de carpetas, qué corrida de EMU (modelo de basecalling / subconjunto de muestras) usar.
 
-**Resultado esperado:** `feature_table_relabund.tsv` (abundancia relativa por taxón y muestra), `feature_table_counts.tsv` (conteos enteros reconstruidos) y `taxonomy.tsv` (cadena taxonómica completa por ID de taxón), más una curva de rarefacción en PNG por muestra que indica si la profundidad de secuenciación fue suficiente (curva en meseta) o si haría falta secuenciar más.
+**Resultado esperado:** `tabla_abundancia_relativa.tsv` (abundancia relativa por taxón y muestra), `tabla_conteos.tsv` (conteos enteros reconstruidos) y `taxonomia.tsv` (cadena taxonómica completa por ID de taxón), más una curva de rarefacción en PNG por muestra que indica si la profundidad de secuenciación fue suficiente (curva en meseta) o si haría falta secuenciar más.
 
 # Diversidad
 
@@ -224,7 +224,7 @@ Este es el análisis que responde la pregunta central del proyecto: si la estruc
 ## Ejecución del código
 ```
 python3 diversidad_mod.py \
-  -i /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUhac_results/feature_table_relabund.tsv \
+  -i /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUhac_results/tabla_abundancia_relativa.tsv \
   -o /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/Diversidad/hac_results \
   -p Tesis_hac_results \
   -c Sistema \
