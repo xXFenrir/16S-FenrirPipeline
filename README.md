@@ -31,7 +31,9 @@ Predicción *in silico* de interacciones bacteria-fago a partir de los perfiles 
 
 Además de los scripts de esta rama se necesita el repositorio original de DeepPBI-KG (https://github.com/Tongqing-Wei/DeepPBI-KG), del que se toman la carpeta `model/` (pesos y escaladores), el panel de fagos de referencia y su entorno (`requirements.txt`), junto con Prokka, BLAST+ y NCBI `datasets`.
 
-Las abundancias relativas que entrega EMU se acoplan al modelo **DeepPBI-KG** (Wei et al., 2024; código original en https://github.com/Tongqing-Wei/DeepPBI-KG), que estima la probabilidad de interacción lítica entre cada par fago-bacteria a partir de genes clave (Random Forest + red neuronal profunda) y de características de genoma completo. Se usan los pesos, escaladores y el panel de 3513 fagos de referencia del repositorio original. Los scripts de esta carpeta son adaptaciones o scripts propios; el código base de DeepPBI-KG pertenece a sus autores.
+## Descripción
+
+Las abundancias relativas que entrega EMU se acoplan al modelo **DeepPBI-KG** (Wei et al., 2024; código original en https://github.com/Tongqing-Wei/DeepPBI-KG), que estima la probabilidad de interacción lítica entre cada par fago-bacteria a partir de genes clave (Random Forest + red neuronal profunda) y de características de genoma completo. Se usan los pesos, escaladores y el panel de 3513 fagos de referencia del repositorio original. Los scripts de esta rama son adaptaciones o scripts propios; el código base de DeepPBI-KG pertenece a sus autores.
 
 - **Objetivo 2:** validación sobre el conjunto de referencia PRJNA1020132 (192 genomas bacterianos, 674.496 pares evaluados).
 - **Objetivo 3:** aplicación sobre la rizósfera de gulupa con las abundancias del modelo HAC (79 genomas bacterianos).
