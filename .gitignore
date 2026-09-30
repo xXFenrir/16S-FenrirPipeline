@@ -1,5 +1,5 @@
 # Datos de secuenciación: son demasiado pesados para GitHub (límite de 100 MB por archivo).
-# Ver anexos/A_disponibilidad_y_reproducibilidad.md
+# Los datos crudos de gulupa se solicitan al autor (ver README).
 *.pod5
 *.fast5
 *.bam
