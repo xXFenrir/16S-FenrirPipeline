@@ -17,6 +17,10 @@ Entradas:
 
 Uso típico:
   python3 taxonomy_profiling.py --model hac --dataset todo --rank genus --top-n 10
+
+Con otra carpeta de EMU y metadata propia (CSV con columnas muestra, etiqueta, grupo):
+  python3 taxonomy_profiling.py --emu-dir /ruta/EMU_Q9 --sample-meta metadata_muestras.csv \
+      --rank genus --top-n 20 --titulo "PRJNA1020132"
 """
 
 import argparse
@@ -26,8 +30,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 
 
@@ -40,6 +44,8 @@ RANK_PREFIX = {
     "order": "o__", "family": "f__", "genus": "g__", "species": "s__",
 }
 RANK_ORDER = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
+RANK_ES = {"family": "Familia", "genus": "Género", "species": "Especie"}
+SIN_CLASIFICAR = "Sin clasificar"
 
 
 def load_relabund(path: Path) -> pd.DataFrame:
@@ -57,8 +63,9 @@ def load_relabund(path: Path) -> pd.DataFrame:
 def load_taxonomy(path: Path) -> dict:
     """Devuelve {id_taxon: {'family': ..., 'genus': ..., 'species': ...}}."""
     df = pd.read_csv(path, sep="\t")
+    df = df.rename(columns={"feature_id": "id_taxon", "taxonomy": "taxonomia"})
     if "id_taxon" not in df.columns or "taxonomia" not in df.columns:
-        raise SystemExit(f"ERROR: {path} debe tener columnas 'id_taxon' y 'taxonomia'.")
+        raise SystemExit(f"ERROR: {path} debe tener columnas 'id_taxon'/'feature_id' y 'taxonomia'/'taxonomy'.")
     tax_map = {}
     for _, row in df.iterrows():
         fid = str(row["id_taxon"])
@@ -67,7 +74,7 @@ def load_taxonomy(path: Path) -> dict:
         for rank in RANK_ORDER:
             prefix = RANK_PREFIX[rank]
             match = next((p[len(prefix):] for p in parts if p.startswith(prefix)), None)
-            levels[rank] = match if match and match.lower() not in ("", "unassigned", "nan") else "Unclassified"
+            levels[rank] = match if match and match.lower() not in ("", "unassigned", "nan") else SIN_CLASIFICAR
         tax_map[fid] = levels
     return tax_map
 
@@ -87,7 +94,7 @@ def rank_label_from_feature_id(fid: str, tax_map: dict, rank: str) -> str:
     parts = fid.split("|")
     if len(parts) >= 3 and parts[0].lower() == rank:
         return parts[-1]
-    return "Unclassified"
+    return SIN_CLASIFICAR
 
 
 def aggregate_by_rank(relabund: pd.DataFrame, tax_map: dict, rank: str) -> pd.DataFrame:
@@ -100,18 +107,18 @@ def aggregate_by_rank(relabund: pd.DataFrame, tax_map: dict, rank: str) -> pd.Da
 
 def top_n_plus_others(grouped: pd.DataFrame, top_n: int) -> pd.DataFrame:
     mean_abund = grouped.mean(axis=1).sort_values(ascending=False)
-    top_taxa = [t for t in mean_abund.index if t != "Unclassified"][:top_n]
+    top_taxa = [t for t in mean_abund.index if t != SIN_CLASIFICAR][:top_n]
     keep = top_taxa.copy()
-    if "Unclassified" in grouped.index:
-        keep.append("Unclassified")
+    if SIN_CLASIFICAR in grouped.index:
+        keep.append(SIN_CLASIFICAR)
     others = grouped.drop(index=keep, errors="ignore").sum(axis=0)
     out = grouped.loc[[t for t in keep if t in grouped.index]].copy()
     if others.sum() > 0:
         out.loc["Otros"] = others
-    # Orden: taxones por abundancia media descendente, 'Unclassified' y 'Otros' al final
+    # Orden: taxones por abundancia media descendente, 'Sin clasificar' y 'Otros' al final
     order = [t for t in top_taxa if t in out.index]
-    if "Unclassified" in out.index:
-        order.append("Unclassified")
+    if SIN_CLASIFICAR in out.index:
+        order.append(SIN_CLASIFICAR)
     if "Otros" in out.index:
         order.append("Otros")
     return out.loc[order]
@@ -139,7 +146,18 @@ def load_double_mapping(bridge_path: Path, meta_path: Path) -> dict:
     return mapping
 
 
+def load_sample_meta(path: Path) -> dict:
+    """CSV con columnas 'muestra', 'etiqueta', 'grupo' -> {muestra: (etiqueta, grupo)}."""
+    df = pd.read_csv(path)
+    faltan = {"muestra", "etiqueta", "grupo"} - set(df.columns)
+    if faltan:
+        raise SystemExit(f"ERROR: {path} no tiene las columnas {sorted(faltan)}.")
+    return {str(r.muestra): (str(r.etiqueta), str(r.grupo)) for r in df.itertuples()}
+
+
 def sample_info(col_name: str, mapping: dict):
+    if col_name in mapping and isinstance(mapping[col_name], tuple):
+        return mapping[col_name]
     m = re.search(r'barcode0*(\d+)', col_name.lower())
     bc_num = int(m.group(1)) if m else None
     info = mapping.get(bc_num) if bc_num is not None else None
@@ -149,16 +167,20 @@ def sample_info(col_name: str, mapping: dict):
 
 
 def build_color_map(taxa: list) -> dict:
-    fixed = {"Otros": "#B0B0B0", "Unclassified": "#7A7A7A"}
+    fixed = {"Otros": "#B0B0B0", SIN_CLASIFICAR: "#7A7A7A"}
     variable = [t for t in taxa if t not in fixed]
     n = len(variable)
-    cmap = cm.get_cmap('tab20', max(n, 1)) if n <= 20 else cm.get_cmap('nipy_spectral', n)
-    colors = {t: cmap(i) for i, t in enumerate(variable)}
+    # tab20 sin sus dos grises (reservados para 'Otros' y 'Sin clasificar') + tab20b si hacen falta más
+    paleta = [c for i, c in enumerate(matplotlib.colormaps['tab20'].colors) if i not in (14, 15)]
+    paleta += list(matplotlib.colormaps['tab20b'].colors)
+    if n > len(paleta):
+        paleta = [matplotlib.colormaps['nipy_spectral'](i / max(n - 1, 1)) for i in range(n)]
+    colors = {t: paleta[i] for i, t in enumerate(variable)}
     colors.update({t: fixed[t] for t in fixed if t in taxa})
     return colors
 
 
-def plot_profile(top_df: pd.DataFrame, mapping: dict, rank: str, top_n: int, model: str, dataset: str, out_path: Path):
+def plot_profile(top_df: pd.DataFrame, mapping: dict, rank: str, top_n: int, titulo: str, out_path: Path):
     samples = list(top_df.columns)
     info = {s: sample_info(s, mapping) for s in samples}
     order = sorted(samples, key=lambda s: (info[s][1], info[s][0]))
@@ -167,7 +189,7 @@ def plot_profile(top_df: pd.DataFrame, mapping: dict, rank: str, top_n: int, mod
     color_map = build_color_map(list(top_df.index))
 
     fig, axes = plt.subplots(
-        1, len(sistemas), figsize=(max(10, 0.5 * len(order) + 3), 7),
+        1, len(sistemas), figsize=(max(10, min(0.5 * len(order) + 3, 26)), 7),
         sharey=True, dpi=300,
         gridspec_kw={"width_ratios": [sum(1 for s in order if info[s][1] == g) for g in sistemas]}
     )
@@ -183,18 +205,20 @@ def plot_profile(top_df: pd.DataFrame, mapping: dict, rank: str, top_n: int, mod
                    edgecolor='white', linewidth=0.3, width=0.85)
             bottoms += vals
         ax.set_xticks(range(len(grupo_samples)))
-        ax.set_xticklabels([info[s][0] for s in grupo_samples], rotation=90, fontsize=8)
+        ax.set_xticklabels([info[s][0] for s in grupo_samples], rotation=90, fontsize=8 if len(order) <= 40 else 6)
         ax.set_title(sistema, fontsize=11, fontweight='bold')
         ax.set_ylim(0, 100)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
 
     axes[0].set_ylabel("Abundancia relativa (%)", fontsize=12, fontweight='bold')
-    fig.suptitle(f"Perfil taxonómico ({rank.capitalize()}, Top {top_n}) — {model.upper()} {dataset}",
+    fig.supxlabel("Muestra", fontsize=12, fontweight='bold')
+    fig.suptitle(f"Perfil taxonómico a nivel de {RANK_ES[rank].lower()} (Top {top_n}) — {titulo}",
                  fontsize=14, fontweight='bold')
 
     handles = [mpatches.Patch(color=color_map[t], label=t) for t in top_df.index]
-    fig.legend(handles=handles, loc='center left', bbox_to_anchor=(1.0, 0.5), frameon=False, fontsize=9)
+    fig.legend(handles=handles, loc='center left', bbox_to_anchor=(1.0, 0.5), frameon=False, fontsize=9,
+               title=RANK_ES[rank], title_fontproperties={"weight": "bold"})
 
     plt.tight_layout(rect=[0, 0, 0.85, 0.95])
     plt.savefig(out_path, bbox_inches="tight")
@@ -220,9 +244,17 @@ def main():
                      default=Path("/home/fenrir/Documentos/Tesis/datos_gulupa/Mapa Barcodes Microbioma.csv"))
     ap.add_argument("--outdir", type=Path, default=None,
                      help="Por defecto: EMU{model}_{dataset}/figures")
+    ap.add_argument("--emu-dir", type=Path, default=None,
+                     help="Carpeta de resultados de EMU. Reemplaza a --model/--dataset para ubicar las tablas.")
+    ap.add_argument("--sample-meta", type=Path, default=None,
+                     help="CSV con columnas muestra, etiqueta, grupo. Reemplaza a --bridge/--meta.")
+    ap.add_argument("--excluir-grupos", nargs="+", default=[],
+                     help="Grupos de --sample-meta que no se grafican (p. ej. Control).")
+    ap.add_argument("--titulo", type=str, default=None,
+                     help="Texto al final del título y sufijo de los archivos. Por defecto: '{MODEL} {dataset}'.")
     args = ap.parse_args()
 
-    emu_dir = base / f"EMU{args.model}_{args.dataset}"
+    emu_dir = args.emu_dir or base / f"EMU{args.model}_{args.dataset}"
     if args.relabund is None:
         args.relabund = emu_dir / "tabla_abundancia_relativa.tsv"
     if args.taxonomy is None:
@@ -237,16 +269,23 @@ def main():
 
     relabund = load_relabund(args.relabund)
     tax_map = load_taxonomy(args.taxonomy)
-    mapping = load_double_mapping(args.bridge, args.meta)
+    mapping = load_sample_meta(args.sample_meta) if args.sample_meta else load_double_mapping(args.bridge, args.meta)
     eprint(f"[INFO] Muestras con ID/Sistema resueltos: {len(mapping)}")
+
+    if args.excluir_grupos:
+        quitar = [c for c in relabund.columns if sample_info(c, mapping)[1] in args.excluir_grupos]
+        relabund = relabund.drop(columns=quitar)
+        eprint(f"[INFO] Muestras excluidas ({', '.join(args.excluir_grupos)}): {', '.join(quitar) or 'ninguna'}")
 
     grouped = aggregate_by_rank(relabund, tax_map, args.rank)
     top_df = top_n_plus_others(grouped, args.top_n)
 
-    out_png = args.outdir / f"taxonomy_profile_{args.rank}_top{args.top_n}_{args.model}_{args.dataset}.png"
-    plot_profile(top_df, mapping, args.rank, args.top_n, args.model, args.dataset, out_png)
+    titulo = args.titulo or f"{args.model.upper()} {args.dataset}"
+    sufijo = re.sub(r"\W+", "_", args.titulo).strip("_") if args.titulo else f"{args.model}_{args.dataset}"
+    out_png = args.outdir / f"taxonomy_profile_{args.rank}_top{args.top_n}_{sufijo}.png"
+    plot_profile(top_df, mapping, args.rank, args.top_n, titulo, out_png)
 
-    out_tsv = args.outdir / f"taxonomy_profile_{args.rank}_top{args.top_n}_{args.model}_{args.dataset}.tsv"
+    out_tsv = args.outdir / f"taxonomy_profile_{args.rank}_top{args.top_n}_{sufijo}.tsv"
     (top_df * 100.0).round(4).to_csv(out_tsv, sep="\t")
     eprint(f"[OK] Tabla guardada: {out_tsv}")
 
