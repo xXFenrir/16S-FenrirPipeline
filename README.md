@@ -21,14 +21,14 @@ Los anexos 1 a 9 corresponden a los ya citados en el documento. Los anexos 10 a 
 | 3 | [Anexo_03_Estadisticas_post_limpieza](Anexo_03_Estadisticas_post_limpieza) | Estadísticas tras Filtlong + Pychopper y retención por muestra | 10.1.6 |
 | 4 | [Anexo_04_Abundancia_generos_referencia](Anexo_04_Abundancia_generos_referencia) | Abundancias relativas por género del artículo | 10.1.7 |
 | 5 | [Anexo_05_Abundancia_especies_referencia](Anexo_05_Abundancia_especies_referencia) | Abundancias relativas por especie del artículo | 10.1.7 |
-| 6 | [Anexo_06_Diferencias_por_genero](Anexo_06_Diferencias_por_genero) | Medias propias vs. artículo y correlaciones (género) | 10.1.7 |
-| 7 | [Anexo_07_Diferencias_por_especie](Anexo_07_Diferencias_por_especie) | Medias propias vs. artículo y correlaciones (especie) | 10.1.7 |
+| 6 | [Anexo_06_Diferencias_por_genero](Anexo_06_Diferencias_por_genero) | Medias propias vs. artículo y correlación de Spearman (género) | 10.1.7 |
+| 7 | [Anexo_07_Diferencias_por_especie](Anexo_07_Diferencias_por_especie) | Medias propias vs. artículo y correlación de Spearman (especie) | 10.1.7 |
 | 8 | [Anexo_08_Comparacion_modelos_Dorado](Anexo_08_Comparacion_modelos_Dorado) | Comparación FAST/HAC/SUP global y por muestra | 10.3.1 |
 | 9 | [Anexo_09_Reportes_pycoQC_HAC_SUP](Anexo_09_Reportes_pycoQC_HAC_SUP) | Reportes interactivos de calidad pycoQC (HAC y SUP) | 10.3.1 |
-| 10 | [Anexo_10_Diversidad_PRJNA1020132](Anexo_10_Diversidad_PRJNA1020132) | Diversidad alfa/beta, PCoA y PERMANOVA del conjunto de referencia | 10.1.8 |
+| 10 | [Anexo_10_Diversidad_PRJNA1020132](Anexo_10_Diversidad_PRJNA1020132) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA del conjunto de referencia | 10.1.8 |
 | 11 | [Anexo_11_Limpieza_gulupa_HAC_SUP](Anexo_11_Limpieza_gulupa_HAC_SUP) | Limpieza por muestra de gulupa y reportes NanoPlot | 10.3.2 |
 | 12 | [Anexo_12_Taxonomia_EMU_gulupa](Anexo_12_Taxonomia_EMU_gulupa) | Tablas de EMU (abundancias, conteos, taxonomía, top 20) y rarefacción | 10.3.3 |
-| 13 | [Anexo_13_Diversidad_gulupa_HAC_SUP](Anexo_13_Diversidad_gulupa_HAC_SUP) | Diversidad alfa/beta, PCoA y PERMANOVA de gulupa | 10.3.4 |
+| 13 | [Anexo_13_Diversidad_gulupa_HAC_SUP](Anexo_13_Diversidad_gulupa_HAC_SUP) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA de gulupa | 10.3.4 |
 | 14 | [Anexo_14_Genomas_bacterianos_Obj2](Anexo_14_Genomas_bacterianos_Obj2) | 192 genomas descargados para el Objetivo 2 | 10.2.2 |
 | 15 | [Anexo_15_Predicciones_DeepPBI-KG_Obj2](Anexo_15_Predicciones_DeepPBI-KG_Obj2) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | 10.2.4, 10.2.5 |
 | 16 | [Anexo_16_Redes_Gephi_Obj2](Anexo_16_Redes_Gephi_Obj2) | Grafos de Gephi (red completa y top 4) | 10.2.4 |
