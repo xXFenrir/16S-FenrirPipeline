@@ -1,6 +1,29 @@
 # 16S-FenrirPipeline
 
-Taxa ans diversity pipeline for ONT 16S
+Taxa and diversity pipeline for ONT 16S
+
+Pipeline para procesar secuencias del gen 16S rRNA completo obtenidas con Oxford Nanopore (MinION), desde la señal cruda hasta la diversidad alfa y beta. Se desarrolló para la tesis sobre el rizobioma de cultivos de gulupa bajo tres sistemas de manejo agrícola (Empresarial, Campesino y Agroecológico).
+
+```mermaid
+flowchart LR
+    A["POD5"] --> B["Dorado<br/>basecalling + demux"]
+    B --> C["dentrim_bam.py<br/>Pychopper + Filtlong"]
+    C --> D["EMU_propio.py<br/>taxonomía"]
+    D --> E["rebuild_counts.py<br/>rarefaccion.py"]
+    D --> F["diversidad_mod.py<br/>alfa, beta, PERMANOVA"]
+    C --> G["stats_fastq.py<br/>control de calidad"]
+```
+
+| Qué | Dónde |
+|---|---|
+| Descripción de cada etapa y comandos | Este README (abajo) |
+| Scripts finales | [`scripts/`](scripts/) |
+| **Anexos de la tesis** | [`anexos/`](anexos/README.md) |
+| Entornos conda | [`envs/`](envs/) |
+| Primers y configuración de Pychopper | [`config/`](config/) |
+| Copiar al repositorio los archivos de los anexos desde el PC | [`herramientas/recolectar_anexos.sh`](herramientas/recolectar_anexos.sh) |
+| Versiones de desarrollo (2025) | [`anexos/historico/`](anexos/historico/) |
+
 Para el procesamiento de muestras de 16S con ONT, fue necesario hacer una revisión bibliográfica de otros estudios, con el fin de identificar aquellas herramientas que son útiles para diferentes estancias en la construcción del pipeline. Por lo que se identificaron los siguientes pasos:
 - Basecalling
 - Demultiplexing
