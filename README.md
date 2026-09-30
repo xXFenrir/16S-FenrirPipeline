@@ -1,28 +1,42 @@
 # 16S-FenrirPipeline
 
-Taxa and diversity pipeline for ONT 16S
+Pipeline de taxonomía y diversidad para secuencias completas del gen 16S obtenidas con Oxford Nanopore (MinION).
 
-Pipeline para procesar secuencias del gen 16S rRNA completo obtenidas con Oxford Nanopore (MinION), desde la señal cruda hasta la diversidad alfa y beta. Se desarrolló para la tesis sobre el rizobioma de cultivos de gulupa bajo tres sistemas de manejo agrícola (Empresarial, Campesino y Agroecológico).
+Repositorio asociado al trabajo de grado *Análisis del microbioma de Passiflora edulis f. edulis mediante secuenciación dirigida al gen 16S usando MinION, y predicción de las posibles interacciones bacteria-fago* (Johann Sebastian Gallego Sierra, Universidad El Bosque).
 
-```mermaid
-flowchart LR
-    A["POD5"] --> B["Dorado<br/>basecalling + demux"]
-    B --> C["dentrim_bam.py<br/>Pychopper + Filtlong"]
-    C --> D["EMU_propio.py<br/>taxonomía"]
-    D --> E["rebuild_counts.py<br/>rarefaccion.py"]
-    D --> F["diversidad_mod.py<br/>alfa, beta, PERMANOVA"]
-    C --> G["stats_fastq.py<br/>control de calidad"]
+## Ramas del repositorio
+
+| Rama | Contenido |
+|---|---|
+| [`main`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
+| [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
+| [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
+
+## Estructura de esta rama
+
+```
+pipeline_16S/
+  01_basecalling/       Comparación de modelos de Dorado (FAST/HAC/SUP)
+  02_estadisticas/      Estadísticas básicas de FASTQ y gráficas antes/después
+  03_limpieza/          Denoising y trimming (Pychopper + Filtlong)
+  04_taxonomia/         Clasificación con EMU, conteos, rarefacción, comparación con el artículo
+  05_diversidad/        Diversidad alfa, beta, PCoA y PERMANOVA
+recursos/               Primers del conjunto de referencia (PRJNA1020132)
 ```
 
-| Qué | Dónde |
-|---|---|
-| Descripción de cada etapa y comandos | Este README (abajo) |
-| Scripts finales | [`scripts/`](scripts/) |
-| **Anexos de la tesis** | [`anexos/`](anexos/README.md) |
-| Entornos conda | [`envs/`](envs/) |
-| Primers y configuración de Pychopper | [`config/`](config/) |
-| Copiar al repositorio los archivos de los anexos desde el PC | [`herramientas/recolectar_anexos.sh`](herramientas/recolectar_anexos.sh) |
-| Versiones de desarrollo (2025) | [`anexos/historico/`](anexos/historico/) |
+## Scripts por objetivo
+
+| Etapa | Objetivo 1 (PRJNA1020132, FASTQ) | Objetivo 3 (gulupa, BAM de Dorado) |
+|---|---|---|
+| Basecalling | — (el repositorio público no incluye POD5/FAST5) | `01_basecalling/comparar_dorado.py` |
+| Estadísticas básicas | `02_estadisticas/stats_fastq.py`, `graph_stats.py`, `graph_metrics.py`, `metricas.py` | `02_estadisticas/stats_fastq.py` |
+| Limpieza | `03_limpieza/dentrim_fastq.py`, `comparacion_limpieza.py` | `03_limpieza/dentrim_bam.py`, `hac_vs_sup_post.py`, `sup_bvsa_trim.py` |
+| Taxonomía | `04_taxonomia/EMU_repositorio.py`, `recover_counts.py`, `clean_emu_data.py`, `compare_taxa.py` | `04_taxonomia/EMU_propio.py`, `rebuild_counts.py`, `rarefaccion.py`, `taxonomy_profiling.py`, `estadisticas_emu.py`, `agrupar_counts_sistema.py` |
+| Diversidad | `05_diversidad/diversidad_repositorio.py`, `diversidad.R` | `05_diversidad/diversidad_mod.py` |
+
+Las tablas de abundancia que produce este pipeline son la entrada de la rama `algoritmo`. Los datos crudos de gulupa no se publican por confidencialidad; pueden solicitarse al autor bajo acuerdo académico.
+
+## Pasos del pipeline
 
 Para el procesamiento de muestras de 16S con ONT, fue necesario hacer una revisión bibliográfica de otros estudios, con el fin de identificar aquellas herramientas que son útiles para diferentes estancias en la construcción del pipeline. Por lo que se identificaron los siguientes pasos:
 - Basecalling
@@ -231,3 +245,4 @@ python3 diversidad_mod.py \
 - `-g` lista de grupos a contrastar entre sí.
 
 **Resultado esperado:** tabla de índices de diversidad alfa por muestra + p-valores de Wilcoxon y sus boxplots (PNG); matrices de distancia Bray-Curtis/Jaccard (TSV) y sus heatmaps (PNG); coordenadas y gráfico de PCoA con elipses de confianza (TSV + PNG); y un archivo de texto con el resultado de PERMANOVA (pseudo-F y valor p) que indica si los sistemas agrícolas albergan comunidades microbianas estadísticamente distintas.
+
