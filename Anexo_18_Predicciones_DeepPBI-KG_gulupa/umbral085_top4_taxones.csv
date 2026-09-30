@@ -1,0 +1,927 @@
+Source,Target,Weight
+Acanthamoeba polyphaga mimivirus,Weissella oryzae,0.8710509538650513
+Acholeplasma phage L2,Lactococcus lactis,0.9348601698875428
+Acholeplasma phage L2,Weissella oryzae,0.8945394456386566
+Acidianus tailed spindle virus isolate 1,Lactococcus lactis,0.9035631418228148
+Acidianus tailed spindle virus isolate 1,Weissella oryzae,0.9131803810596466
+Acidianus two-tailed virus,Lactobacillus coryniformis,0.8699698746204376
+Acidianus two-tailed virus,Lactococcus lactis,0.889523446559906
+Acidianus two-tailed virus,Weissella oryzae,0.9153890609741212
+Acinetobacter bacteriophage AP22,Lactobacillus coryniformis,0.8578342199325562
+Acinetobacter bacteriophage AP22,Weissella oryzae,0.8941635191440582
+Acinetobacter phage AB3,Weissella oryzae,0.877254068851471
+Acinetobacter phage Abp1,Lactobacillus coryniformis,0.8708520531654358
+Acinetobacter phage Abp1,Weissella oryzae,0.9088124632835388
+Acinetobacter phage Fri1,Lactobacillus coryniformis,0.8764927089214325
+Acinetobacter phage Fri1,Weissella oryzae,0.9102883338928224
+Acinetobacter phage IME200,Lactobacillus coryniformis,0.8749833703041077
+Acinetobacter phage IME200,Lactococcus lactis,0.8642717599868774
+Acinetobacter phage IME200,Weissella oryzae,0.9132336378097534
+Acinetobacter phage LZ35,Lactobacillus coryniformis,0.8559854328632355
+Acinetobacter phage LZ35,Weissella oryzae,0.8982917666435242
+Acinetobacter phage Petty,Lactobacillus coryniformis,0.8723373413085938
+Acinetobacter phage Petty,Weissella oryzae,0.874736875295639
+Acinetobacter phage Presley,Lactobacillus coryniformis,0.880647599697113
+Acinetobacter phage Presley,Lactococcus lactis,0.8509083390235901
+Acinetobacter phage Presley,Weissella oryzae,0.9033430218696594
+Acinetobacter phage YMC-13-01-C62,Lactobacillus coryniformis,0.8622197210788727
+Acinetobacter phage YMC-13-01-C62,Weissella oryzae,0.8800185322761536
+Acinetobacter phage YMC/09/02/B1251_ABA_BP,Lactobacillus coryniformis,0.8740673065185547
+Acinetobacter phage YMC/09/02/B1251_ABA_BP,Lactococcus lactis,0.869945764541626
+Acinetobacter phage YMC/09/02/B1251_ABA_BP,Weissella oryzae,0.911336988210678
+Acinetobacter phage YMC11/12/R2315,Lactobacillus coryniformis,0.8629147708415985
+Acinetobacter phage YMC11/12/R2315,Weissella oryzae,0.8815292119979858
+Acinetobacter phage YMC13/03/R2096,Weissella oryzae,0.8857707679271698
+Acinetobacter phage ZZ1,Weissella oryzae,0.853111982345581
+Acinetobacter phage phiAB1,Lactobacillus coryniformis,0.869100034236908
+Acinetobacter phage phiAB1,Lactococcus lactis,0.8760975897312164
+Acinetobacter phage phiAB1,Weissella oryzae,0.9134913384914398
+Acinetobacter phage phiAB6,Lactobacillus coryniformis,0.8741679191589355
+Acinetobacter phage phiAB6,Weissella oryzae,0.9120241105556488
+Acinetobacter phage vB_AbaM_Acibel004,Lactobacillus coryniformis,0.8612238764762878
+Acinetobacter phage vB_AbaM_Acibel004,Weissella oryzae,0.8874079883098602
+Acinetobacter phage vB_AbaM_phiAbaA1,Lactobacillus coryniformis,0.8621371984481812
+Acinetobacter phage vB_AbaM_phiAbaA1,Weissella oryzae,0.875603437423706
+Acinetobacter phage vB_AbaP_Acibel007,Lactobacillus coryniformis,0.8681364059448242
+Acinetobacter phage vB_AbaP_Acibel007,Weissella oryzae,0.8899392187595367
+Acinetobacter phage vB_AbaP_PD-6A3,Lactobacillus coryniformis,0.8750675022602081
+Acinetobacter phage vB_AbaP_PD-6A3,Lactococcus lactis,0.8694742918014526
+Acinetobacter phage vB_AbaP_PD-6A3,Weissella oryzae,0.9122641086578368
+Acinetobacter phage vB_AbaP_PD-AB9,Lactobacillus coryniformis,0.8606806099414825
+Acinetobacter phage vB_AbaP_PD-AB9,Weissella oryzae,0.8787268996238708
+Acinetobacter phage vB_AbaS_TRS1,Lactobacillus coryniformis,0.8640046119689941
+Acinetobacter phage vB_AbaS_TRS1,Weissella oryzae,0.895616739988327
+Aggregatibacter phage S1249,Lactobacillus coryniformis,0.8535701930522919
+Aggregatibacter phage S1249,Weissella oryzae,0.8727101981639862
+Alteromonas phage vB_AmaP_AD45-P1,Lactobacillus coryniformis,0.8510241210460663
+Aureococcus anophagefferens virus isolate BtV-01,Weissella oryzae,0.8742064237594604
+Bacillus cereus bacteriophage vB_BceM_Bc431v3,Lactobacillus coryniformis,0.859846442937851
+Bacillus cereus bacteriophage vB_BceM_Bc431v3,Weissella oryzae,0.8739601969718933
+Bacillus phage 250,Lactococcus lactis,0.8843636810779572
+Bacillus phage 250,Weissella oryzae,0.8928886353969574
+Bacillus phage AR9,Lactococcus lactis,0.8928623795509338
+Bacillus phage AR9,Weissella oryzae,0.8595388531684875
+Bacillus phage Andromeda,Weissella oryzae,0.882706880569458
+Bacillus phage Aurora,Lactococcus lactis,0.8780158758163452
+Bacillus phage AvesoBmore,Lactobacillus coryniformis,0.8558548390865326
+Bacillus phage AvesoBmore,Weissella oryzae,0.8927915096282959
+Bacillus phage B4,Lactobacillus coryniformis,0.8686040341854095
+Bacillus phage B4,Weissella oryzae,0.8848753273487091
+Bacillus phage BCJA1c,Weissella oryzae,0.8977740108966827
+Bacillus phage BCP78,Lactobacillus coryniformis,0.8557575047016144
+Bacillus phage BCP78,Weissella oryzae,0.865774393081665
+Bacillus phage BCP8-2,Lactobacillus coryniformis,0.8619943261146545
+Bacillus phage BCP8-2,Weissella oryzae,0.876030832529068
+Bacillus phage BPS13,Lactobacillus coryniformis,0.8692521452903748
+Bacillus phage BPS13,Weissella oryzae,0.8857750594615936
+Bacillus phage BalMu-1 copy 1,Lactobacillus coryniformis,0.8619310855865479
+Bacillus phage BalMu-1 copy 1,Weissella oryzae,0.8949401676654816
+Bacillus phage Bastille,Lactobacillus coryniformis,0.8646091818809509
+Bacillus phage Bastille,Weissella oryzae,0.8947241604328156
+Bacillus phage Bcp1,Weissella oryzae,0.8785347938537598
+Bacillus phage Belinda,Weissella oryzae,0.8669784963130951
+Bacillus phage BigBertha,Lactobacillus coryniformis,0.8560038506984711
+Bacillus phage BigBertha,Weissella oryzae,0.8918307721614838
+Bacillus phage Blastoid,Lactobacillus coryniformis,0.8610150218009949
+Bacillus phage Blastoid,Weissella oryzae,0.8917664587497711
+Bacillus phage Bp8p-C,Weissella oryzae,0.855300635099411
+Bacillus phage BtCS33,Lactococcus lactis,0.8982077240943909
+Bacillus phage BtCS33,Weissella oryzae,0.8981066942214966
+Bacillus phage CAM003,Lactobacillus coryniformis,0.8574765026569366
+Bacillus phage CAM003,Weissella oryzae,0.887485682964325
+Bacillus phage CP-51,Weissella oryzae,0.8720329999923706
+Bacillus phage CampHawk,Weissella oryzae,0.8703560829162598
+Bacillus phage Cherry,Lactococcus lactis,0.8890004754066467
+Bacillus phage Cherry,Weissella oryzae,0.8939343392848969
+Bacillus phage Curly,Weissella oryzae,0.8817902505397797
+Bacillus phage DIGNKC,Lactobacillus coryniformis,0.8544196784496307
+Bacillus phage DIGNKC,Weissella oryzae,0.8796364068984985
+Bacillus phage Deep Blue,Lactobacillus coryniformis,0.8596826791763306
+Bacillus phage Deep Blue,Weissella oryzae,0.8704567849636078
+Bacillus phage DirtyBetty,Lactobacillus coryniformis,0.8551534712314606
+Bacillus phage DirtyBetty,Weissella oryzae,0.8795371055603027
+Bacillus phage Eldridge,Weissella oryzae,0.8510331213474274
+Bacillus phage Eoghan,Lactobacillus coryniformis,0.8582653999328613
+Bacillus phage Eoghan,Weissella oryzae,0.8888869881629944
+Bacillus phage Eyuki,Lactobacillus coryniformis,0.8567314445972443
+Bacillus phage Eyuki,Weissella oryzae,0.8794196844100952
+Bacillus phage Fah,Lactococcus lactis,0.8943969309329987
+Bacillus phage Fah,Weissella oryzae,0.8962438702583313
+Bacillus phage Finn,Weissella oryzae,0.8884597420692444
+Bacillus phage G,Lactococcus lactis,0.8842818439006805
+Bacillus phage G,Weissella oryzae,0.8909961581230164
+Bacillus phage GA-1,Lactococcus lactis,0.9070002138614656
+Bacillus phage GA-1,Weissella oryzae,0.915794402360916
+Bacillus phage Gamma,Lactococcus lactis,0.8894821405410767
+Bacillus phage Gamma,Weissella oryzae,0.8944222629070282
+Bacillus phage Glittering,Lactobacillus coryniformis,0.8543850183486938
+Bacillus phage Glittering,Weissella oryzae,0.8856265544891357
+Bacillus phage IEBH,Lactococcus lactis,0.886896401643753
+Bacillus phage IEBH,Weissella oryzae,0.8963862061500549
+Bacillus phage JBP901,Lactobacillus coryniformis,0.8630477786064148
+Bacillus phage JBP901,Weissella oryzae,0.8779898285865784
+Bacillus phage JL,Weissella oryzae,0.8645795285701752
+Bacillus phage Kida,Weissella oryzae,0.8754760026931763
+Bacillus phage Mater,Lactobacillus coryniformis,0.8543635606765747
+Bacillus phage Mater,Weissella oryzae,0.8587277233600616
+Bacillus phage Nemo,Lactobacillus coryniformis,0.8554545044898987
+Bacillus phage Nemo,Weissella oryzae,0.8812928795814514
+Bacillus phage Nigalana,Weissella oryzae,0.8768063187599182
+Bacillus phage NotTheCreek,Weissella oryzae,0.8746266663074493
+Bacillus phage PBC1,Lactobacillus coryniformis,0.8621970415115356
+Bacillus phage PBC1,Weissella oryzae,0.8881937563419342
+Bacillus phage Page,Lactococcus lactis,0.8716562986373901
+Bacillus phage Page,Weissella oryzae,0.9055430591106416
+Bacillus phage Palmer,Lactobacillus coryniformis,0.8608308732509613
+Bacillus phage Palmer,Lactococcus lactis,0.8750271797180176
+Bacillus phage Palmer,Weissella oryzae,0.9114146530628204
+Bacillus phage Pascal,Lactobacillus coryniformis,0.8550427854061127
+Bacillus phage Pascal,Lactococcus lactis,0.8795283138751984
+Bacillus phage Pascal,Weissella oryzae,0.9109145402908324
+Bacillus phage Pavlov,Lactobacillus coryniformis,0.8556370735168457
+Bacillus phage Pavlov,Lactococcus lactis,0.87092125415802
+Bacillus phage Pavlov,Weissella oryzae,0.90761998295784
+Bacillus phage PfEFR-5,Lactococcus lactis,0.8816284835338593
+Bacillus phage PfEFR-5,Weissella oryzae,0.8830507099628448
+Bacillus phage Phrodo,Lactobacillus coryniformis,0.8581185936927795
+Bacillus phage Phrodo,Weissella oryzae,0.8931932747364044
+Bacillus phage Pony,Lactobacillus coryniformis,0.8517272770404816
+Bacillus phage Pony,Lactococcus lactis,0.8684381544589996
+Bacillus phage Pony,Weissella oryzae,0.9059089422225952
+Bacillus phage Pookie,Lactobacillus coryniformis,0.8502348959445953
+Bacillus phage Pookie,Lactococcus lactis,0.8730906844139099
+Bacillus phage Pookie,Weissella oryzae,0.9072405099868774
+Bacillus phage Riggi,Lactobacillus coryniformis,0.8544448912143707
+Bacillus phage Riggi,Weissella oryzae,0.8869305849075317
+Bacillus phage SP-15,Weissella oryzae,0.8735385835170746
+Bacillus phage SPO1,Weissella oryzae,0.8652094602584839
+Bacillus phage SageFayge,Lactobacillus coryniformis,0.8521164655685425
+Bacillus phage SageFayge,Weissella oryzae,0.879998654127121
+Bacillus phage SalinJah,Lactobacillus coryniformis,0.8560587763786316
+Bacillus phage SalinJah,Weissella oryzae,0.889469712972641
+Bacillus phage Shanette,Weissella oryzae,0.858366459608078
+Bacillus phage Shbh1,Lactococcus lactis,0.8541677296161652
+Bacillus phage Shbh1,Weissella oryzae,0.8886498808860779
+Bacillus phage Spock,Lactobacillus coryniformis,0.8643099367618561
+Bacillus phage Spock,Lactococcus lactis,0.8529303967952728
+Bacillus phage Spock,Weissella oryzae,0.9004541039466858
+Bacillus phage TsarBomba,Weissella oryzae,0.8636769950389862
+Bacillus phage W.Ph.,Weissella oryzae,0.8875341415405273
+Bacillus phage WBeta,Lactococcus lactis,0.8996066451072693
+Bacillus phage WBeta,Weissella oryzae,0.9035354554653168
+Bacillus phage Waukesha92,Lactococcus lactis,0.8770102560520172
+Bacillus phage Waukesha92,Weissella oryzae,0.8593232929706573
+Bacillus phage Zuko,Lactobacillus coryniformis,0.8511921465396881
+Bacillus phage Zuko,Weissella oryzae,0.8766668736934662
+Bacillus phage phIS3501,Lactococcus lactis,0.8877273201942444
+Bacillus phage phi4B1,Lactococcus lactis,0.8886310756206512
+Bacillus phage phi4J1,Lactococcus lactis,0.8938741385936737
+Bacillus phage phi4J1,Weissella oryzae,0.8886018991470337
+Bacillus phage phiAGATE,Lactobacillus coryniformis,0.8543961048126221
+Bacillus phage phiAGATE,Weissella oryzae,0.8641850650310516
+Bacillus phage phiCM3,Lactococcus lactis,0.8976110816001892
+Bacillus phage phiCM3,Weissella oryzae,0.9034053981304168
+Bacillus phage phiNIT1 DNA,Weissella oryzae,0.8538969159126282
+Bacillus phage vB_BanS-Tsamsa,Lactobacillus coryniformis,0.8542197644710541
+Bacillus phage vB_BanS-Tsamsa,Weissella oryzae,0.8933902680873871
+Bacillus phage vB_BhaS-171,Weissella oryzae,0.8930623233318329
+Bacillus phage vB_BtS_BMBtp2,Lactococcus lactis,0.8742112219333649
+Bacillus phage vB_BtS_BMBtp2,Weissella oryzae,0.9084197282791138
+Bacillus phage vB_BtS_BMBtp3,Lactococcus lactis,0.901811957359314
+Bacillus phage vB_BtS_BMBtp3,Weissella oryzae,0.9088271856307985
+Bacillus prophage phBC6A51,Lactobacillus coryniformis,0.8531692028045654
+Bacillus prophage phBC6A51,Weissella oryzae,0.9116601049900056
+Bacillus prophage phBC6A52,Lactococcus lactis,0.8829761147499084
+Bacillus prophage phBC6A52,Weissella oryzae,0.8883804678916931
+Bacillus virus 1,Lactobacillus coryniformis,0.8589569330215454
+Bacillus virus 1,Weissella oryzae,0.8801752626895905
+Bacteriophage APSE-2,Lactobacillus coryniformis,0.8522413372993469
+Bacteriophage APSE-2,Weissella oryzae,0.8833938539028168
+Bacteriophage Aaphi23,Lactobacillus coryniformis,0.8600412309169769
+Bacteriophage Aaphi23,Weissella oryzae,0.8836162984371185
+Bacteriophage Diva,Weissella oryzae,0.8670641779899597
+Bacteriophage Lily,Lactobacillus coryniformis,0.8506408631801605
+Bacteriophage Lily,Weissella oryzae,0.8764197528362274
+Bacteriophage PSA complete genome,Lactococcus lactis,0.897978812456131
+Bacteriophage PSA complete genome,Weissella oryzae,0.8976861536502838
+Bacteriophage Rani,Weissella oryzae,0.8794341385364532
+Bacteriophage Sitara,Weissella oryzae,0.8745773434638977
+"Bacteriophage r1t integrase, repressor protein (rro), dUTPase, holin and lysin genes, complete cds",Lactococcus lactis,0.8926774561405182
+"Bacteriophage r1t integrase, repressor protein (rro), dUTPase, holin and lysin genes, complete cds",Weissella oryzae,0.9001210927963257
+Bacteroides phage B124-14,Lactococcus lactis,0.8633339703083038
+Bacteroides phage B40-8,Lactococcus lactis,0.8826981782913208
+Bacteroides phage B40-8,Weissella oryzae,0.8995400965213776
+Bdellovibrio phage phi1422,Lactobacillus coryniformis,0.8538392186164856
+Brevibacillus phage Abouo,Weissella oryzae,0.8653603494167328
+Brevibacillus phage Davies,Weissella oryzae,0.8521287143230438
+Brevibacillus phage Jimmer1,Weissella oryzae,0.8755275309085846
+Brevibacillus phage Osiris,Weissella oryzae,0.8678205609321594
+Brevibacillus phage Sundance,Lactobacillus coryniformis,0.8528096675872803
+Brevibacillus phage Sundance,Weissella oryzae,0.879826545715332
+Brochothrix phage BL3,Lactococcus lactis,0.8778699040412903
+Brochothrix phage BL3,Weissella oryzae,0.884868860244751
+Brochothrix phage NF5,Lactococcus lactis,0.8810929954051971
+Brochothrix phage NF5,Weissella oryzae,0.897700160741806
+Campylobacter phage CP21,Lactococcus lactis,0.8928731083869934
+Campylobacter phage CP21,Weissella oryzae,0.8518671095371246
+Campylobacter phage CP220,Lactococcus lactis,0.9019623398780824
+Campylobacter phage CP220,Weissella oryzae,0.9016611278057098
+Campylobacter phage CP30A,Lactococcus lactis,0.9092013239860536
+Campylobacter phage NCTC12673,Lactococcus lactis,0.9028376936912536
+Campylobacter phage PC14,Lactococcus lactis,0.9024105370044708
+Cellulophaga phage phi10:1,Lactococcus lactis,0.8740788102149963
+Cellulophaga phage phi14:2,Lactococcus lactis,0.899008184671402
+Cellulophaga phage phi14:2,Weissella oryzae,0.8729135096073151
+Cellulophaga phage phi18:1,Lactococcus lactis,0.905712068080902
+Cellulophaga phage phi46:1,Lactococcus lactis,0.876596063375473
+Cellulophaga phage phi46:1,Weissella oryzae,0.8905413150787354
+Cellulophaga phage phiSM genomic sequence,Lactococcus lactis,0.8979893624782562
+Cellulophaga phage phiSM genomic sequence,Weissella oryzae,0.904813587665558
+Cellulophaga phage phiST genomic sequence,Lactococcus lactis,0.8963569402694702
+Cellulophaga phage phiST genomic sequence,Weissella oryzae,0.8676440119743347
+Citrobacter phage Michonne,Lactobacillus coryniformis,0.8620526492595673
+Citrobacter phage Michonne,Weissella oryzae,0.8690584897994995
+Citrobacter phage Moogle,Lactobacillus coryniformis,0.8596644103527069
+Citrobacter phage Moogle,Weissella oryzae,0.8672440350055695
+Citrobacter virus Stevie,Weissella oryzae,0.8542121648788452
+Clostridium phage phi CD119,Lactococcus lactis,0.8882373571395874
+Clostridium phage phiCD111,Lactococcus lactis,0.9026937782764436
+Clostridium phage phiCD146,Lactococcus lactis,0.8875858783721924
+Clostridium phage phiCD146,Weissella oryzae,0.8794450759887695
+Clostridium phage phiCD211,Lactococcus lactis,0.9009649157524108
+Clostridium phage phiCD27,Lactococcus lactis,0.8906656801700592
+Clostridium phage phiCD27,Weissella oryzae,0.8840168118476868
+Clostridium phage phiCD505,Lactococcus lactis,0.8892786502838135
+Clostridium phage phiCD6356,Lactococcus lactis,0.886005163192749
+Clostridium phage phiCP13O,Lactococcus lactis,0.8803429007530212
+Clostridium phage phiCP34O,Lactococcus lactis,0.8821291029453278
+Clostridium phage phiCT19406B,Lactococcus lactis,0.8837732374668121
+Clostridium phage phiCT19406B,Weissella oryzae,0.8740611970424652
+Clostridium phage phiCT19406C,Lactococcus lactis,0.8587805926799774
+Clostridium phage phiCTC2B,Lactococcus lactis,0.8839535117149353
+Clostridium phage phiCTC2B,Weissella oryzae,0.8741868138313293
+Clostridium phage phiMMP02,Lactococcus lactis,0.8958232700824738
+Clostridium phage phiMMP02,Weissella oryzae,0.8887794315814972
+Clostridium phage phiMMP04,Lactococcus lactis,0.9008829593658448
+Clostridium phage phiMMP04,Weissella oryzae,0.8943644165992737
+Croceibacter phage P2559S,Weissella oryzae,0.8845455944538116
+Cronobacter phage vB_CsaM_GAP32,Weissella oryzae,0.862434983253479
+Cyanophage 9515-10a,Weissella oryzae,0.8546317219734192
+Cyanophage MED4-117 genomic sequence,Lactobacillus coryniformis,0.8694530725479126
+Cyanophage MED4-117 genomic sequence,Weissella oryzae,0.8908823132514954
+Cyanophage MED4-184 genomic sequence,Lactococcus lactis,0.8649629354476929
+Cyanophage MED4-184 genomic sequence,Weissella oryzae,0.9022640585899352
+Cyanophage P-RSM6 genomic sequence,Weissella oryzae,0.8531635403633118
+Cyanophage P-TIM40,Weissella oryzae,0.8615625202655792
+Enterobacter phage EcP1,Lactobacillus coryniformis,0.8714041113853455
+Enterobacter phage EcP1,Lactococcus lactis,0.8596652448177338
+Enterobacter phage EcP1,Weissella oryzae,0.9078012704849244
+Enterobacteria phage DT57C,Lactobacillus coryniformis,0.862644374370575
+Enterobacteria phage Felix 01,Lactobacillus coryniformis,0.863251656293869
+Enterobacteria phage Felix 01,Weissella oryzae,0.8900846540927887
+Enterobacteria phage HX01,Lactobacillus coryniformis,0.8555171191692352
+Enterobacteria phage HX01,Weissella oryzae,0.8629549741744995
+Enterobacteria phage K1-5,Weissella oryzae,0.8589681088924408
+Enterobacteria phage K1E,Lactobacillus coryniformis,0.8613533675670624
+Enterobacteria phage K1E,Weissella oryzae,0.8672675788402557
+Enterobacteria phage N4,Lactobacillus coryniformis,0.865337997674942
+Enterobacteria phage N4,Weissella oryzae,0.8585557043552399
+Enterobacteria phage SP6,Weissella oryzae,0.8604957461357117
+Enterobacteria phage SPC35,Lactobacillus coryniformis,0.8534770309925079
+Enterobacteria phage WV8,Lactobacillus coryniformis,0.8531617820262909
+Enterobacteria phage WV8,Weissella oryzae,0.862395852804184
+Enterobacteria phage vB_EcoP_ACG-C91,Lactobacillus coryniformis,0.8534050583839417
+Enterobacteria phage vB_EcoP_ACG-C91,Weissella oryzae,0.8611696362495422
+Enterobacteria phage vB_KleM-RaK2,Weissella oryzae,0.8843073546886444
+Enterobacteriaphage UAB_Phi87,Weissella oryzae,0.8572015762329102
+Enterococcus phage BC-611,Lactobacillus coryniformis,0.8767625987529755
+Enterococcus phage BC-611,Weissella oryzae,0.9056375324726104
+Enterococcus phage ECP3,Lactobacillus coryniformis,0.8696613907814026
+Enterococcus phage ECP3,Lactococcus lactis,0.86398646235466
+Enterococcus phage ECP3,Weissella oryzae,0.905617505311966
+Enterococcus phage EF62phi,Lactococcus lactis,0.8926580250263214
+Enterococcus phage EF62phi,Weissella oryzae,0.8877412676811218
+Enterococcus phage EFAP-1,Lactobacillus coryniformis,0.8751747608184814
+Enterococcus phage EFAP-1,Lactococcus lactis,0.8774583041667938
+Enterococcus phage EFAP-1,Weissella oryzae,0.9119788110256196
+Enterococcus phage EFDG1,Lactobacillus coryniformis,0.8562279939651489
+Enterococcus phage EFDG1,Weissella oryzae,0.9006215929985046
+Enterococcus phage EFLK1,Lactobacillus coryniformis,0.8677670359611511
+Enterococcus phage EFLK1,Lactococcus lactis,0.8634087145328522
+Enterococcus phage EFLK1,Weissella oryzae,0.904581904411316
+Enterococcus phage Ec-ZZ2,Lactobacillus coryniformis,0.8533715605735779
+Enterococcus phage Ec-ZZ2,Lactococcus lactis,0.9118307530879974
+Enterococcus phage Ec-ZZ2,Weissella oryzae,0.9211695790290833
+Enterococcus phage EfaCPT1,Lactobacillus coryniformis,0.8744146227836609
+Enterococcus phage EfaCPT1,Lactococcus lactis,0.9084862470626832
+Enterococcus phage EfaCPT1,Weissella oryzae,0.9228282570838928
+Enterococcus phage IME-EF4,Lactobacillus coryniformis,0.8602518141269684
+Enterococcus phage IME-EF4,Lactococcus lactis,0.911904603242874
+Enterococcus phage IME-EF4,Weissella oryzae,0.9219449758529664
+Enterococcus phage IME-EFm1,Lactobacillus coryniformis,0.8715690076351166
+Enterococcus phage IME-EFm1,Lactococcus lactis,0.9047698676586152
+Enterococcus phage IME-EFm1,Weissella oryzae,0.9198241829872132
+Enterococcus phage IME-EFm5,Lactobacillus coryniformis,0.8541447818279266
+Enterococcus phage IME-EFm5,Lactococcus lactis,0.9096681475639344
+Enterococcus phage IME-EFm5,Weissella oryzae,0.9179945588111876
+Enterococcus phage IME_EF3,Lactobacillus coryniformis,0.8636890351772308
+Enterococcus phage IME_EF3,Lactococcus lactis,0.905818909406662
+Enterococcus phage IME_EF3,Weissella oryzae,0.91836878657341
+Enterococcus phage SANTOR1,Lactobacillus coryniformis,0.8675713241100311
+Enterococcus phage SANTOR1,Lactococcus lactis,0.906664103269577
+Enterococcus phage SANTOR1,Weissella oryzae,0.9202654361724854
+Enterococcus phage VD13,Lactobacillus coryniformis,0.8772781789302826
+Enterococcus phage VD13,Weissella oryzae,0.9085475206375122
+Enterococcus phage phiEF24C,Lactobacillus coryniformis,0.8516606390476227
+Enterococcus phage phiEF24C,Lactococcus lactis,0.8750667870044708
+Enterococcus phage phiEF24C,Weissella oryzae,0.902492254972458
+Enterococcus phage phiEf11,Lactococcus lactis,0.8927171528339386
+Enterococcus phage phiFL3A,Lactococcus lactis,0.8994771242141724
+Enterococcus phage phiFL3A,Weissella oryzae,0.9059584438800812
+Enterococcus phage phiFL4A,Lactococcus lactis,0.8893283903598785
+Enterococcus phage phiFL4A,Weissella oryzae,0.8967808187007904
+Enterococcus phage vB_EfaP_IME195,Lactococcus lactis,0.9002982378005981
+Enterococcus phage vB_EfaP_IME195,Weissella oryzae,0.9018789231777192
+Enterococcus phage vB_EfaS_IME196,Lactobacillus coryniformis,0.8773989975452423
+Enterococcus phage vB_EfaS_IME196,Lactococcus lactis,0.9097194075584412
+Enterococcus phage vB_EfaS_IME196,Weissella oryzae,0.9249179661273956
+Enterococcus phage vB_EfaS_IME197,Lactococcus lactis,0.8949785828590393
+Enterococcus phage vB_EfaS_IME198,Lactobacillus coryniformis,0.8740511834621429
+Enterococcus phage vB_EfaS_IME198,Weissella oryzae,0.9000959098339081
+Enterococcus phage vB_Efae230P-4,Lactococcus lactis,0.9038061201572418
+Erysipelothrix phage SE-1,Lactococcus lactis,0.8799539506435394
+Erysipelothrix phage SE-1,Weissella oryzae,0.8981865048408508
+Escherichia phage ECBP1,Lactobacillus coryniformis,0.8586035072803497
+Escherichia phage ECBP1,Weissella oryzae,0.8719235062599182
+Escherichia phage vB_EcoM_JS09,Lactobacillus coryniformis,0.8532128632068634
+Escherichia phage vB_EcoM_JS09,Weissella oryzae,0.8595548868179321
+Felis catus gammaherpesvirus 1 isolate 31286,Weissella oryzae,0.855556070804596
+Flavobacterium phage 1H,Lactococcus lactis,0.9140817821025848
+Flavobacterium phage 2A,Lactococcus lactis,0.9107351899147034
+Flavobacterium phage 6H,Lactococcus lactis,0.9092310070991516
+Flavobacterium phage Fpv1,Lactococcus lactis,0.9042709469795228
+Flavobacterium phage Fpv1,Weissella oryzae,0.8791096806526184
+Flavobacterium phage Fpv10,Lactococcus lactis,0.8738940954208374
+Flavobacterium phage Fpv10,Weissella oryzae,0.8649160265922546
+Flavobacterium phage Fpv11,Lactococcus lactis,0.8738940954208374
+Flavobacterium phage Fpv11,Weissella oryzae,0.8649160265922546
+Flavobacterium phage Fpv2,Lactococcus lactis,0.9044942259788512
+Flavobacterium phage Fpv2,Weissella oryzae,0.8793475329875946
+Flavobacterium phage Fpv20,Lactococcus lactis,0.9043496251106262
+Flavobacterium phage Fpv20,Weissella oryzae,0.8785607218742371
+Flavobacterium phage Fpv3,Lactococcus lactis,0.9033403694629668
+Flavobacterium phage Fpv5,Lactococcus lactis,0.8738525807857513
+Flavobacterium phage Fpv5,Weissella oryzae,0.8648609817028046
+Flavobacterium phage Fpv6,Lactococcus lactis,0.8738525807857513
+Flavobacterium phage Fpv6,Weissella oryzae,0.8648609817028046
+Flavobacterium phage Fpv7,Lactococcus lactis,0.8742623627185822
+Flavobacterium phage Fpv7,Weissella oryzae,0.8654002845287323
+Flavobacterium phage Fpv8,Lactococcus lactis,0.8738525807857513
+Flavobacterium phage Fpv8,Weissella oryzae,0.8648609817028046
+Geobacillus phage GBK2,Weissella oryzae,0.8926917314529419
+Geobacillus phage GBSV1,Lactobacillus coryniformis,0.8568593263626099
+Geobacillus phage GBSV1,Weissella oryzae,0.879340410232544
+Geobacillus virus E2,Lactobacillus coryniformis,0.8526575267314911
+Geobacillus virus E2,Weissella oryzae,0.8765594065189362
+Haemophilus phage HP1,Weissella oryzae,0.8992064595222473
+Haemophilus phage HP2,Weissella oryzae,0.8884937465190887
+Haemophilus phage SuMu,Lactobacillus coryniformis,0.8723513185977936
+Haemophilus phage SuMu,Weissella oryzae,0.8950110375881195
+Helicobacter phage 1961P,Lactococcus lactis,0.8872514367103577
+Helicobacter phage 1961P,Weissella oryzae,0.8870932757854462
+Helicobacter phage KHP30 DNA,Lactococcus lactis,0.8727413713932037
+Helicobacter phage KHP40 DNA,Lactococcus lactis,0.886139303445816
+Helicobacter phage KHP40 DNA,Weissella oryzae,0.8810261189937592
+Helicobacter phage phiHP33,Lactococcus lactis,0.8840949237346649
+Helicobacter phage phiHP33,Weissella oryzae,0.8830369710922241
+Klebsiella phage K64-1 DNA,Weissella oryzae,0.8846987187862396
+Lactobacillus johnsonii prophage Lj771,Lactobacillus coryniformis,0.8618868589401245
+Lactobacillus johnsonii prophage Lj771,Lactococcus lactis,0.9014213681221008
+Lactobacillus johnsonii prophage Lj771,Weissella oryzae,0.92043536901474
+Lactobacillus phage CL2,Weissella oryzae,0.8633330464363098
+Lactobacillus phage J-1,Lactobacillus coryniformis,0.8505343794822693
+Lactobacillus phage J-1,Weissella oryzae,0.8657406866550446
+Lactobacillus phage JCL1032,Weissella oryzae,0.8588166534900665
+Lactobacillus phage LP65,Lactobacillus coryniformis,0.8698885142803192
+Lactobacillus phage LP65,Weissella oryzae,0.8821566104888916
+Lactobacillus phage Lc-Nu,Lactobacillus coryniformis,0.8641532361507416
+Lactobacillus phage Lc-Nu,Weissella oryzae,0.8813107907772064
+Lactobacillus phage Ld17,Lactobacillus coryniformis,0.8600606024265289
+Lactobacillus phage Ld17,Weissella oryzae,0.8874167501926422
+Lactobacillus phage Ld25A,Lactobacillus coryniformis,0.8718389272689819
+Lactobacillus phage Ld25A,Weissella oryzae,0.8975255787372589
+Lactobacillus phage Ld3,Lactobacillus coryniformis,0.8775899410247803
+Lactobacillus phage Ld3,Weissella oryzae,0.9009581506252288
+Lactobacillus phage Ldl1,Lactobacillus coryniformis,0.858782559633255
+Lactobacillus phage Ldl1,Weissella oryzae,0.8934467434883118
+Lactobacillus phage Lv-1,Lactobacillus coryniformis,0.8573278486728668
+Lactobacillus phage Lv-1,Lactococcus lactis,0.8738793730735779
+Lactobacillus phage Lv-1,Weissella oryzae,0.9129819273948668
+Lactobacillus phage PLE2,Weissella oryzae,0.8544155657291412
+Lactobacillus phage Sha1,Lactobacillus coryniformis,0.8776308596134186
+Lactobacillus phage Sha1,Weissella oryzae,0.8979751169681549
+Lactobacillus phage c5,Lactobacillus coryniformis,0.8615359961986542
+Lactobacillus phage c5,Weissella oryzae,0.8856882452964783
+Lactobacillus phage iA2,Weissella oryzae,0.8582645058631897
+Lactobacillus phage phi jlb1,Lactobacillus coryniformis,0.8585738241672516
+Lactobacillus phage phi jlb1,Lactococcus lactis,0.8907039165496826
+Lactobacillus phage phi jlb1,Weissella oryzae,0.9149811267852784
+Lactobacillus phage phiLdb,Lactobacillus coryniformis,0.8795510530471802
+Lactobacillus phage phiLdb,Weissella oryzae,0.9075194597244264
+Lactobacillus prophage Lj928,Lactobacillus coryniformis,0.8553255796432495
+Lactobacillus prophage Lj928,Lactococcus lactis,0.9106109142303468
+Lactobacillus prophage Lj928,Weissella oryzae,0.9200488924980164
+Lactobacillus prophage Lj965,Lactococcus lactis,0.915787309408188
+Lactobacillus prophage Lj965,Weissella oryzae,0.9235654473304749
+Lactobacillus prophage phiadh,Lactobacillus coryniformis,0.8621461689472198
+Lactobacillus prophage phiadh,Lactococcus lactis,0.8901751041412354
+Lactobacillus prophage phiadh,Weissella oryzae,0.916069597005844
+Lactococcus phage 1706,Lactobacillus coryniformis,0.865743100643158
+Lactococcus phage 1706,Lactococcus lactis,0.916291445493698
+Lactococcus phage 1706,Weissella oryzae,0.9249410927295684
+Lactococcus phage 28201,Weissella oryzae,0.9051815271377563
+Lactococcus phage 4268,Lactobacillus coryniformis,0.8525316715240479
+Lactococcus phage 4268,Lactococcus lactis,0.9016654193401336
+Lactococcus phage 4268,Weissella oryzae,0.915627658367157
+Lactococcus phage 50101,Lactococcus lactis,0.891910582780838
+Lactococcus phage 50101,Weissella oryzae,0.9016402065753936
+Lactococcus phage 63301,Lactococcus lactis,0.9019817411899568
+Lactococcus phage 63301,Weissella oryzae,0.9100131690502168
+Lactococcus phage 949,Lactobacillus coryniformis,0.8633759319782257
+Lactococcus phage 949,Lactococcus lactis,0.8917333483695984
+Lactococcus phage 949,Weissella oryzae,0.9129945635795592
+Lactococcus phage 98201,Lactococcus lactis,0.8817547857761383
+Lactococcus phage 98201,Weissella oryzae,0.9056994318962096
+Lactococcus phage BK5-T,Lactococcus lactis,0.908235728740692
+Lactococcus phage BK5-T,Weissella oryzae,0.914869636297226
+Lactococcus phage BM13,Lactococcus lactis,0.8967527747154236
+Lactococcus phage BM13,Weissella oryzae,0.9008349180221558
+Lactococcus phage KSY1,Lactococcus lactis,0.8775796890258789
+Lactococcus phage KSY1,Weissella oryzae,0.894798070192337
+Lactococcus phage P087,Lactobacillus coryniformis,0.860951840877533
+Lactococcus phage P087,Lactococcus lactis,0.8946927785873413
+Lactococcus phage P087,Weissella oryzae,0.916137307882309
+Lactococcus phage PLgT-1,Lactobacillus coryniformis,0.8629977405071259
+Lactococcus phage PLgT-1,Weissella oryzae,0.8899210393428802
+Lactococcus phage Q54,Lactococcus lactis,0.8880960643291473
+Lactococcus phage Q54,Weissella oryzae,0.8959620893001556
+Lactococcus phage TP901-1,Lactococcus lactis,0.902421772480011
+Lactococcus phage TP901-1,Weissella oryzae,0.908957064151764
+Lactococcus phage Tuc2009,Lactococcus lactis,0.8970631062984467
+Lactococcus phage Tuc2009,Weissella oryzae,0.9058638513088226
+Lactococcus phage WRP3,Lactobacillus coryniformis,0.8523760437965393
+Lactococcus phage WRP3,Lactococcus lactis,0.8994468748569489
+Lactococcus phage WRP3,Weissella oryzae,0.910623699426651
+Lactococcus phage phiL47,Lactobacillus coryniformis,0.8601542115211487
+Lactococcus phage phiL47,Lactococcus lactis,0.897881954908371
+Lactococcus phage phiL47,Weissella oryzae,0.912902683019638
+Lactococcus phage phiLC3,Lactococcus lactis,0.8947876691818237
+Lactococcus phage phiLC3,Weissella oryzae,0.9045533835887908
+Lactococcus phage ul36,Lactococcus lactis,0.8831539154052734
+Lactococcus prophage bIL285,Lactococcus lactis,0.885762482881546
+Lactococcus prophage bIL285,Weissella oryzae,0.8991709649562836
+Lactococcus prophage bIL286,Lactococcus lactis,0.8929997980594635
+Lactococcus prophage bIL286,Weissella oryzae,0.9064852595329284
+Lactococcus prophage bIL309,Lactococcus lactis,0.8894528746604919
+Lactococcus prophage bIL309,Weissella oryzae,0.9089489579200744
+Lactococcus prophage bIL310,Lactobacillus coryniformis,0.8875516355037689
+Lactococcus prophage bIL310,Lactococcus lactis,0.920961856842041
+Lactococcus prophage bIL310,Weissella oryzae,0.9352027475833892
+Lactococcus prophage bIL311,Lactococcus lactis,0.8925390541553497
+Lactococcus prophage bIL311,Weissella oryzae,0.8938177525997162
+Lactococcus prophage bIL312,Lactococcus lactis,0.9084954559803008
+Lactococcus prophage bIL312,Weissella oryzae,0.9149674475193024
+Liberibacter phage SC1,Weissella oryzae,0.8782695233821869
+Listeria phage A006,Lactococcus lactis,0.8945223093032837
+Listeria phage A006,Weissella oryzae,0.9008751213550568
+Listeria phage A118,Lactococcus lactis,0.8890785276889801
+Listeria phage A118,Weissella oryzae,0.8658888638019562
+Listeria phage A500,Lactococcus lactis,0.8881265819072723
+Listeria phage A500,Weissella oryzae,0.9007335901260376
+Listeria phage A511,Lactococcus lactis,0.892952173948288
+Listeria phage A511,Weissella oryzae,0.9025186598300934
+Listeria phage B025,Lactococcus lactis,0.8978587985038757
+Listeria phage B054,Lactococcus lactis,0.860840231180191
+Listeria phage B054,Weissella oryzae,0.8728030622005463
+Listeria phage LMSP-25,Lactococcus lactis,0.8954593241214752
+Listeria phage LMSP-25,Weissella oryzae,0.9058078229427338
+Listeria phage LMTA-148,Lactococcus lactis,0.888087272644043
+Listeria phage LMTA-148,Weissella oryzae,0.9010556042194366
+Listeria phage LP-026,Weissella oryzae,0.8908234536647797
+Listeria phage LP-030-3,Lactococcus lactis,0.8755990564823151
+Listeria phage LP-048,Lactococcus lactis,0.8916122913360596
+Listeria phage LP-048,Weissella oryzae,0.9038608968257904
+Listeria phage LP-083-2,Lactococcus lactis,0.8908915519714355
+Listeria phage LP-083-2,Weissella oryzae,0.901685744524002
+Listeria phage LP-101,Lactococcus lactis,0.899985671043396
+Listeria phage LP-114,Weissella oryzae,0.8773282468318939
+Listeria phage List-36,Lactobacillus coryniformis,0.862409234046936
+Listeria phage List-36,Lactococcus lactis,0.8845467567443848
+Listeria phage List-36,Weissella oryzae,0.9090033769607544
+Listeria phage P40,Lactococcus lactis,0.8767527341842651
+Listeria phage P40,Weissella oryzae,0.9061665832996368
+Listeria phage WIL-1,Lactobacillus coryniformis,0.874324381351471
+Listeria phage WIL-1,Lactococcus lactis,0.888451337814331
+Listeria phage WIL-1,Weissella oryzae,0.9148858189582824
+Listeria phage vB_LmoM_AG20,Lactococcus lactis,0.8905669450759888
+Listeria phage vB_LmoM_AG20,Weissella oryzae,0.9020999372005464
+Listeria phage vB_LmoS_293,Lactococcus lactis,0.8663816452026367
+MAG: Phormidium phage MIS-PhV1A,Weissella oryzae,0.8603903949260712
+Mannheimia phage phiMHaA1,Lactobacillus coryniformis,0.8644025325775146
+Mannheimia phage phiMHaA1,Lactococcus lactis,0.8610986769199371
+Mannheimia phage phiMHaA1,Weissella oryzae,0.9018303155899048
+Mannheimia phage vB_MhM_1152AP,Lactobacillus coryniformis,0.863223671913147
+Mannheimia phage vB_MhM_1152AP,Lactococcus lactis,0.8596219122409821
+Mannheimia phage vB_MhM_1152AP,Weissella oryzae,0.9006433486938477
+Mannheimia phage vB_MhM_587AP1,Lactobacillus coryniformis,0.8668074011802673
+Mannheimia phage vB_MhM_587AP1,Lactococcus lactis,0.8533670902252197
+Mannheimia phage vB_MhM_587AP1,Weissella oryzae,0.8997229337692261
+Mannheimia phage vB_MhS_1152AP2,Lactobacillus coryniformis,0.8551070094108582
+Mannheimia phage vB_MhS_1152AP2,Weissella oryzae,0.877478837966919
+Mannheimia phage vB_MhS_535AP2,Lactobacillus coryniformis,0.8582404851913452
+Mannheimia phage vB_MhS_535AP2,Weissella oryzae,0.882591038942337
+Methanobacterium phage psiM2,Lactobacillus coryniformis,0.8608839213848114
+Methanobacterium phage psiM2,Weissella oryzae,0.8892309069633484
+Microcystis phage Ma-LMM01 DNA,Weissella oryzae,0.8608419001102448
+Microcystis phage MaMV-DC,Weissella oryzae,0.860308974981308
+Oenococcus phage phiS11,Lactococcus lactis,0.8821687400341034
+Oenococcus phage phiS11,Weissella oryzae,0.8874577879905701
+Oenococcus phage phiS13,Lactococcus lactis,0.8794213235378265
+Oenococcus phage phiS13,Weissella oryzae,0.8861386179924011
+Paenibacillus phage Fern,Weissella oryzae,0.8778313994407654
+Paenibacillus phage HB10c2,Weissella oryzae,0.8762997984886169
+Paenibacillus phage Harrison,Weissella oryzae,0.8916046023368835
+Paenibacillus phage PG1 genomic sequence,Weissella oryzae,0.8649675250053406
+Paenibacillus phage Vegas,Weissella oryzae,0.8656298220157623
+Paenibacillus phage Xenia,Weissella oryzae,0.8741526007652283
+Pasteurella phage F108,Weissella oryzae,0.8942966759204865
+Pelagibacter phage HTVC008M,Lactococcus lactis,0.8655288815498352
+Pelagibacter phage HTVC008M,Weissella oryzae,0.8818046152591705
+Pelagibacter phage HTVC010P,Lactococcus lactis,0.8939660787582397
+Pelagibacter phage HTVC011P,Lactococcus lactis,0.8873494565486908
+Pelagibacter phage HTVC011P,Weissella oryzae,0.8799388408660889
+Pelagibacter phage HTVC019P,Lactococcus lactis,0.880333811044693
+Pelagibacter phage HTVC019P,Weissella oryzae,0.8765569627285004
+Prochlorococcus phage P-HM1,Lactobacillus coryniformis,0.8598868250846863
+Prochlorococcus phage P-HM1,Weissella oryzae,0.881692498922348
+Prochlorococcus phage P-HM2,Weissella oryzae,0.8597627878189087
+Prochlorococcus phage P-RSM4,Lactobacillus coryniformis,0.8566363751888275
+Prochlorococcus phage P-RSM4,Weissella oryzae,0.8782086670398712
+Prochlorococcus phage P-SSM2,Weissella oryzae,0.8640714585781097
+Prochlorococcus phage P-SSM3 genomic sequence,Lactobacillus coryniformis,0.8696042001247406
+Prochlorococcus phage P-SSM3 genomic sequence,Weissella oryzae,0.8938123285770416
+Prochlorococcus phage P-SSM7,Lactobacillus coryniformis,0.8520393073558807
+Prochlorococcus phage P-SSM7,Weissella oryzae,0.8701978027820587
+Prochlorococcus phage P-SSP10 genomic sequence,Weissella oryzae,0.8533512055873871
+Prochlorococcus phage P-SSP3 genomic sequence,Weissella oryzae,0.8663828074932098
+Prochlorococcus phage P-TIM68,Lactococcus lactis,0.8579964637756348
+Prochlorococcus phage P-TIM68,Weissella oryzae,0.8946307003498077
+Proteus phage PM 85,Lactobacillus coryniformis,0.8755323588848114
+Proteus phage PM 85,Lactococcus lactis,0.877474457025528
+Proteus phage PM 85,Weissella oryzae,0.9171856641769408
+Proteus phage PM 93,Lactobacillus coryniformis,0.86476731300354
+Proteus phage PM 93,Lactococcus lactis,0.8679049611091614
+Proteus phage PM 93,Weissella oryzae,0.909450501203537
+Proteus phage vB_PmiM_Pm5461,Lactobacillus coryniformis,0.8627100884914398
+Proteus phage vB_PmiM_Pm5461,Weissella oryzae,0.8912452757358551
+Proteus phage vB_PmiP_Pm5460,Lactobacillus coryniformis,0.8722759783267975
+Proteus phage vB_PmiP_Pm5460,Lactococcus lactis,0.8682508766651154
+Proteus phage vB_PmiP_Pm5460,Weissella oryzae,0.9123353362083436
+Pseudoalteromonas Phage H103,Lactobacillus coryniformis,0.8659937977790833
+Pseudoalteromonas Phage H103,Weissella oryzae,0.8764101266860962
+Pseudoalteromonas phage BS5,Weissella oryzae,0.8591743111610413
+Pseudoalteromonas phage PH1,Lactobacillus coryniformis,0.8745465576648712
+Pseudoalteromonas phage PH1,Weissella oryzae,0.8913729190826416
+Pseudoalteromonas phage PH1,Weissella soli,0.8553021252155304
+Pseudoalteromonas phage Pq0,Lactobacillus coryniformis,0.8797890841960907
+Pseudoalteromonas phage Pq0,Lactococcus lactis,0.8652896583080292
+Pseudoalteromonas phage Pq0,Weissella oryzae,0.906018316745758
+Pseudoalteromonas phage pYD6-A genomic sequence,Lactobacillus coryniformis,0.8801578879356384
+Pseudoalteromonas phage pYD6-A genomic sequence,Lactococcus lactis,0.8600170016288757
+Pseudoalteromonas phage pYD6-A genomic sequence,Weissella oryzae,0.9074309468269348
+Pseudomonas phage 119X,Lactobacillus coryniformis,0.8750816285610199
+Pseudomonas phage 119X,Weissella oryzae,0.8939517736434937
+Pseudomonas phage PA11,Weissella oryzae,0.8563814759254456
+Pseudomonas phage PaP2,Lactobacillus coryniformis,0.8677080869674683
+Pseudomonas phage PaP2,Weissella oryzae,0.886216938495636
+Pseudomonas phage phiKZ,Lactobacillus coryniformis,0.8531548976898193
+Pseudomonas phage phiKZ,Weissella oryzae,0.8693860173225403
+Psychrobacter phage pOW20-A genomic sequence,Weissella oryzae,0.8637761473655701
+Rhodococcus phage Grayson,Weissella oryzae,0.8521122932434082
+Rhodococcus phage Peregrin,Lactobacillus coryniformis,0.8565430343151093
+Rhodococcus phage Peregrin,Weissella oryzae,0.8586778938770294
+Riemerella phage RAP44,Lactobacillus coryniformis,0.8632301390171051
+Riemerella phage RAP44,Lactococcus lactis,0.9026256501674652
+Riemerella phage RAP44,Weissella oryzae,0.9167392551898956
+Salmonella phage BPS15Q2,Lactobacillus coryniformis,0.8621018528938293
+Salmonella phage BPS15Q2,Weissella oryzae,0.8854864239692688
+Salmonella phage FSL SP-058,Lactobacillus coryniformis,0.8851176500320435
+Salmonella phage FSL SP-058,Weissella oryzae,0.8980279862880707
+Salmonella phage FSL SP-076,Lactobacillus coryniformis,0.8788240253925323
+Salmonella phage FSL SP-076,Weissella oryzae,0.8915430307388306
+Salmonella phage FSL SP-076,Weissella soli,0.8555464148521423
+Salmonella phage NR01,Lactobacillus coryniformis,0.8562450706958771
+Salmonella phage NR01,Weissella oryzae,0.8628372848033905
+Salmonella phage Shivani,Lactobacillus coryniformis,0.853743702173233
+Salmonella phage vB_SPuM_SP116,Lactobacillus coryniformis,0.8560382127761841
+Salmonella phage vB_SPuM_SP116,Weissella oryzae,0.8780195116996765
+Shigella phage SHSML-45,Weissella oryzae,0.8505087494850159
+Shigella phage SHSML-52-1,Lactobacillus coryniformis,0.8552648425102234
+Shigella phage SHSML-52-1,Weissella oryzae,0.8622410297393799
+Sphingomonas phage PAU,Lactococcus lactis,0.8787435293197632
+Sphingomonas phage PAU,Weissella oryzae,0.88310906291008
+Staphylococcus aureus phage phiNM1,Lactococcus lactis,0.8837617635726929
+Staphylococcus aureus phage phiNM1,Weissella oryzae,0.8711701929569244
+Staphylococcus phage 11,Lactococcus lactis,0.8819772601127625
+Staphylococcus phage 11,Weissella oryzae,0.8772693276405334
+Staphylococcus phage 29,Lactococcus lactis,0.8945434391498566
+Staphylococcus phage 37,Lactococcus lactis,0.8921739161014557
+Staphylococcus phage 3A,Lactococcus lactis,0.9012839496135712
+Staphylococcus phage 3MRA,Lactococcus lactis,0.8844303488731384
+Staphylococcus phage 3MRA,Weissella oryzae,0.8915665447711945
+Staphylococcus phage 42e,Lactococcus lactis,0.8885896801948547
+Staphylococcus phage 42e,Weissella oryzae,0.8691631853580475
+Staphylococcus phage 47,Lactococcus lactis,0.8957711458206177
+Staphylococcus phage 52A,Lactococcus lactis,0.8800585269927979
+Staphylococcus phage 52A,Weissella oryzae,0.8777841031551361
+Staphylococcus phage 53,Lactococcus lactis,0.8844728171825409
+Staphylococcus phage 53,Weissella oryzae,0.8774009048938751
+Staphylococcus phage 55,Lactococcus lactis,0.8817425668239594
+Staphylococcus phage 55,Weissella oryzae,0.85776486992836
+Staphylococcus phage 69,Lactococcus lactis,0.8926925361156464
+Staphylococcus phage 71,Lactococcus lactis,0.8870503306388855
+Staphylococcus phage 71,Weissella oryzae,0.8876368701457977
+Staphylococcus phage 77,Lactococcus lactis,0.88108691573143
+Staphylococcus phage 80alpha,Lactococcus lactis,0.8843733370304108
+Staphylococcus phage 80alpha,Weissella oryzae,0.879868894815445
+Staphylococcus phage 85,Lactococcus lactis,0.883824497461319
+Staphylococcus phage 85,Weissella oryzae,0.8850702047348022
+Staphylococcus phage 88,Lactococcus lactis,0.8885272145271301
+Staphylococcus phage 92,Lactococcus lactis,0.8898173868656158
+Staphylococcus phage 96,Lactococcus lactis,0.8809363842010498
+Staphylococcus phage 96,Weissella oryzae,0.872186154127121
+Staphylococcus phage B166,Lactococcus lactis,0.8863433301448822
+Staphylococcus phage B166,Weissella oryzae,0.8839704096317291
+Staphylococcus phage CNPH82,Lactococcus lactis,0.8837875425815582
+Staphylococcus phage CNPH82,Weissella oryzae,0.8819040954113007
+Staphylococcus phage DW2,Lactococcus lactis,0.879746824502945
+Staphylococcus phage DW2,Weissella oryzae,0.8846699297428131
+Staphylococcus phage EW,Lactococcus lactis,0.8718663454055786
+Staphylococcus phage EW,Weissella oryzae,0.891593873500824
+Staphylococcus phage G1,Lactococcus lactis,0.8799391090869904
+Staphylococcus phage G1,Weissella oryzae,0.880597859621048
+Staphylococcus phage GH15,Lactococcus lactis,0.8899590373039246
+Staphylococcus phage GH15,Weissella oryzae,0.8908973634243011
+Staphylococcus phage IME-SA4,Lactococcus lactis,0.9081229865550996
+Staphylococcus phage IME-SA4,Weissella oryzae,0.9127463400363922
+Staphylococcus phage JS01,Lactococcus lactis,0.8872880339622498
+Staphylococcus phage JS01,Weissella oryzae,0.8852939605712891
+Staphylococcus phage K,Lactococcus lactis,0.8860281705856323
+Staphylococcus phage K,Weissella oryzae,0.8878775835037231
+Staphylococcus phage MCE-2014,Lactococcus lactis,0.8825487792491913
+Staphylococcus phage MCE-2014,Weissella oryzae,0.8829894959926605
+Staphylococcus phage P108,Lactococcus lactis,0.8862586617469788
+Staphylococcus phage P108,Weissella oryzae,0.8889295756816864
+Staphylococcus phage P954,Lactococcus lactis,0.8850016295909882
+Staphylococcus phage P954,Weissella oryzae,0.8834318220615387
+Staphylococcus phage PT1028,Lactococcus lactis,0.8822379112243652
+Staphylococcus phage PVL proviral DNA,Lactococcus lactis,0.8810091912746429
+Staphylococcus phage PVL proviral DNA,Weissella oryzae,0.8702405095100403
+Staphylococcus phage ROSA,Lactococcus lactis,0.8926472067832947
+Staphylococcus phage SA11,Lactobacillus coryniformis,0.8556844592094421
+Staphylococcus phage SA11,Lactococcus lactis,0.9018211960792542
+Staphylococcus phage SA11,Weissella oryzae,0.9117451608181
+Staphylococcus phage SA12,Lactococcus lactis,0.884405106306076
+Staphylococcus phage SA12,Weissella oryzae,0.8854460418224335
+Staphylococcus phage SA97,Lactococcus lactis,0.8930048048496246
+Staphylococcus phage SAP-26,Lactococcus lactis,0.8842483460903168
+Staphylococcus phage SAP-26,Weissella oryzae,0.8504841327667236
+Staphylococcus phage SPbeta-like,Lactococcus lactis,0.8975809514522552
+Staphylococcus phage Sb-1,Lactococcus lactis,0.8907052278518677
+Staphylococcus phage Sb-1,Weissella oryzae,0.8938868939876556
+Staphylococcus phage SpaA1,Lactococcus lactis,0.902297019958496
+Staphylococcus phage StB20-like,Lactobacillus coryniformis,0.8719260692596436
+Staphylococcus phage StB20-like,Lactococcus lactis,0.8991886675357819
+Staphylococcus phage StB20-like,Weissella oryzae,0.9183261096477509
+Staphylococcus phage StB27,Lactococcus lactis,0.9008744657039642
+Staphylococcus phage StB27,Weissella oryzae,0.8666341304779053
+Staphylococcus phage Stau2,Lactococcus lactis,0.8894985914230347
+Staphylococcus phage Stau2,Weissella oryzae,0.8881876468658447
+Staphylococcus phage StauST398-1,Lactococcus lactis,0.8821215629577637
+Staphylococcus phage StauST398-2,Lactococcus lactis,0.8531279861927032
+Staphylococcus phage StauST398-3,Lactococcus lactis,0.8802457749843597
+Staphylococcus phage StauST398-3,Weissella oryzae,0.8621141910552979
+Staphylococcus phage StauST398-4,Lactococcus lactis,0.8814460039138794
+Staphylococcus phage StauST398-4,Weissella oryzae,0.8759448230266571
+Staphylococcus phage StauST398-5,Lactococcus lactis,0.8878231644630432
+Staphylococcus phage StauST398-5,Weissella oryzae,0.8880726993083954
+Staphylococcus phage Team1,Lactococcus lactis,0.8846886456012726
+Staphylococcus phage Team1,Weissella oryzae,0.8859580159187317
+Staphylococcus phage Twort,Lactococcus lactis,0.8912913501262665
+Staphylococcus phage phi2958PVL,Lactococcus lactis,0.8939541280269623
+Staphylococcus phage phiBU01,Lactococcus lactis,0.8884536325931549
+Staphylococcus phage phiETA,Lactococcus lactis,0.8894162476062775
+Staphylococcus phage phiETA2,Lactococcus lactis,0.8940691351890564
+Staphylococcus phage phiETA3,Lactococcus lactis,0.8930681347846985
+Staphylococcus phage phiJB,Lactococcus lactis,0.8882237374782562
+Staphylococcus phage phiMR11,Lactococcus lactis,0.8764592111110687
+Staphylococcus phage phiMR11,Weissella oryzae,0.8757477700710297
+Staphylococcus phage phiMR25,Lactococcus lactis,0.8818411529064178
+Staphylococcus phage phiMR25,Weissella oryzae,0.8574365973472595
+Staphylococcus phage phiPVL-CN125,Lactococcus lactis,0.880760133266449
+Staphylococcus phage phiPVL-CN125,Weissella oryzae,0.8818392753601074
+Staphylococcus phage phiPVL108,Lactococcus lactis,0.8862917423248291
+Staphylococcus phage phiPVL108,Weissella oryzae,0.8804266452789307
+Staphylococcus phage phiSA012 DNA,Lactococcus lactis,0.892039954662323
+Staphylococcus phage phiSA012 DNA,Weissella oryzae,0.8929226100444794
+Staphylococcus phage phiSLT,Lactococcus lactis,0.8852776288986206
+Staphylococcus phage phiSLT,Weissella oryzae,0.880979984998703
+Staphylococcus phage phiSa119,Lactococcus lactis,0.8866830170154572
+Staphylococcus phage phiSa119,Weissella oryzae,0.8868005275726318
+Staphylococcus phage phiSauS-IPLA88,Lactococcus lactis,0.8684386014938354
+Staphylococcus phage phiSauS-IPLA88,Weissella oryzae,0.867748886346817
+Staphylococcus phage tp310-1,Lactococcus lactis,0.8793410360813141
+Staphylococcus phage tp310-2,Lactococcus lactis,0.8508563935756683
+Staphylococcus phage tp310-3,Lactococcus lactis,0.8907472193241119
+Staphylococcus phage tp310-3,Weissella oryzae,0.887866884469986
+Staphylococcus phage vB_SauM_Remus,Lactococcus lactis,0.8946230411529541
+Staphylococcus phage vB_SauM_Remus,Weissella oryzae,0.893622636795044
+Staphylococcus phage vB_SauM_Romulus,Lactococcus lactis,0.8934232592582703
+Staphylococcus phage vB_SauM_Romulus,Weissella oryzae,0.8915883004665375
+Staphylococcus phage vB_SepS_SEP9,Lactococcus lactis,0.8709578812122345
+Staphylococcus phage vB_SepiS-phiIPLA7,Lactococcus lactis,0.8953874111175537
+Staphylococcus phage vB_SepiS-phiIPLA7,Weissella oryzae,0.9008365869522096
+Staphylococcus prophage phi 12,Lactococcus lactis,0.8974359929561615
+Staphylococcus prophage phi 13,Lactococcus lactis,0.8834834098815918
+Staphylococcus prophage phiN315,Lactococcus lactis,0.8923551440238953
+Staphylococcus prophage phiN315,Weissella oryzae,0.8922770023345947
+Staphylococcus prophage phiPV83,Lactococcus lactis,0.8836224973201752
+Streptococcus phage 20617 complete prophage genome,Lactobacillus coryniformis,0.8672596216201782
+Streptococcus phage 20617 complete prophage genome,Lactococcus lactis,0.8884322345256805
+Streptococcus phage 20617 complete prophage genome,Weissella oryzae,0.918012708425522
+Streptococcus phage 5093,Lactobacillus coryniformis,0.8621198236942291
+Streptococcus phage 5093,Lactococcus lactis,0.9024609625339508
+Streptococcus phage 5093,Weissella oryzae,0.9199833571910858
+Streptococcus phage 7201,Lactobacillus coryniformis,0.8650054633617401
+Streptococcus phage 7201,Weissella oryzae,0.9198297560214996
+Streptococcus phage A25,Lactobacillus coryniformis,0.8707318007946014
+Streptococcus phage A25,Lactococcus lactis,0.9006208777427673
+Streptococcus phage A25,Weissella oryzae,0.9221263825893402
+Streptococcus phage Abc2,Lactococcus lactis,0.9010150730609894
+Streptococcus phage Abc2,Weissella oryzae,0.9140900671482086
+Streptococcus phage DCC1738,Lactobacillus coryniformis,0.8770270645618439
+Streptococcus phage DCC1738,Lactococcus lactis,0.8559294044971466
+Streptococcus phage DCC1738,Weissella oryzae,0.9032369256019592
+Streptococcus phage DT1,Lactobacillus coryniformis,0.8735390901565552
+Streptococcus phage DT1,Lactococcus lactis,0.8882045447826385
+Streptococcus phage DT1,Weissella oryzae,0.920840859413147
+Streptococcus phage Dp-1,Lactobacillus coryniformis,0.8698272407054901
+Streptococcus phage Dp-1,Lactococcus lactis,0.8664618134498596
+Streptococcus phage Dp-1,Weissella oryzae,0.9093709290027618
+Streptococcus phage IC1,Lactobacillus coryniformis,0.8676620423793793
+Streptococcus phage IC1,Weissella oryzae,0.8819378614425659
+Streptococcus phage O1205,Lactobacillus coryniformis,0.8795976340770721
+Streptococcus phage O1205,Lactococcus lactis,0.9094227850437164
+Streptococcus phage O1205,Weissella oryzae,0.9290075302124025
+Streptococcus phage P9,Lactobacillus coryniformis,0.8732960820198059
+Streptococcus phage P9,Lactococcus lactis,0.8945396542549133
+Streptococcus phage P9,Weissella oryzae,0.9211801290512084
+Streptococcus phage PH10,Lactobacillus coryniformis,0.8691116869449615
+Streptococcus phage PH10,Lactococcus lactis,0.8878600597381592
+Streptococcus phage PH10,Weissella oryzae,0.917752593755722
+Streptococcus phage PH15,Lactobacillus coryniformis,0.8665556013584137
+Streptococcus phage PH15,Lactococcus lactis,0.8774191439151764
+Streptococcus phage PH15,Weissella oryzae,0.9142313599586488
+Streptococcus phage SM1,Lactobacillus coryniformis,0.8673743307590485
+Streptococcus phage SM1,Lactococcus lactis,0.8795616924762726
+Streptococcus phage SM1,Weissella oryzae,0.9144810438156128
+Streptococcus phage SMP,Lactobacillus coryniformis,0.8764838576316833
+Streptococcus phage SMP,Lactococcus lactis,0.8847452700138092
+Streptococcus phage SMP,Weissella oryzae,0.9198062121868134
+Streptococcus phage SP-QS1 complete genome,Lactobacillus coryniformis,0.8825720548629761
+Streptococcus phage SP-QS1 complete genome,Weissella oryzae,0.9054568707942964
+Streptococcus phage Sfi19,Lactobacillus coryniformis,0.8745693862438202
+Streptococcus phage Sfi19,Lactococcus lactis,0.8938378393650055
+Streptococcus phage Sfi19,Weissella oryzae,0.9280757308006288
+Streptococcus phage Sfi21,Lactobacillus coryniformis,0.8723463416099548
+Streptococcus phage Sfi21,Lactococcus lactis,0.9005973935127258
+Streptococcus phage Sfi21,Weissella oryzae,0.9227549731731416
+Streptococcus phage SpSL1,Lactobacillus coryniformis,0.872575968503952
+Streptococcus phage SpSL1,Lactococcus lactis,0.8968890011310577
+Streptococcus phage SpSL1,Weissella oryzae,0.9222392737865448
+Streptococcus phage T12,Lactococcus lactis,0.8902156949043274
+Streptococcus phage T12,Weissella oryzae,0.9113662540912628
+Streptococcus phage TP-J34 complete genome,Lactobacillus coryniformis,0.8753150403499603
+Streptococcus phage TP-J34 complete genome,Lactococcus lactis,0.9062666594982148
+Streptococcus phage TP-J34 complete genome,Weissella oryzae,0.9265508651733398
+Streptococcus phage YMC-2011,Lactobacillus coryniformis,0.8685548901557922
+Streptococcus phage YMC-2011,Lactococcus lactis,0.8657010495662689
+Streptococcus phage YMC-2011,Weissella oryzae,0.9075640738010406
+Streptococcus phage phi3396,Lactobacillus coryniformis,0.8714976608753204
+Streptococcus phage phi3396,Lactococcus lactis,0.9107285737991332
+Streptococcus phage phi3396,Weissella oryzae,0.9250026643276216
+Streptococcus phage phiARI0004,Lactobacillus coryniformis,0.8743285238742828
+Streptococcus phage phiARI0004,Weissella oryzae,0.9002162218093872
+Streptococcus phage phiARI0031,Lactobacillus coryniformis,0.87643763422966
+Streptococcus phage phiARI0031,Weissella oryzae,0.8966395556926727
+Streptococcus phage phiARI0131-1,Lactobacillus coryniformis,0.8690775632858276
+Streptococcus phage phiARI0131-1,Lactococcus lactis,0.8535695970058441
+Streptococcus phage phiARI0131-1,Weissella oryzae,0.8998897969722748
+Streptococcus phage phiARI0131-2,Lactobacillus coryniformis,0.8654917776584625
+Streptococcus phage phiARI0131-2,Weissella oryzae,0.8930794894695282
+Streptococcus phage phiARI0460-1,Lactobacillus coryniformis,0.8637894093990326
+Streptococcus phage phiARI0460-1,Lactococcus lactis,0.8507136106491089
+Streptococcus phage phiARI0460-1,Weissella oryzae,0.8962618708610535
+Streptococcus phage phiARI0462,Lactobacillus coryniformis,0.8626179397106171
+Streptococcus phage phiARI0462,Weissella oryzae,0.8836099207401276
+Streptococcus phage phiARI0468-1,Lactobacillus coryniformis,0.8792177140712738
+Streptococcus phage phiARI0468-1,Weissella oryzae,0.897496908903122
+Streptococcus phage phiARI0468-2,Lactobacillus coryniformis,0.8775162696838379
+Streptococcus phage phiARI0468-2,Lactococcus lactis,0.8523392975330353
+Streptococcus phage phiARI0468-2,Weissella oryzae,0.9013257026672364
+Streptococcus phage phiARI0468-4,Lactobacillus coryniformis,0.88052698969841
+Streptococcus phage phiARI0468-4,Lactococcus lactis,0.8683342933654785
+Streptococcus phage phiARI0468-4,Weissella oryzae,0.9077544808387756
+Streptococcus phage phiARI0746,Lactobacillus coryniformis,0.8703806400299072
+Streptococcus phage phiARI0746,Lactococcus lactis,0.853113442659378
+Streptococcus phage phiARI0746,Weissella oryzae,0.8988876342773438
+Streptococcus phage phiBHN167 complete genome,Lactobacillus coryniformis,0.8758792877197266
+Streptococcus phage phiBHN167 complete genome,Lactococcus lactis,0.8642356097698212
+Streptococcus phage phiBHN167 complete genome,Weissella oryzae,0.9045111238956453
+Streptococcus pneumoniae bacteriophage MM1 complete genome,Lactobacillus coryniformis,0.8596177101135254
+Streptococcus pneumoniae bacteriophage MM1 complete genome,Lactococcus lactis,0.902928501367569
+Streptococcus pneumoniae bacteriophage MM1 complete genome,Weissella oryzae,0.9197992384433746
+Streptococcus prophage 315.1,Lactobacillus coryniformis,0.8691425621509552
+Streptococcus prophage 315.1,Lactococcus lactis,0.9031097888946532
+Streptococcus prophage 315.1,Weissella oryzae,0.9217028617858888
+Streptococcus prophage 315.2,Lactococcus lactis,0.8986183702945709
+Streptococcus prophage 315.2,Weissella oryzae,0.9111138880252838
+Streptococcus prophage 315.4,Lactobacillus coryniformis,0.8573390245437622
+Streptococcus prophage 315.4,Lactococcus lactis,0.8941669464111328
+Streptococcus prophage 315.4,Weissella oryzae,0.9149978756904602
+Streptococcus prophage 315.5,Lactobacillus coryniformis,0.8597404956817627
+Streptococcus prophage 315.5,Lactococcus lactis,0.8975965082645416
+Streptococcus prophage 315.5,Weissella oryzae,0.91631618142128
+Streptococcus prophage 315.6,Lactococcus lactis,0.8825446963310242
+Streptococcus prophage EJ-1,Lactobacillus coryniformis,0.8649173080921173
+Streptococcus prophage EJ-1,Lactococcus lactis,0.8837328255176544
+Streptococcus prophage EJ-1,Weissella oryzae,0.91436168551445
+Streptococcus pyogenes phage 315.3,Lactobacillus coryniformis,0.875642716884613
+Streptococcus pyogenes phage 315.3,Lactococcus lactis,0.9081188142299652
+Streptococcus pyogenes phage 315.3,Weissella oryzae,0.926491528749466
+"Streptococcus pyogenes strain NIH1 putative methionine sulfoxide reductase gene, complete cds; and integrated temperate phage PhiNIH1.1",Lactobacillus coryniformis,0.8581163883209229
+"Streptococcus pyogenes strain NIH1 putative methionine sulfoxide reductase gene, complete cds; and integrated temperate phage PhiNIH1.1",Lactococcus lactis,0.8934395909309387
+"Streptococcus pyogenes strain NIH1 putative methionine sulfoxide reductase gene, complete cds; and integrated temperate phage PhiNIH1.1",Weissella oryzae,0.915056049823761
+Streptococcus virus 9871,Lactococcus lactis,0.8821611702442169
+Streptococcus virus 9871,Weissella oryzae,0.911747306585312
+Streptococcus virus 9872,Lactococcus lactis,0.876091480255127
+Streptococcus virus 9872,Weissella oryzae,0.911637395620346
+Streptococcus virus 9874,Lactococcus lactis,0.8948411345481873
+Streptococcus virus 9874,Weissella oryzae,0.9130772948265076
+Sulfolobus islandicus rod-shaped virus 2,Lactococcus lactis,0.8753555119037628
+Sulfolobus monocaudavirus SMV1 complete genome,Lactococcus lactis,0.8926034569740295
+Sulfolobus monocaudavirus SMV1 complete genome,Weissella oryzae,0.9061445593833924
+Sulfolobus monocaudavirus SMV4,Lactococcus lactis,0.8911109268665314
+Sulfolobus monocaudavirus SMV4,Weissella oryzae,0.9065485298633577
+Sulfolobus virus STSV1,Lactococcus lactis,0.9033190608024596
+Sulfolobus virus STSV1,Weissella oryzae,0.9084034264087676
+Tanay virus isolate 11-2,Lactococcus lactis,0.8609542846679688
+Tanay virus isolate 11-2,Weissella oryzae,0.8521437048912048
+Thermoanaerobacterium phage THSA-485A,Lactobacillus coryniformis,0.8772173523902893
+Thermoanaerobacterium phage THSA-485A,Lactococcus lactis,0.8962705135345459
+Thermoanaerobacterium phage THSA-485A,Weissella oryzae,0.9198352694511414
+Thermus phage TMA,Lactococcus lactis,0.9016746878623962
+Thermus phage TMA,Weissella oryzae,0.907718539237976
+Uncultured crAssphage,Lactobacillus coryniformis,0.8731576204299927
+Uncultured crAssphage,Lactococcus lactis,0.8939221203327179
+Uncultured crAssphage,Weissella oryzae,0.9183189570903778
+Vibrio phage 11895-B1 genomic sequence,Weissella oryzae,0.8846308887004852
+Vibrio phage ICP1,Weissella oryzae,0.85938361287117
+Vibrio phage ICP3,Lactobacillus coryniformis,0.8544100821018219
+Vibrio phage ICP3,Weissella oryzae,0.8694780766963959
+Vibrio phage JA-1,Lactobacillus coryniformis,0.8792629837989807
+Vibrio phage JA-1,Weissella oryzae,0.9257988929748536
+Vibrio phage PWH3a-P1 genomic sequence,Weissella oryzae,0.8775219619274139
+Vibrio phage X29,Weissella oryzae,0.8599724173545837
+Vibrio phage douglas 12A4 genomic sequence,Lactobacillus coryniformis,0.8668390512466431
+Vibrio phage douglas 12A4 genomic sequence,Weissella oryzae,0.8804151713848114
+Vibrio phage eugene 12A10 genomic sequence,Lactobacillus coryniformis,0.8508157730102539
+Vibrio phage eugene 12A10 genomic sequence,Weissella oryzae,0.8559414446353912
+Vibrio phage pVp-1,Lactobacillus coryniformis,0.8812792301177979
+Vibrio phage pVp-1,Weissella oryzae,0.8987541794776917
+Vibrio phage pYD38-B genomic sequence,Lactobacillus coryniformis,0.8621224164962769
+Vibrio phage pYD38-B genomic sequence,Weissella oryzae,0.8812752068042755
+Vibrio phage phi 1,Lactobacillus coryniformis,0.8750691115856171
+Vibrio phage phi 1,Weissella oryzae,0.923723578453064
+Vibrio phage phi 3,Lactobacillus coryniformis,0.8681071698665619
+Vibrio phage phi 3,Weissella oryzae,0.880940169095993
+Vibrio phage vpms1,Lactobacillus coryniformis,0.8649669885635376
+Vibrio phage vpms1,Weissella oryzae,0.8777673244476318
+Vibriophage VP4,Lactobacillus coryniformis,0.8661235868930817
+Vibriophage VP4,Weissella oryzae,0.8793109059333801
+Yersinia phage phiR1-37,Lactobacillus coryniformis,0.8616187870502472
+Yersinia phage phiR1-37,Weissella oryzae,0.8964983224868774
+Yersinia phage phiR1-RT complete genome,Lactobacillus coryniformis,0.8586476445198059
+Yersinia phage phiR1-RT complete genome,Weissella oryzae,0.8647889792919159
+Yersinia phage vB_YenM_TG1,Lactobacillus coryniformis,0.8557109832763672
+Yersinia phage vB_YenM_TG1,Weissella oryzae,0.8620418012142181

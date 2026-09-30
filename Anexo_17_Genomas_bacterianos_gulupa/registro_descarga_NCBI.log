@@ -1,0 +1,248 @@
+=== reinicio limpio lun 14 sep 2026 00:45:18 -05 ===
+[*] Leyendo tabla de abundancias: /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUhac_results/feature_table_relabund_hac_results.tsv
+[*] Se encontraron 79 taxones con abundancia promedio >= 0.001 (0.100%)
+
+[1/79] Intentando: Lactococcus lactis (TaxID: 1358)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1358_Lactococcus_lactis.fna.
+
+[2/79] Intentando: Weissella soli (TaxID: 155866)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_155866_Weissella_soli.fna.
+
+[3/79] Intentando: Weissella oryzae (TaxID: 1129792)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1129792_Weissella_oryzae.fna.
+
+[4/79] Intentando: Lactobacillus coryniformis (TaxID: 1610)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1610_Lactobacillus_coryniformis.fna.
+
+[5/79] Intentando: Lelliottia amnigena (TaxID: 61646)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_61646_Lelliottia_amnigena.fna.
+
+[6/79] Intentando: Pseudomonas fluorescens (TaxID: 294)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_294_Pseudomonas_fluorescens.fna.
+
+[7/79] Intentando: Enterobacter soli (TaxID: 885040)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_885040_Enterobacter_soli.fna.
+
+[8/79] Intentando: Enterobacter asburiae (TaxID: 61645)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_61645_Enterobacter_asburiae.fna.
+
+[9/79] Intentando: Serratia liquefaciens (TaxID: 614)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_614_Serratia_liquefaciens.fna.
+
+[10/79] Intentando: Citrobacter freundii (TaxID: 546)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_546_Citrobacter_freundii.fna.
+
+[11/79] Intentando: Leclercia adecarboxylata (TaxID: 83655)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_83655_Leclercia_adecarboxylata.fna.
+
+[12/79] Intentando: Buttiauxella sp. 3AFRM03 (TaxID: 2479367)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_2479367_Buttiauxella_sp_3AFRM03.fna.
+
+[13/79] Intentando: Leuconostoc pseudomesenteroides (TaxID: 33968)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_33968_Leuconostoc_pseudomesenteroides.fna.
+
+[14/79] Intentando: Lactobacillus curvatus (TaxID: 28038)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_28038_Lactobacillus_curvatus.fna.
+
+[15/79] Intentando: Bacteroides luti (TaxID: 1297750)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1297750_Bacteroides_luti.fna.
+
+[16/79] Intentando: Pseudomonas sp. TMW 2.1634 (TaxID: 1886807)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1886807_Pseudomonas_sp_TMW_21634.fna.
+
+[17/79] Intentando: Buttiauxella noackiae (TaxID: 82992)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_82992_Buttiauxella_noackiae.fna.
+
+[18/79] Intentando: Raoultella sp. NCTC 9189 (TaxID: 2583577)
+   [!] No hallado por TaxID. Intentando por nombre científico...
+   [!] No hallado por nombre. Buscando representante del género: Raoultella...
+   [✓] Representante de Raoultella (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/GENERO_Raoultella_2583577.fna.
+
+[19/79] Intentando: Pseudomonas veronii (TaxID: 76761)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_76761_Pseudomonas_veronii.fna.
+
+[20/79] Intentando: Pseudomonas fragi (TaxID: 296)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_296_Pseudomonas_fragi.fna.
+
+[21/79] Intentando: Microvirgula aerodenitrificans (TaxID: 57480)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_57480_Microvirgula_aerodenitrificans.fna.
+
+[22/79] Intentando: Klebsiella aerogenes (TaxID: 548)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_548_Klebsiella_aerogenes.fna.
+
+[23/79] Intentando: Leuconostoc mesenteroides (TaxID: 1245)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1245_Leuconostoc_mesenteroides.fna.
+
+[24/79] Intentando: Kluyvera intermedia (TaxID: 61648)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_61648_Kluyvera_intermedia.fna.
+
+[25/79] Intentando: Pseudomonas sp. NIBRBAC000502773 (TaxID: 2590776)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_2590776_Pseudomonas_sp_NIBRBAC000502773.fna.
+
+[26/79] Intentando: Pseudomonas azotoformans (TaxID: 47878)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_47878_Pseudomonas_azotoformans.fna.
+
+[27/79] Intentando: Serratia proteamaculans (TaxID: 28151)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_28151_Serratia_proteamaculans.fna.
+
+[28/79] Intentando: Lactobacillus oligofermentans (TaxID: 293371)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_293371_Lactobacillus_oligofermentans.fna.
+
+[29/79] Intentando: Buttiauxella agrestis (TaxID: 82977)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_82977_Buttiauxella_agrestis.fna.
+
+[30/79] Intentando: Pseudomonas vancouverensis (TaxID: 95300)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_95300_Pseudomonas_vancouverensis.fna.
+
+[31/79] Intentando: Shewanella putrefaciens (TaxID: 24)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_24_Shewanella_putrefaciens.fna.
+
+[32/79] Intentando: Enterobacter sp. 638 (TaxID: 399742)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_399742_Enterobacter_sp_638.fna.
+
+[33/79] Intentando: Macellibacteroides fermentans (TaxID: 879969)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_879969_Macellibacteroides_fermentans.fna.
+
+[34/79] Intentando: Serratia quinivorans (TaxID: 137545)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_137545_Serratia_quinivorans.fna.
+
+[35/79] Intentando: Raoultella ornithinolytica (TaxID: 54291)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_54291_Raoultella_ornithinolytica.fna.
+
+[36/79] Intentando: Serratia plymuthica (TaxID: 82996)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_82996_Serratia_plymuthica.fna.
+
+[37/79] Intentando: Serratia grimesii (TaxID: 82995)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_82995_Serratia_grimesii.fna.
+
+[38/79] Intentando: Pseudomonas synxantha (TaxID: 47883)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_47883_Pseudomonas_synxantha.fna.
+
+[39/79] Intentando: Leuconostoc citreum (TaxID: 33964)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_33964_Leuconostoc_citreum.fna.
+
+[40/79] Intentando: Hafnia alvei (TaxID: 569)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_569_Hafnia_alvei.fna.
+
+[41/79] Intentando: Pseudomonas putida (TaxID: 303)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_303_Pseudomonas_putida.fna.
+
+[42/79] Intentando: Lelliottia jeotgali (TaxID: 1907578)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1907578_Lelliottia_jeotgali.fna.
+
+[43/79] Intentando: Raoultella planticola (TaxID: 575)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_575_Raoultella_planticola.fna.
+
+[44/79] Intentando: Enterobacter roggenkampii (TaxID: 1812935)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1812935_Enterobacter_roggenkampii.fna.
+
+[45/79] Intentando: Weissella koreensis (TaxID: 165096)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_165096_Weissella_koreensis.fna.
+
+[46/79] Intentando: Stenotrophomonas rhizophila (TaxID: 216778)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_216778_Stenotrophomonas_rhizophila.fna.
+
+[47/79] Intentando: Comamonas jiangduensis (TaxID: 1194168)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1194168_Comamonas_jiangduensis.fna.
+
+[48/79] Intentando: Pseudomonas helleri (TaxID: 1608996)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1608996_Pseudomonas_helleri.fna.
+
+[49/79] Intentando: Pseudomonas sp. UW4 (TaxID: 1207075)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1207075_Pseudomonas_sp_UW4.fna.
+
+[50/79] Intentando: Serratia marcescens (TaxID: 615)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_615_Serratia_marcescens.fna.
+
+[51/79] Intentando: Klebsiella michiganensis (TaxID: 1134687)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1134687_Klebsiella_michiganensis.fna.
+
+[52/79] Intentando: Lelliottia sp. WB101 (TaxID: 2153385)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_2153385_Lelliottia_sp_WB101.fna.
+
+[53/79] Intentando: Rahnella sp. ERMR1:05 (TaxID: 1805933)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1805933_Rahnella_sp_ERMR1:05.fna.
+
+[54/79] Intentando: Klebsiella oxytoca (TaxID: 571)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_571_Klebsiella_oxytoca.fna.
+
+[55/79] Intentando: Leuconostoc lactis (TaxID: 1246)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1246_Leuconostoc_lactis.fna.
+
+[56/79] Intentando: Enterobacter sp. E20 (TaxID: 1560339)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1560339_Enterobacter_sp_E20.fna.
+
+[57/79] Intentando: Raoultella terrigena (TaxID: 577)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_577_Raoultella_terrigena.fna.
+
+[58/79] Intentando: Janthinobacterium sp. LM6 (TaxID: 1938606)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1938606_Janthinobacterium_sp_LM6.fna.
+
+[59/79] Intentando: Carnobacterium inhibens (TaxID: 147709)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_147709_Carnobacterium_inhibens.fna.
+
+[60/79] Intentando: Lactiplantibacillus plantarum (TaxID: 1590)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1590_Lactiplantibacillus_plantarum.fna.
+
+[61/79] Intentando: Lacrimispora algidixylanolytica (TaxID: 94868)
+   [!] No hallado por TaxID. Intentando por nombre científico...
+   [!] No hallado por nombre. Buscando representante del género: Lacrimispora...
+   [✓] Representante de Lacrimispora (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/GENERO_Lacrimispora_94868.fna.
+
+[62/79] Intentando: Stenotrophomonas maltophilia (TaxID: 40324)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_40324_Stenotrophomonas_maltophilia.fna.
+
+[63/79] Intentando: Bacillus circulans (TaxID: 1397)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1397_Bacillus_circulans.fna.
+
+[64/79] Intentando: Janthinobacterium agaricidamnosum (TaxID: 55508)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_55508_Janthinobacterium_agaricidamnosum.fna.
+
+[65/79] Intentando: Pseudomonas syringae (TaxID: 317)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_317_Pseudomonas_syringae.fna.
+
+[66/79] Intentando: Caproiciproducens galactitolivorans (TaxID: 642589)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_642589_Caproiciproducens_galactitolivorans.fna.
+
+[67/79] Intentando: Carnobacterium maltaromaticum (TaxID: 2751)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_2751_Carnobacterium_maltaromaticum.fna.
+
+[68/79] Intentando: Pseudomonas migulae (TaxID: 78543)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_78543_Pseudomonas_migulae.fna.
+
+[69/79] Intentando: Bacillus oryzisoli (TaxID: 1737571)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_1737571_Bacillus_oryzisoli.fna.
+
+[70/79] Intentando: Buttiauxella izardii (TaxID: 82991)
+   [!] No hallado por TaxID. Intentando por nombre científico...
+   [!] No hallado por nombre. Buscando representante del género: Buttiauxella...
+   [✓] Representante de Buttiauxella (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/GENERO_Buttiauxella_82991.fna.
+
+[71/79] Intentando: Paludibacter propionicigenes (TaxID: 185300)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_185300_Paludibacter_propionicigenes.fna.
+
+[72/79] Intentando: Rahnella aquatilis (TaxID: 34038)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_34038_Rahnella_aquatilis.fna.
+
+[73/79] Intentando: Pseudomonas reinekei (TaxID: 395598)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_395598_Pseudomonas_reinekei.fna.
+
+[74/79] Intentando: Enterobacter cloacae (TaxID: 550)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_550_Enterobacter_cloacae.fna.
+
+[75/79] Intentando: Aciditerrimonas ferrireducens (TaxID: 667306)
+   [✓] Especie exacta (chromosome,scaffold) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_667306_Aciditerrimonas_ferrireducens.fna.
+
+[76/79] Intentando: Yokenella regensburgei (TaxID: 158877)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_158877_Yokenella_regensburgei.fna.
+
+[77/79] Intentando: Serratia fonticola (TaxID: 47917)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_47917_Serratia_fonticola.fna.
+
+[78/79] Intentando: Pseudomonas poae (TaxID: 200451)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_200451_Pseudomonas_poae.fna.
+
+[79/79] Intentando: Rhodoplanes sp. Z2-YC6860 (TaxID: 674703)
+   [✓] Especie exacta (complete) guardado en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna/taxid_674703_Rhodoplanes_sp_Z2-YC6860.fna.
+
+[FIN] Total obtenido: 79/79 genomas bacterianos en /home/fenrir/Documentos/Tesis/Algoritmo/con mis datos/HAC/results/bacterias_fna
