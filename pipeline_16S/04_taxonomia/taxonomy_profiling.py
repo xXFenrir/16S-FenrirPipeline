@@ -217,10 +217,11 @@ def plot_profile(top_df: pd.DataFrame, mapping: dict, rank: str, top_n: int, tit
                  fontsize=14, fontweight='bold')
 
     handles = [mpatches.Patch(color=color_map[t], label=t) for t in top_df.index]
-    fig.legend(handles=handles, loc='center left', bbox_to_anchor=(1.0, 0.5), frameon=False, fontsize=9,
-               title=RANK_ES[rank], title_fontproperties={"weight": "bold"})
+    # Leyenda pegada al último panel (sin espacio en blanco entre barras y leyenda)
+    axes[-1].legend(handles=handles, loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False, fontsize=9,
+                    title=RANK_ES[rank], title_fontproperties={"weight": "bold"})
 
-    plt.tight_layout(rect=[0, 0, 0.85, 0.95])
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()
     eprint(f"[OK] Gráfica guardada: {out_path}")
@@ -241,7 +242,7 @@ def main():
                      help="Por defecto: EMU{model}_{dataset}/taxonomia.tsv")
     ap.add_argument("--meta", type=Path, default=base / "Diversidad" / "Sistemas Agrícolas y Muestras.xlsx")
     ap.add_argument("--bridge", type=Path,
-                     default=Path("/home/fenrir/Documentos/Tesis/datos_gulupa/Mapa Barcodes Microbioma.csv"))
+                     default=base.parent / "Mapa Barcodes Microbioma.csv")
     ap.add_argument("--outdir", type=Path, default=None,
                      help="Por defecto: EMU{model}_{dataset}/figures")
     ap.add_argument("--emu-dir", type=Path, default=None,
