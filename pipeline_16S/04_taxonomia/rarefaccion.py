@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+import matplotlib
 
 def imprimir_error(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -128,7 +128,8 @@ def rarefactar_muestra(vector_conteos: np.ndarray, n_puntos: int = 30, iteracion
     return profundidades, np.array(riqueza_observada)
 
 
-def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30, iteraciones=10, lecturas_minimas=1):
+def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30, iteraciones=10, lecturas_minimas=1,
+                         columnas_leyenda=None):
     plt.style.use('default')
     fig, ax = plt.subplots(figsize=(14, 8), dpi=300)
 
@@ -150,7 +151,7 @@ def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30,
     imprimir_error(f"[INFO] Trazando '{titulo}' para {len(muestras)} muestras...")
 
     # Forzamos una paleta de 20 colores distintos para máxima diferenciación
-    cmap = cm.get_cmap('tab20')
+    cmap = matplotlib.colormaps['tab20']
     x_max = 0
 
     for i, col_muestra in enumerate(muestras):
@@ -182,10 +183,13 @@ def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30,
     ax.set_ylabel("Riqueza Observada (Especies)", fontsize=13, labelpad=12)
     ax.set_title(titulo, fontsize=15, fontweight='bold', pad=15)
 
-    # Leyenda a dos columnas fuera del gráfico (sin etiquetas flotantes sobre las curvas)
+    # Leyenda fuera del gráfico (sin etiquetas flotantes sobre las curvas): una columna, o dos
+    # cuando hay tantas muestras que una sola columna quedaría más alta que la gráfica
+    if columnas_leyenda is None:
+        columnas_leyenda = 1 if len(muestras) <= 40 else 2
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.72, box.height])
-    ax.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False, ncol=2, fontsize=9)
+    ax.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False, ncol=columnas_leyenda, fontsize=9)
 
     png_salida = prefijo_salida.with_suffix(".png")
     plt.savefig(png_salida, bbox_inches="tight")
@@ -209,12 +213,14 @@ def main():
                         default=base / "Diversidad" / "Sistemas Agrícolas y Muestras.xlsx",
                         help="Maestro con columnas ID + Sistema.")
     parser.add_argument("--bridge", type=Path,
-                        default=Path("/home/fenrir/Documentos/Tesis/datos_gulupa/Mapa Barcodes Microbioma.csv"),
+                        default=base.parent / "Mapa Barcodes Microbioma.csv",
                         help="CSV puente barcode->ID (columnas '#;ID;Barcode'). Es el mismo para HAC y SUP.")
     parser.add_argument("--n-points", type=int, default=30,
                         help="Número de puntos por curva (paso adaptativo: profundidad_total // n_points).")
     parser.add_argument("--iterations", type=int, default=10,
                         help="Submuestreos promediados por punto (más = curva más suave/confiable).")
+    parser.add_argument("--legend-cols", type=int, default=None,
+                        help="Columnas de la leyenda de muestras. Por defecto: 1 hasta 40 muestras, 2 si hay más.")
     args = parser.parse_args()
 
     if args.counts is None:
@@ -236,7 +242,8 @@ def main():
         df_conteos, mapeo,
         args.outdir / f"Rarefaccion_{sufijo}",
         titulo=f"Curva de Rarefacción ({sufijo})",
-        n_puntos=args.n_points, iteraciones=args.iterations, lecturas_minimas=1
+        n_puntos=args.n_points, iteraciones=args.iterations, lecturas_minimas=1,
+        columnas_leyenda=args.legend_cols
     )
 
 if __name__ == "__main__":
