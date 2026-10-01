@@ -3,7 +3,7 @@
 
 """
 Comparación gráfica ANTES vs. DESPUÉS usando Seaborn (Formato Vertical / Lista de Barcodes).
-Métricas soportadas: Lecturas, Bases y QScore.
+Métricas soportadas: Lecturas y QScore.
 """
 
 import argparse
@@ -56,13 +56,7 @@ def prepare_tidy_data(df: pd.DataFrame) -> pd.DataFrame:
         elif 'lecturas after pychopper' in df.columns:
             records.append({'Muestra': sample, 'Métrica': 'Lecturas', 'Estado': 'Después', 'Valor': row['lecturas after pychopper']})
             
-        # 2. Bases
-        if 'bases raw' in df.columns:
-            records.append({'Muestra': sample, 'Métrica': 'Bases', 'Estado': 'Antes', 'Valor': row['bases raw']})
-        if 'bases after' in df.columns:
-            records.append({'Muestra': sample, 'Métrica': 'Bases', 'Estado': 'Después', 'Valor': row['bases after']})
-            
-        # 3. QScore
+        # 2. QScore
         if 'QScore promedio raw' in df.columns:
             records.append({'Muestra': sample, 'Métrica': 'QScore', 'Estado': 'Antes', 'Valor': row['QScore promedio raw']})
         if 'QScore promedio after' in df.columns:
@@ -91,7 +85,7 @@ def plot_vertical_paired_bars(df_metric: pd.DataFrame, metric_name: str, outpath
     ax.set_xlabel(metric_name, fontsize=12)
     
     # Formateo numérico para miles/millones en el eje horizontal
-    if metric_name in ['Lecturas', 'Bases']:
+    if metric_name == 'Lecturas':
         ax.xaxis.set_major_formatter('{x:,.0f}')
         
     ax.legend(title="Estado", loc='lower right')
@@ -100,7 +94,7 @@ def plot_vertical_paired_bars(df_metric: pd.DataFrame, metric_name: str, outpath
     plt.close()
 
 def plot_distribution_summary(tidy_df: pd.DataFrame, outpath: Path):
-    """Grafica la distribución global (Boxplot + Stripplot) para las 3 métricas."""
+    """Grafica la distribución global (Boxplot + Stripplot) para Lecturas y QScore."""
     g = sns.catplot(
         data=tidy_df,
         x='Estado', y='Valor', hue='Estado',
@@ -117,7 +111,10 @@ def plot_distribution_summary(tidy_df: pd.DataFrame, outpath: Path):
     
     g.fig.subplots_adjust(top=0.82)
     g.fig.suptitle('Resumen Global de Filtrado: Distribución de Métricas', fontsize=14)
-    g.set_axis_labels("", "Valor")
+    g.set_axis_labels("", "")
+    # Etiqueta del eje Y con el nombre de cada métrica (en vez de "Valor")
+    for metric, ax in g.axes_dict.items():
+        ax.set_ylabel(metric)
     
     plt.savefig(outpath, dpi=300)
     plt.close()
@@ -136,11 +133,11 @@ def main():
     tidy_df = prepare_tidy_data(raw_df)
     
     if tidy_df.empty:
-        print("[ERROR] No se pudieron mapear las columnas requeridas (Lecturas, Bases, QScore).")
+        print("[ERROR] No se pudieron mapear las columnas requeridas (Lecturas, QScore).")
         return
 
     # Generar barras pareadas verticales por cada métrica
-    for metric in ['Lecturas', 'Bases', 'QScore']:
+    for metric in ['Lecturas', 'QScore']:
         df_sub = tidy_df[tidy_df['Métrica'] == metric]
         if not df_sub.empty:
             out_png = outdir / f"comparacion_{metric.lower()}.png"

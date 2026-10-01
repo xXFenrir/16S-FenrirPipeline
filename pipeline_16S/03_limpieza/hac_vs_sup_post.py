@@ -50,17 +50,9 @@ def extract_clean_metrics(df: pd.DataFrame, method_label: str) -> pd.DataFrame:
         if lecturas_col in df.columns:
             records.append({'Muestra': sample, 'Método': method_label, 'Métrica': 'Lecturas Limpias', 'Valor': row[lecturas_col]})
             
-        # Bases limpias
-        if 'bases after' in df.columns:
-            records.append({'Muestra': sample, 'Método': method_label, 'Métrica': 'Bases Limpias', 'Valor': row['bases after']})
-            
         # QScore promedio post-filtro
         if 'QScore promedio after' in df.columns:
             records.append({'Muestra': sample, 'Método': method_label, 'Métrica': 'QScore Limpio', 'Valor': row['QScore promedio after']})
-            
-        # Longitud N50 post-filtro (si existe en los datos)
-        if 'N50 after' in df.columns:
-            records.append({'Muestra': sample, 'Método': method_label, 'Métrica': 'N50 Limpio', 'Valor': row['N50 after']})
             
     return pd.DataFrame(records)
 
@@ -84,7 +76,7 @@ def plot_vertical_hac_vs_sup(df_metric: pd.DataFrame, metric_name: str, outpath:
     ax.set_xlabel(metric_name, fontsize=12)
     
     # Formato numérico horizontal
-    if any(m in metric_name for m in ['Lecturas', 'Bases', 'N50']):
+    if 'Lecturas' in metric_name:
         ax.xaxis.set_major_formatter('{x:,.0f}')
         
     ax.legend(title="Modelo Basecalling", loc='lower right')
@@ -112,7 +104,11 @@ def plot_global_comparison(tidy_df: pd.DataFrame, outpath: Path):
     
     g.fig.subplots_adjust(top=0.82)
     g.fig.suptitle('Comparativa Global Post-Limpieza: HAC vs. SUP', fontsize=14)
-    g.set_axis_labels("", "Valor")
+    g.set_axis_labels("", "")
+    # Etiqueta del eje Y con el nombre de cada métrica (en vez de "Valor")
+    ylabels = {'Lecturas Limpias': 'Lecturas', 'QScore Limpio': 'QScore'}
+    for metric, ax in g.axes_dict.items():
+        ax.set_ylabel(ylabels.get(metric, metric))
     
     plt.savefig(outpath, dpi=300)
     plt.close()
