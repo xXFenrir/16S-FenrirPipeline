@@ -289,20 +289,20 @@ Responde la pregunta central del proyecto: si la comunidad bacteriana del rizobi
 
 Los cálculos se hacen con **scikit-bio** y **SciPy**:
 
-- **Índice de Simpson** (1 − Σpᵢ²): probabilidad de que dos lecturas tomadas al azar pertenezcan a especies distintas. Junto con la **riqueza observada** describe la diversidad alfa.
+- **Índice de Shannon** (−Σ pᵢ log pᵢ): combina cuántas especies hay y qué tan pareja es su abundancia; aumenta con la riqueza y con la equidad. Junto con la **riqueza observada** (número de especies presentes) describe la diversidad alfa.
 - **Mann-Whitney U**: compara los índices alfa entre cada par de sistemas sin suponer normalidad.
 - **Bray-Curtis**: disimilitud cuantitativa, sensible a cambios de abundancia. **Jaccard**: disimilitud cualitativa, basada solo en presencia o ausencia.
 - **PCoA** (Análisis de Coordenadas Principales): proyecta la matriz de Bray-Curtis en dos ejes para ver si las muestras de cada sistema se agrupan.
-- **PERMANOVA**: prueba, con 999 permutaciones, si los centroides de los sistemas difieren en ese espacio de distancias (estadístico pseudo-F y valor p).
+- **PERMANOVA**: prueba, con 999 permutaciones de las etiquetas de grupo, si los centroides de los sistemas difieren en ese espacio de distancias (estadístico pseudo-F y valor p).
 
 ### Cómo se construyó el script
 
 `diversidad_mod.py` carga la tabla de abundancias relativas de EMU y traduce cada barcode a su sistema agrícola en dos pasos: barcode → ID de finca con el CSV puente, e ID de finca → Sistema con el Excel de metadatos. Después calcula:
 
-1. Simpson (`skbio.diversity.alpha_diversity`) y riqueza observada por muestra, las pruebas de Mann-Whitney U entre pares de sistemas (`scipy.stats.mannwhitneyu`) y los boxplots por sistema.
+1. Shannon (`skbio.diversity.alpha_diversity`) y riqueza observada por muestra, las pruebas de Mann-Whitney U entre pares de sistemas (`scipy.stats.mannwhitneyu`) y los boxplots por sistema.
 2. Las matrices de Bray-Curtis y Jaccard (`scipy.spatial.distance.pdist`) y sus mapas de calor.
-3. La PCoA sobre Bray-Curtis (`skbio.stats.ordination.pcoa`), con una elipse de dispersión por sistema calculada a partir de la covarianza de sus muestras (1,96 desviaciones estándar).
-4. La PERMANOVA (`skbio.stats.distance.permanova`), usando solo las muestras de los sistemas comparados.
+3. La PCoA sobre Bray-Curtis (`skbio.stats.ordination.pcoa`), con una elipse de dispersión por sistema calculada a partir de la covarianza de sus muestras (1,96 desviaciones estándar). Los límites de los ejes se ajustan para que se vean todas las muestras y todas las elipses.
+4. La PERMANOVA (`skbio.stats.distance.permanova`), usando solo las muestras de los sistemas comparados y una semilla fija (42), de modo que el valor p es el mismo cada vez que se ejecuta.
 
 Cada resultado se guarda como tabla (TSV) y figura (PNG).
 
@@ -311,14 +311,16 @@ Cada resultado se guarda como tabla (TSV) y figura (PNG).
 ```bash
 python3 pipeline_16S/05_diversidad/diversidad_mod.py \
   --model hac --dataset results \
+  -i /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUhac_results/tabla_abundancia_relativa.tsv \
   -c Sistema \
   -g Empresarial Campesina Agroecológica
 ```
 
-- `--model` / `--dataset` definen las rutas por defecto: lee `EMU_propio/EMUhac_results/tabla_abundancia_relativa.tsv` y escribe en `EMU_propio/Diversidad/hac_results/` con el prefijo `Tesis_hac_results`.
+- `--model` / `--dataset` definen las rutas por defecto: escribe en `EMU_propio/Diversidad/hac_results/` con el prefijo `Tesis_hac_results`.
+- `-i` tabla de abundancias relativas que produjo `EMU_propio.py`. Si se omite, el script busca `EMUhac_results/feature_table_relabund_hac_results.tsv`.
 - `-c` columna de los metadatos que define los grupos.
 - `-g` grupos que se comparan; deben coincidir con los valores de esa columna.
-- Opcionales: `-i`, `-o` y `-p` para cambiar la tabla de entrada, la carpeta de salida y el prefijo; `-m` para el Excel de metadatos (`Sistemas Agrícolas y Muestras.xlsx`), y `-b` para el CSV puente (`Mapa Barcodes Microbioma.csv`).
+- Opcionales: `-o` y `-p` para cambiar la carpeta de salida y el prefijo; `-m` para el Excel de metadatos (`Sistemas Agrícolas y Muestras.xlsx`), y `-b` para el CSV puente (`Mapa Barcodes Microbioma.csv`).
 
 ---
 
