@@ -30,10 +30,10 @@ Salidas (en --outdir, por defecto <my-results-dir>/compare_taxa):
   - mine_{rank}_rel.tsv            (tabla rank x muestras, relativas)
   - article_{rank}_rel.tsv
   - compare_{rank}_means.tsv       (medias por taxón y deltas)
-  - compare_{rank}_correlations.tsv (Spearman sobre taxones comunes: rho y p)
+  - compare_{rank}_correlations.tsv (Pearson sobre taxones comunes: r y p)
   - compare_{rank}_scatter.html/png (dispersión medias: este estudio vs artículo)
   - compare_{rank}_top{N}_bars.html/png (barras lado a lado top taxa)
-  - correlacion_spearman.tsv/.xlsx (una columna por rango, fila 'Spearman')
+  - correlacion_pearson.tsv/.xlsx (una columna por rango, fila 'Pearson')
 
 Se pueden pasar varios rangos a la vez: --rank family genus species
 """
@@ -407,17 +407,16 @@ def compare_means(mine: pd.DataFrame, art: pd.DataFrame) -> Tuple[pd.DataFrame, 
     mm["delta"] = mm["mine_mean"] - mm["art_mean"]
     mm["abs_delta"] = mm["delta"].abs()
 
-    # Correlación de Spearman sobre taxones comunes (medias por taxón). Se usa Spearman
-    # porque las abundancias relativas no siguen una distribución normal (muy sesgadas).
-    from scipy.stats import spearmanr
-    spear = spearmanr(mm["mine_mean"].values, mm["art_mean"].values)
+    # Correlación de Pearson sobre taxones comunes (medias por taxón).
+    from scipy.stats import pearsonr
+    r, p = pearsonr(mm["mine_mean"].values, mm["art_mean"].values)
     dfc = pd.DataFrame({
-        "metric": ["spearman_rho", "spearman_p", "n_taxones_comunes"],
-        "value": [spear.statistic, spear.pvalue, len(mm)],
+        "metric": ["pearson_r", "pearson_p", "n_taxones_comunes"],
+        "value": [r, p, len(mm)],
     })
     return mm.sort_values("mine_mean", ascending=False), dfc
 
-def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, rho: Optional[float] = None,
+def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, r: Optional[float] = None,
                        pseudocount: float = 1e-6):
     """Dispersión de medias (este estudio vs artículo) en %, escala log10 con pseudocuenta."""
     x = (mm["mine_mean"].clip(lower=0) + pseudocount) * 100
@@ -438,9 +437,9 @@ def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, rho: Optional[
         title=f"Abundancia relativa media por {RANK_ES[rank].lower()}: {ETQ_MIO.lower()} vs. {ETQ_ART.lower()}",
         legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.02),
     )
-    if rho is not None:
+    if r is not None:
         fig.add_annotation(xref="paper", yref="paper", x=0.98, y=0.04, showarrow=False,
-                           text=f"Spearman ρ = {rho:.3f}", font=dict(size=16))
+                           text=f"Pearson r = {r:.3f}", font=dict(size=16))
     _save_fig(fig, outdir / f"compare_{rank}_scatter.html", outdir / f"compare_{rank}_scatter.png")
 
 def plot_top_bars(mine: pd.DataFrame, art: pd.DataFrame, outdir: Path, rank: str, topn: int = 20):
@@ -537,13 +536,13 @@ def main():
         means_df, corrs_df = compare_means(mine, art)
         means_df.to_csv(outdir / f"compare_{rank}_means.tsv", sep="\t", index=True, header=True)
         corrs_df.to_csv(outdir / f"compare_{rank}_correlations.tsv", sep="\t", index=False)
-        rho = float(corrs_df.set_index("metric").loc["spearman_rho", "value"])
-        resumen[RANK_ES[rank]] = rho
-        eprint(f"[OK] Spearman rho ({rank}) = {rho:.4f}")
+        r = float(corrs_df.set_index("metric").loc["pearson_r", "value"])
+        resumen[RANK_ES[rank]] = r
+        eprint(f"[OK] Pearson r ({rank}) = {r:.4f}")
 
         # Figuras
         try:
-            plot_scatter_means(means_df, outdir, rank, rho=rho)
+            plot_scatter_means(means_df, outdir, rank, r=r)
         except Exception as e:
             eprint(f"[WARN] No se pudo generar scatter: {e}")
         try:
@@ -551,11 +550,11 @@ def main():
         except Exception as e:
             eprint(f"[WARN] No se pudo generar barras top: {e}")
 
-    # Tabla resumen: columnas = rangos, fila 'Spearman'
-    tabla = pd.DataFrame([resumen], index=["Spearman"])
-    tabla.to_csv(outdir / "correlacion_spearman.tsv", sep="\t")
+    # Tabla resumen: columnas = rangos, fila 'Pearson'
+    tabla = pd.DataFrame([resumen], index=["Pearson"])
+    tabla.to_csv(outdir / "correlacion_pearson.tsv", sep="\t")
     try:
-        tabla.round(4).to_excel(outdir / "correlacion_spearman.xlsx")
+        tabla.round(4).to_excel(outdir / "correlacion_pearson.xlsx")
     except Exception as e:
         eprint(f"[WARN] No se pudo escribir XLSX: {e}")
     eprint("\n" + tabla.round(4).to_string())
