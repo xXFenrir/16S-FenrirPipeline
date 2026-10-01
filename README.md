@@ -1,12 +1,12 @@
 # 16S-FenrirPipeline — Algoritmo de interacciones bacteria-fago
 
-Predicción *in silico* de interacciones bacteria-fago a partir de los perfiles taxonómicos 16S obtenidos con el pipeline de la rama `main` (Objetivos 2 y 3 del trabajo de grado *Análisis del microbioma de Passiflora edulis f. edulis mediante secuenciación dirigida al gen 16S usando MinION, y predicción de las posibles interacciones bacteria-fago*, Johann Sebastian Gallego Sierra, Universidad El Bosque).
+Predicción *in silico* de interacciones bacteria-fago a partir de los perfiles taxonómicos 16S obtenidos con el pipeline de la rama `pipeline` (Objetivos 2 y 3 del trabajo de grado *Análisis del microbioma de Passiflora edulis f. edulis mediante secuenciación dirigida al gen 16S usando MinION, y predicción de las posibles interacciones bacteria-fago*, Johann Sebastian Gallego Sierra, Universidad El Bosque).
 
 ## Ramas del repositorio
 
 | Rama | Contenido |
 |---|---|
-| [`main`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
+| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
 | [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
 | [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
 
@@ -20,7 +20,11 @@ Predicción *in silico* de interacciones bacteria-fago a partir de los perfiles 
 
 ## Flujo general
 
-1. Tabla de abundancias relativas de EMU (rama `main`) → filtro por abundancia promedio ≥ 0.001.
+<p align="center">
+  <img src="imagenes/flujo_deeppbi-kg.jpg" alt="Flujo de predicción con DeepPBI-KG: genomas bacterianos y de fagos, BLASTn y Prokka, predicción de interacciones" width="700">
+</p>
+
+1. Tabla de abundancias relativas de EMU (rama `pipeline`) → filtro por abundancia promedio ≥ 0.001.
 2. Descarga de un genoma de referencia por taxón desde NCBI.
 3. Anotación con Prokka y alineamiento con BLASTn contra los 3513 fagos de DeepPBI-KG.
 4. Predicción con la red neuronal preentrenada de DeepPBI-KG para todos los pares fago-bacteria.
