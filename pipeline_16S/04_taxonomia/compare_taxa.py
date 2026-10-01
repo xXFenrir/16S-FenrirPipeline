@@ -30,9 +30,12 @@ Salidas (en --outdir, por defecto <my-results-dir>/compare_taxa):
   - mine_{rank}_rel.tsv            (tabla rank x muestras, relativas)
   - article_{rank}_rel.tsv
   - compare_{rank}_means.tsv       (medias por taxón y deltas)
-  - compare_{rank}_correlations.tsv (Pearson/Spearman sobre taxones comunes)
-  - compare_{rank}_scatter.html/png (dispersión medias: mío vs artículo)
+  - compare_{rank}_correlations.tsv (Spearman sobre taxones comunes: rho y p)
+  - compare_{rank}_scatter.html/png (dispersión medias: este estudio vs artículo)
   - compare_{rank}_top{N}_bars.html/png (barras lado a lado top taxa)
+  - correlacion_spearman.tsv/.xlsx (una columna por rango, fila 'Spearman')
+
+Se pueden pasar varios rangos a la vez: --rank family genus species
 """
 
 from __future__ import annotations
@@ -55,6 +58,10 @@ except Exception:
     pass
 
 TAX_RANKS = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
+RANK_ES = {"superkingdom": "Dominio", "phylum": "Filo", "class": "Clase", "order": "Orden",
+           "family": "Familia", "genus": "Género", "species": "Especie"}
+ETQ_MIO, ETQ_ART = "Este estudio", "Artículo guía"
+COLORES = {ETQ_MIO: "#1f77b4", ETQ_ART: "#d62728"}
 
 
 # -------------------------- utilidades generales --------------------------
@@ -92,7 +99,7 @@ def _save_fig(fig: go.Figure, html_path: Path, png_path: Optional[Path] = None,
     fig.update_layout(template="plotly_white", width=width, height=height)
     fig.write_html(str(html_path))
     if png_path and _HAS_KALEIDO:
-        fig.write_image(str(png_path))
+        fig.write_image(str(png_path), scale=3)
     elif png_path:
         eprint(f"[INFO] Instala 'kaleido' para PNG/SVG/PDF. Guardé HTML: {html_path}")
 
@@ -400,33 +407,40 @@ def compare_means(mine: pd.DataFrame, art: pd.DataFrame) -> Tuple[pd.DataFrame, 
     mm["delta"] = mm["mine_mean"] - mm["art_mean"]
     mm["abs_delta"] = mm["delta"].abs()
 
-    # Correlaciones sobre comunes (valores por taxón, tomando medias)
-    from scipy.stats import pearsonr, spearmanr
-    pear = pearsonr(mm["mine_mean"].values, mm["art_mean"].values)
+    # Correlación de Spearman sobre taxones comunes (medias por taxón). Se usa Spearman
+    # porque las abundancias relativas no siguen una distribución normal (muy sesgadas).
+    from scipy.stats import spearmanr
     spear = spearmanr(mm["mine_mean"].values, mm["art_mean"].values)
     dfc = pd.DataFrame({
-        "metric": ["pearson_r", "pearson_p", "spearman_rho", "spearman_p"],
-        "value": [pear.statistic, pear.pvalue, spear.statistic, spear.pvalue],
+        "metric": ["spearman_rho", "spearman_p", "n_taxones_comunes"],
+        "value": [spear.statistic, spear.pvalue, len(mm)],
     })
     return mm.sort_values("mine_mean", ascending=False), dfc
 
-def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, pseudocount: float = 1e-6):
-    """Dispersión de medias (mío vs artículo), escala log10 opcional con pseudocuenta."""
-    x = mm["mine_mean"].clip(lower=0) + pseudocount
-    y = mm["art_mean"].clip(lower=0) + pseudocount
-    fig = px.scatter(mm.reset_index(), x=x, y=y, hover_name="index")
-    fig.update_traces(marker=dict(size=10))
+def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, rho: Optional[float] = None,
+                       pseudocount: float = 1e-6):
+    """Dispersión de medias (este estudio vs artículo) en %, escala log10 con pseudocuenta."""
+    x = (mm["mine_mean"].clip(lower=0) + pseudocount) * 100
+    y = (mm["art_mean"].clip(lower=0) + pseudocount) * 100
+    fig = px.scatter(mm.reset_index(), x=x, y=y, hover_name=mm.index)
+    fig.update_traces(marker=dict(size=9, color=COLORES[ETQ_MIO], opacity=0.75), name=RANK_ES[rank],
+                      showlegend=False)
     # línea y=x
     minv = float(min(x.min(), y.min()))
     maxv = float(max(x.max(), y.max()))
-    line = go.Scatter(x=[minv, maxv], y=[minv, maxv], mode="lines", name="y=x", line=dict(dash="dash"))
+    line = go.Scatter(x=[minv, maxv], y=[minv, maxv], mode="lines", name="Concordancia perfecta (y = x)",
+                      line=dict(dash="dash", color="gray"))
     fig.add_trace(line)
     fig.update_layout(
-        xaxis_title="Mis medias (rel. abund.) + 1e-6",
-        yaxis_title="Artículo medias (rel. abund.) + 1e-6",
+        xaxis_title=f"Abundancia relativa media — {ETQ_MIO.lower()} (%)",
+        yaxis_title=f"Abundancia relativa media — {ETQ_ART.lower()} (%)",
         xaxis_type="log", yaxis_type="log",
-        title=f"Comparación de medias por {rank} (log10)"
+        title=f"Abundancia relativa media por {RANK_ES[rank].lower()}: {ETQ_MIO.lower()} vs. {ETQ_ART.lower()}",
+        legend=dict(yanchor="top", y=0.98, xanchor="left", x=0.02),
     )
+    if rho is not None:
+        fig.add_annotation(xref="paper", yref="paper", x=0.98, y=0.04, showarrow=False,
+                           text=f"Spearman ρ = {rho:.3f}", font=dict(size=16))
     _save_fig(fig, outdir / f"compare_{rank}_scatter.html", outdir / f"compare_{rank}_scatter.png")
 
 def plot_top_bars(mine: pd.DataFrame, art: pd.DataFrame, outdir: Path, rank: str, topn: int = 20):
@@ -438,12 +452,17 @@ def plot_top_bars(mine: pd.DataFrame, art: pd.DataFrame, outdir: Path, rank: str
                          "art":  amean.reindex(taxa_union).fillna(0.0)})
     # top por suma de ambas medias
     top = comb.assign(sum=comb["mine"] + comb["art"]).sort_values("sum", ascending=False).head(topn)
+    col_rank = RANK_ES[rank]
     df_long = (top.drop(columns=["sum"])
-                   .rename_axis(rank)
+                   .rename(columns={"mine": ETQ_MIO, "art": ETQ_ART}) * 100)
+    df_long = (df_long.rename_axis(col_rank)
                    .reset_index()
-                   .melt(id_vars=rank, var_name="dataset", value_name="rel_abund"))
-    fig = px.bar(df_long, x=rank, y="rel_abund", color="dataset", barmode="group",
-                 title=f"Top {topn} {rank} — medias relativas (mío vs artículo)")
+                   .melt(id_vars=col_rank, var_name="Conjunto de datos",
+                         value_name="Abundancia relativa media (%)"))
+    fig = px.bar(df_long, x=col_rank, y="Abundancia relativa media (%)", color="Conjunto de datos",
+                 barmode="group", color_discrete_map=COLORES,
+                 title=f"{topn} taxones más abundantes a nivel de {col_rank.lower()}: "
+                       f"{ETQ_MIO.lower()} vs. {ETQ_ART.lower()}")
     fig.update_layout(xaxis_tickangle=45)
     _save_fig(fig, outdir / f"compare_{rank}_top{topn}_bars.html", outdir / f"compare_{rank}_top{topn}_bars.png")
 
@@ -472,8 +491,8 @@ def build_parser():
                    help="Glob a *_rel-abundance.tsv del artículo.")
 
     # Parámetros
-    p.add_argument("--rank", type=str, default="genus", choices=TAX_RANKS,
-                   help="Nivel taxonómico para la comparación.")
+    p.add_argument("--rank", type=str, nargs="+", default=["genus"], choices=TAX_RANKS,
+                   help="Uno o varios niveles taxonómicos (p. ej. family genus species).")
     p.add_argument("--outdir", type=Path, default=None,
                    help="Carpeta de salida. Por defecto <my-results-dir>/compare_taxa o ./compare_taxa.")
     p.add_argument("--topn", type=int, default=20, help="Top N taxones para barras lado a lado.")
@@ -488,48 +507,58 @@ def main():
         args.outdir = base / "compare_taxa"
     outdir = _ensure_dir(args.outdir.resolve())
 
-    # Cargar mis datos
-    mine = load_my(
-        my_results_dir=args.my_results_dir.resolve() if args.my_results_dir else None,
-        rank=args.rank,
-        my_counts=args.my_counts,
-        my_taxonomy=args.my_taxonomy,
-        my_relabund_glob=args.my_relabund_glob,
-    )
-    eprint(f"[OK] Mis datos: tabla {args.rank} x {mine.shape[1]} muestras (relativas).")
+    resumen = {}
+    for rank in args.rank:
+        eprint(f"\n===== Rango: {rank} =====")
+        # Cargar mis datos
+        mine = load_my(
+            my_results_dir=args.my_results_dir.resolve() if args.my_results_dir else None,
+            rank=rank,
+            my_counts=args.my_counts,
+            my_taxonomy=args.my_taxonomy,
+            my_relabund_glob=args.my_relabund_glob,
+        )
+        eprint(f"[OK] Mis datos: tabla {rank} x {mine.shape[1]} muestras (relativas).")
 
-    # Cargar artículo
-    art = load_article(
-        rank=args.rank,
-        article_counts=args.article_counts,
-        article_taxonomy=args.article_taxonomy,
-        article_relabund_glob=args.article_relabund_glob,
-    )
-    eprint(f"[OK] Artículo: tabla {args.rank} x {art.shape[1]} muestras (relativas).")
+        # Cargar artículo
+        art = load_article(
+            rank=rank,
+            article_counts=args.article_counts,
+            article_taxonomy=args.article_taxonomy,
+            article_relabund_glob=args.article_relabund_glob,
+        )
+        eprint(f"[OK] Artículo: tabla {rank} x {art.shape[1]} muestras (relativas).")
 
-    # Guardar tablas rank
-    mine_path = outdir / f"mine_{args.rank}_rel.tsv"
-    art_path  = outdir / f"article_{args.rank}_rel.tsv"
-    mine.to_csv(mine_path, sep="\t")
-    art.to_csv(art_path, sep="\t")
+        # Guardar tablas rank
+        mine.to_csv(outdir / f"mine_{rank}_rel.tsv", sep="\t")
+        art.to_csv(outdir / f"article_{rank}_rel.tsv", sep="\t")
 
-    # Comparar promedios / correlaciones
-    means_df, corrs_df = compare_means(mine, art)
-    means_path = outdir / f"compare_{args.rank}_means.tsv"
-    corr_path  = outdir / f"compare_{args.rank}_correlations.tsv"
-    means_df.to_csv(means_path, sep="\t", index=True, header=True)
-    corrs_df.to_csv(corr_path, sep="\t", index=False)
-    eprint("[OK] Medias y correlaciones guardadas.")
+        # Comparar promedios / correlación
+        means_df, corrs_df = compare_means(mine, art)
+        means_df.to_csv(outdir / f"compare_{rank}_means.tsv", sep="\t", index=True, header=True)
+        corrs_df.to_csv(outdir / f"compare_{rank}_correlations.tsv", sep="\t", index=False)
+        rho = float(corrs_df.set_index("metric").loc["spearman_rho", "value"])
+        resumen[RANK_ES[rank]] = rho
+        eprint(f"[OK] Spearman rho ({rank}) = {rho:.4f}")
 
-    # Figuras
+        # Figuras
+        try:
+            plot_scatter_means(means_df, outdir, rank, rho=rho)
+        except Exception as e:
+            eprint(f"[WARN] No se pudo generar scatter: {e}")
+        try:
+            plot_top_bars(mine, art, outdir, rank, topn=args.topn)
+        except Exception as e:
+            eprint(f"[WARN] No se pudo generar barras top: {e}")
+
+    # Tabla resumen: columnas = rangos, fila 'Spearman'
+    tabla = pd.DataFrame([resumen], index=["Spearman"])
+    tabla.to_csv(outdir / "correlacion_spearman.tsv", sep="\t")
     try:
-        plot_scatter_means(means_df, outdir, args.rank)
+        tabla.round(4).to_excel(outdir / "correlacion_spearman.xlsx")
     except Exception as e:
-        eprint(f"[WARN] No se pudo generar scatter: {e}")
-    try:
-        plot_top_bars(mine, art, outdir, args.rank, topn=args.topn)
-    except Exception as e:
-        eprint(f"[WARN] No se pudo generar barras top: {e}")
+        eprint(f"[WARN] No se pudo escribir XLSX: {e}")
+    eprint("\n" + tabla.round(4).to_string())
 
     eprint(f"[DONE] Resultados en: {outdir}")
     return 0

@@ -25,8 +25,8 @@ def main():
     )
     parser.add_argument(
         '-m', '--metadata',
-        default='/home/fenrir/Documentos/Tesis/Muestras_16S/sample_data/16S_sample_data_2020.csv',
-        help="Ruta al archivo CSV de metadatos de las muestras."
+        default='/home/fenrir/Documentos/Tesis/Muestras_16S/SraRunTable.csv',
+        help="SraRunTable del BioProject (columnas 'Run' y 'crop_rotation')."
     )
     parser.add_argument(
         '-o', '--output_dir', 
@@ -46,27 +46,20 @@ def main():
     counts = abundance.copy()
     srr_samples = list(counts.index)
 
-    # 2. CARGA DE METADATOS BASE
+    # 2. CARGA DE METADATOS (SraRunTable)
     print(f"Cargando metadatos base desde: {args.metadata}")
     df_meta = pd.read_csv(args.metadata)
-    df_meta['rotation'] = df_meta['rotation'].astype(str).str.strip()
-    df_meta['sample_id'] = df_meta['sample_id'].astype(str).str.strip()
-    meta_rotations = list(df_meta['rotation'].values)
+    df_meta['Run'] = df_meta['Run'].astype(str).str.strip()
+    df_meta['crop_rotation'] = df_meta['crop_rotation'].astype(str).str.strip()
+    run_a_rotacion = dict(zip(df_meta['Run'], df_meta['crop_rotation']))
 
-    # 3. SINCRONIZACIÓN POSICIONAL CORREGIDA
-    print("Sincronizando muestras y tratamientos por orden correlativo posicional...")
+    # 3. ASIGNACIÓN DE TRATAMIENTOS POR IDENTIFICADOR SRR (no por posición)
+    print("Asignando tratamientos por identificador SRR...")
+    NOMBRES_GRUPO = {"CSCS": "CS", "CS": "CS", "CSSWP": "CSSwP", "NOT APPLICABLE": "Control"}
     GROUPS = {}
-    for idx, srr_id in enumerate(srr_samples):
-        if idx < len(meta_rotations):
-            rotation_val = meta_rotations[idx]
-            if rotation_val == "CS":
-                GROUPS[srr_id] = "CS"
-            elif rotation_val.upper() == "CSSWP":
-                GROUPS[srr_id] = "CSSwP"
-            else:
-                GROUPS[srr_id] = rotation_val
-        else:
-            GROUPS[srr_id] = "Otro"
+    for srr_id in srr_samples:
+        rotation_val = run_a_rotacion.get(srr_id)
+        GROUPS[srr_id] = NOMBRES_GRUPO.get(rotation_val.upper(), rotation_val) if rotation_val else "Sin metadata"
 
     print("\n--- Conteo de muestras asignadas por grupo ---")
     counts_series = pd.Series(GROUPS.values())
@@ -78,21 +71,16 @@ def main():
     metadata['Group'] = metadata.index.map(GROUPS)
 
     # =========================================================================
-    # MULTI-ANÁLISIS 1: ALFA DIVERSIDAD (SHANNON, SIMPSON, CHAO1)
+    # MULTI-ANÁLISIS 1: ALFA DIVERSIDAD (SHANNON Y OBSERVADOS)
     # =========================================================================
     print("Calculando índices de Alfa Diversidad...")
     shannon = alpha_diversity('shannon', counts.values, ids=counts.index)
-    simpson = alpha_diversity('simpson', counts.values, ids=counts.index)
-    
-    is_relabund = counts.values.max() <= 100.0
-    chao_input = (counts.values * 100000).astype(int) if is_relabund else counts.values.astype(int)
-    chao1 = alpha_diversity('chao1', chao_input, ids=counts.index)
+    observados = (counts.values > 0).sum(axis=1)
 
     df_alpha = pd.DataFrame({
         'Sample': counts.index,
         'Shannon': shannon.values,
-        'Simpson': simpson.values,
-        'Chao1': chao1.values,
+        'Observados': observados,
         'Group': [GROUPS[s] for s in counts.index]
     })
     df_alpha.to_csv(f'{OUTPUT_PREFIX}_Alfa_Diversidad_Indices.tsv', sep='\t', index=False)
@@ -104,7 +92,7 @@ def main():
     wilcoxon_results = {}
     if len(g1) > 1 and len(g2) > 1:
         print("Calculando pruebas de Wilcoxon para Alfa Diversidad...")
-        for metric in ['Shannon', 'Simpson', 'Chao1']:
+        for metric in ['Shannon', 'Observados']:
             stat, p_val = mannwhitneyu(g1[metric], g2[metric], alternative='two-sided')
             wilcoxon_results[metric] = {'U_statistic': stat, 'p-value': p_val}
         
@@ -112,13 +100,14 @@ def main():
         df_wilcoxon.to_csv(f'{OUTPUT_PREFIX}_Alfa_Wilcoxon_Resultados.tsv', sep='\t')
 
     # Boxplots de Alfa Diversidad
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     sns.set_theme(style="whitegrid")
-    for i, metric in enumerate(['Shannon', 'Simpson', 'Chao1']):
+    for i, metric in enumerate(['Shannon', 'Observados']):
         sns.boxplot(data=df_w, x='Group', y=metric, hue='Group', palette='Set1', ax=axes[i], legend=False)
         sns.stripplot(data=df_w, x='Group', y=metric, color='black', alpha=0.6, size=6, ax=axes[i])
         p_str = f"p={round(wilcoxon_results[metric]['p-value'], 4)}" if metric in wilcoxon_results else "p=N/A"
         axes[i].set_title(f'{metric} ({p_str})')
+        axes[i].set_xlabel('Rotación de cultivos')
     plt.tight_layout()
     plt.savefig(f'{OUTPUT_PREFIX}_Alfa_Diversidad_Boxplots.png', dpi=300)
     plt.close()
@@ -216,6 +205,8 @@ def main():
             all_ellipse_y.extend([mean_y - height/2, mean_y + height/2])
 
     # AJUSTE CRUCIAL: Expandir los límites del gráfico un 20% más allá de las elipses para que no se corten
+    all_ellipse_x.extend(coords_plot['PC1'].tolist())
+    all_ellipse_y.extend(coords_plot['PC2'].tolist())
     if all_ellipse_x and all_ellipse_y:
         x_min, x_max = min(all_ellipse_x), max(all_ellipse_x)
         y_min, y_max = min(all_ellipse_y), max(all_ellipse_y)
@@ -231,6 +222,7 @@ def main():
     plt.xlabel(f"PC1 ({pc1_var}%)", fontsize=11)
     plt.ylabel(f"PC2 ({pc2_var}%)", fontsize=11)
     plt.title('Diversidad Beta: Ordenación PCoA Bray-Curtis', fontsize=13, pad=15)
+    ax.legend(title='Rotación de cultivos')
     plt.tight_layout()
     plt.savefig(f'{OUTPUT_PREFIX}_PCoA.png', dpi=300)
     plt.close()
@@ -245,7 +237,8 @@ def main():
     permanova_results = permanova(
         distance_matrix=bray_dm_filtered,
         grouping=metadata_filtered['Group'],
-        permutations=999
+        permutations=999,
+        seed=42
     )
     with open(f'{OUTPUT_PREFIX}_PERMANOVA.txt', 'w') as f:
         f.write(str(permanova_results))

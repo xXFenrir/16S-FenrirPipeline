@@ -60,7 +60,7 @@ def main():
                         help="Modelo de basecalling: define los valores por defecto de --input y --output_dir.")
     parser.add_argument('--dataset', choices=['todo', 'results'], default='todo',
                         help="'todo' -> EMU{model}_todo; 'results' -> EMU{model}_results (>500 lecturas).")
-    parser.add_argument('-i', '--input', default=None, help="Ruta a la tabla de abundancias relativas (TSV). Por defecto: EMU{model}_{dataset}/tabla_abundancia_relativa.tsv")
+    parser.add_argument('-i', '--input', default=None, help="Ruta a la tabla de abundancias relativas (TSV). Por defecto: EMU{model}_{dataset}/feature_table_relabund_{model}_{dataset}.tsv")
     parser.add_argument('-m', '--metadata', default=emu_propio / "Diversidad" / "Sistemas Agrícolas y Muestras.xlsx",
                         help="Ruta al archivo de metadatos (Sistemas Agrícolas y Muestras).")
     parser.add_argument('-b', '--barcode_map', default=base / "Mapa Barcodes Microbioma.csv",
@@ -74,7 +74,7 @@ def main():
 
     carpeta_emu = emu_propio / f"EMU{args.model}_{args.dataset}"
     if args.input is None:
-        args.input = carpeta_emu / "tabla_abundancia_relativa.tsv"
+        args.input = carpeta_emu / f"feature_table_relabund_{args.model}_{args.dataset}.tsv"
     if args.output_dir is None:
         args.output_dir = emu_propio / "Diversidad" / f"{args.model}_{args.dataset}"
     if args.prefix is None:
@@ -125,26 +125,26 @@ def main():
     metadatos['Group'] = metadatos.index.map(GRUPOS)
 
     # =========================================================================
-    # MULTI-ANÁLISIS 1: ALFA DIVERSIDAD
+    # MULTI-ANÁLISIS 1: ALFA DIVERSIDAD (SHANNON Y OBSERVADOS)
     # =========================================================================
     print("Calculando índices de Alfa Diversidad...")
-    simpson = alpha_diversity('simpson', conteos.values, ids=conteos.index)
+    shannon = alpha_diversity('shannon', conteos.values, ids=conteos.index)
     observados = (conteos.values > 0).sum(axis=1)
 
     df_alfa = pd.DataFrame({
         'Sample': conteos.index,
-        'Simpson': simpson.values,
+        'Shannon': shannon.values,
         'Observados': observados,
         'Group': [GRUPOS[s] for s in conteos.index]
     })
-    df_alfa.to_csv(f'{PREFIJO_SALIDA}_Diversidad_Alfa_Indices.tsv', sep='\t', index=False)
+    df_alfa.to_csv(f'{PREFIJO_SALIDA}_Alfa_Diversidad_Indices.tsv', sep='\t', index=False)
 
     df_alfa_filtrado = df_alfa[df_alfa['Group'].isin(args.groups)]
 
     # Pruebas estadísticas automáticas
     resultados_wilcoxon = {}
     print(f"Calculando pruebas de Wilcoxon para las combinaciones de {len(args.groups)} grupos...")
-    for metrica in ['Simpson', 'Observados']:
+    for metrica in ['Shannon', 'Observados']:
         resultados_metrica = {}
         for nombre_g1, nombre_g2 in itertools.combinations(args.groups, 2):
             grupo1 = df_alfa_filtrado[df_alfa_filtrado['Group'] == nombre_g1]
@@ -155,18 +155,19 @@ def main():
         resultados_wilcoxon[metrica] = resultados_metrica
 
     df_valores_p = pd.DataFrame(resultados_wilcoxon)
-    df_valores_p.to_csv(f'{PREFIJO_SALIDA}_Diversidad_Alfa_Wilcoxon_valoresP.tsv', sep='\t')
+    df_valores_p.to_csv(f'{PREFIJO_SALIDA}_Alfa_Wilcoxon_pvalues.tsv', sep='\t')
 
     # Boxplots
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     sns.set_theme(style="whitegrid")
-    for i, metrica in enumerate(['Simpson', 'Observados']):
+    for i, metrica in enumerate(['Shannon', 'Observados']):
         sns.boxplot(data=df_alfa_filtrado, x='Group', y=metrica, hue='Group', palette='Set1', ax=axes[i], legend=False)
         sns.stripplot(data=df_alfa_filtrado, x='Group', y=metrica, color='black', alpha=0.6, size=6, ax=axes[i])
         axes[i].set_title(f'{metrica}')
+        axes[i].set_xlabel('Sistema de manejo')
         axes[i].tick_params(axis='x', rotation=15)
     plt.tight_layout()
-    plt.savefig(f'{PREFIJO_SALIDA}_Diversidad_Alfa_DiagramasCaja.png', dpi=300)
+    plt.savefig(f'{PREFIJO_SALIDA}_Alfa_Diversidad_Boxplots.png', dpi=300)
     plt.close()
 
     # =========================================================================
@@ -182,8 +183,8 @@ def main():
     df_bray = pd.DataFrame(dm_bray.data, index=abundancia.index, columns=abundancia.index)
     df_jaccard = pd.DataFrame(dm_jaccard.data, index=abundancia.index, columns=abundancia.index)
 
-    df_bray.to_csv(f'{PREFIJO_SALIDA}_BrayCurtis.tsv', sep='\t')
-    df_jaccard.to_csv(f'{PREFIJO_SALIDA}_Jaccard.tsv', sep='\t')
+    df_bray.to_csv(f'{PREFIJO_SALIDA}_braycurtis.tsv', sep='\t')
+    df_jaccard.to_csv(f'{PREFIJO_SALIDA}_jaccard.tsv', sep='\t')
 
     for matriz, nombre in zip([df_bray, df_jaccard], ['BrayCurtis', 'Jaccard']):
         fig, ax = plt.subplots(figsize=(12, 10))
@@ -192,7 +193,7 @@ def main():
         ax.tick_params(axis='both', which='major', labelsize=6)
         plt.title(f'Matriz de Distancia - {nombre}', fontsize=14, pad=15)
         plt.tight_layout()
-        plt.savefig(f'{PREFIJO_SALIDA}_{nombre}_MapaCalor.png', dpi=300)
+        plt.savefig(f'{PREFIJO_SALIDA}_{nombre}_heatmap.png', dpi=300)
         plt.close()
 
     # =========================================================================
@@ -240,6 +241,8 @@ def main():
             todos_elipse_x.extend([media_x - ancho/2, media_x + ancho/2])
             todos_elipse_y.extend([media_y - alto/2, media_y + alto/2])
 
+    todos_elipse_x.extend(coordenadas_grafico['PC1'].tolist())
+    todos_elipse_y.extend(coordenadas_grafico['PC2'].tolist())
     if todos_elipse_x and todos_elipse_y:
         x_min, x_max = min(todos_elipse_x), max(todos_elipse_x)
         y_min, y_max = min(todos_elipse_y), max(todos_elipse_y)
@@ -253,7 +256,7 @@ def main():
     plt.xlabel(f"PC1 ({var_pc1}%)", fontsize=11)
     plt.ylabel(f"PC2 ({var_pc2}%)", fontsize=11)
     plt.title('Diversidad Beta: Ordenación PCoA Bray-Curtis', fontsize=13, pad=15)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Sistema de manejo')
     plt.tight_layout()
     plt.savefig(f'{PREFIJO_SALIDA}_PCoA.png', dpi=300)
     plt.close()
@@ -268,7 +271,8 @@ def main():
     resultado_permanova = permanova(
         distance_matrix=dm_bray_filtrada,
         grouping=metadatos_filtrados['Group'],
-        permutations=999
+        permutations=999,
+        seed=42
     )
     with open(f'{PREFIJO_SALIDA}_PERMANOVA.txt', 'w') as f:
         f.write(str(resultado_permanova))
