@@ -1,0 +1,24 @@
+# Datos de secuenciación: son demasiado pesados para GitHub (límite de 100 MB por archivo).
+# Los datos crudos de gulupa se solicitan al autor (ver README).
+*.pod5
+*.fast5
+*.bam
+*.bai
+*.sam
+*.cram
+*.fastq
+*.fq
+*.fastq.gz
+*.fq.gz
+
+# Base de datos de referencia de EMU (se descarga de OSF)
+emu_db/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Sistema y editores
+.DS_Store
+*~
