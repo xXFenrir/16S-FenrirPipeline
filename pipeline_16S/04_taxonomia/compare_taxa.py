@@ -115,6 +115,14 @@ _QIIME_PATTERNS = {
     "species": re.compile(r"s__([^;]+)"),
 }
 
+# Etiquetas sin asignación real; se excluyen y cada muestra se renormaliza sobre lo asignado
+# (igual que ocurre con las celdas vacías de los TSV del artículo, que groupby descarta).
+_NO_ASIGNADO = {"", "nan", "none", "na", "unassigned", "uncultured", "metagenome"}
+
+def _drop_unassigned(G: pd.DataFrame) -> pd.DataFrame:
+    keep = ~G.index.astype(str).str.strip().str.lower().isin(_NO_ASIGNADO)
+    return G.loc[keep]
+
 def _from_qiime(s: str, rank: str) -> str:
     if not isinstance(s, str):
         return "Unassigned"
@@ -122,7 +130,7 @@ def _from_qiime(s: str, rank: str) -> str:
     if not m:
         return "Unassigned"
     val = m.group(1).strip()
-    if val in ["", "uncultured", "metagenome"]:
+    if val.lower() in _NO_ASIGNADO:
         return "Unassigned"
     return val
 
@@ -197,7 +205,7 @@ def aggregate_by_rank_rel(rel: pd.DataFrame, taxmap: pd.Series) -> pd.DataFrame:
         raise RuntimeError("No coinciden los feature_id entre tabla y taxonomía.")
     R = R.loc[common]
     taxmap = taxmap.loc[common]
-    G = R.groupby(taxmap).sum()
+    G = _drop_unassigned(R.groupby(taxmap).sum())
     # normaliza por muestra a proporciones
     colsum = G.sum(axis=0)
     colsum[colsum == 0] = 1.0
@@ -290,7 +298,7 @@ def load_my(
             return aggregate_by_rank_rel(Rel, taxmap)
         if not tabs:
             raise RuntimeError("No pude extraer información de relativas por muestra (mis datos).")
-        G = pd.concat(tabs, axis=1).fillna(0.0)
+        G = _drop_unassigned(pd.concat(tabs, axis=1).fillna(0.0))
         # normaliza columnas a 1 (por seguridad)
         colsum = G.sum(axis=0); colsum[colsum == 0] = 1.0
         return G / colsum
@@ -367,7 +375,7 @@ def load_article(
             return aggregate_by_rank_rel(Rel, taxmap)
         if not tabs:
             raise RuntimeError("No pude extraer relativas por muestra (artículo).")
-        G = pd.concat(tabs, axis=1).fillna(0.0)
+        G = _drop_unassigned(pd.concat(tabs, axis=1).fillna(0.0))
         colsum = G.sum(axis=0); colsum[colsum == 0] = 1.0
         return G / colsum
 
