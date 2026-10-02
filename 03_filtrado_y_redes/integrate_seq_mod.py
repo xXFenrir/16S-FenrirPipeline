@@ -10,11 +10,13 @@ def cargar_y_estandarizar(ruta, nombre_columna_prob):
     """Carga un CSV y estandariza los nombres de las columnas para poder unificarlos."""
     df = pd.read_csv(ruta)
     columnas_originales = list(df.columns)
-    # Asumimos que col 0 = Fago, col 1 = Bacteria, col 2 = Probabilidad
+    # col 0 = Fago, col 1 = Bacteria. La probabilidad es la columna Weight: en
+    # interacciones_comp.csv la col 2 es key_gene_output y Weight es el promedio.
+    col_prob = 'Weight' if 'Weight' in columnas_originales else columnas_originales[2]
     df = df.rename(columns={
-        columnas_originales[0]: 'Bacteriofago', 
-        columnas_originales[1]: 'Bacteria', 
-        columnas_originales[2]: nombre_columna_prob
+        columnas_originales[0]: 'Bacteriofago',
+        columnas_originales[1]: 'Bacteria',
+        col_prob: nombre_columna_prob
     })
     return df[['Bacteriofago', 'Bacteria', nombre_columna_prob]]
 
@@ -96,7 +98,7 @@ def main():
     fig2, ax2 = plt.subplots(figsize=(8, 8))
     venn_out = venn3(
         [set_kg, set_wgs, set_comp], 
-        set_labels=(f'Key Gene $\ge$ {UMBRAL}', f'WGS $\ge$ {UMBRAL}', f'Compuesto $\ge$ {UMBRAL}'),
+        set_labels=(f'Key Gene ≥ {UMBRAL}', f'WGS ≥ {UMBRAL}', f'Compuesto ≥ {UMBRAL}'),
         set_colors=('#457b9d', '#e63946', '#2a9d8f'), alpha=0.7, ax=ax2
     )
     plt.title("Intersección de Viabilidad Genómica y Ecológica", fontsize=14, fontweight='bold', pad=20)
@@ -111,9 +113,9 @@ def main():
     print("3/4 Generando Diagrama de Embudo...")
     etapas = [
         "Total de cruces teóricos", 
-        f"Filtrado Key Gene ($\ge${UMBRAL})", 
-        f"Filtrado WGS ($\ge${UMBRAL})", 
-        f"Interactoma Compuesto ($\ge${UMBRAL})"
+        f"Filtrado Key Gene (≥ {UMBRAL})", 
+        f"Filtrado WGS (≥ {UMBRAL})", 
+        f"Interactoma Compuesto (≥ {UMBRAL})"
     ]
     valores = [total_interacciones, len(set_kg), len(set_wgs), len(set_comp)]
 
