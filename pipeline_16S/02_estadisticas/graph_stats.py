@@ -4,7 +4,11 @@
 """
 Comparación gráfica ANTES vs. DESPUÉS (FASTQ por muestra + per-read).
 
-Incluye:
+Por defecto (--estilo nuevo) genera dos figuras con TODAS las muestras:
+- 01_lecturas_retencion.png: (A) lecturas antes vs. después por muestra; (B) % de retención por muestra.
+- 02_calidad_qscore.png: (A) distribución del QScore medio por lectura (requiere FASTQ);
+  (B) QScore promedio por muestra antes y después (sale de las tablas de stats_fastq.py).
+Con --estilo anterior (o ambos) genera además las figuras originales:
 - Mancuernas (# lecturas y # bases) con %remoción por muestra (+ submuestreo).
   * Matplotlib: pares correctos (línea por muestra), colores/forma distintos (Antes vs. Después), etiquetas rem fuera.
   * Plotly (--use-plotly): HTML interactivo con segmentos por muestra (None separator) + PNG si hay 'kaleido'.
@@ -470,11 +474,31 @@ def _expand_fastq(pat: str) -> list[str]:
     return sorted(glob(pat, recursive=True))
 
 
-def sample_lengths_qscores(paths: List[str], reads_cap: int, reads_per_file_cap: int, seed: int = 13) -> Tuple[np.ndarray, np.ndarray]:
+def _qmean_read(qual: str, modo: str = "aritmetica") -> float:
+    """QScore medio de una lectura.
+    - 'aritmetica': promedio simple de los Phred (mismo criterio que stats_fastq.py y las tablas de la tesis).
+    - 'probabilidad': -10*log10(promedio de las probabilidades de error), convención de Dorado/NanoPlot.
+    """
+    if not qual:
+        return np.nan
+    qs = np.frombuffer(qual.encode("ascii", "ignore"), dtype=np.uint8).astype(float) - 33.0
+    if modo == "probabilidad":
+        return float(-10.0 * np.log10(np.mean(10.0 ** (-qs / 10.0))))
+    return float(qs.mean())
+
+
+def sample_lengths_qscores(paths: List[str], reads_cap: int, reads_per_file_cap: int, seed: int = 13,
+                           q_modo: str = "aritmetica", balanceado: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    """Lee longitudes y QScore medio por lectura.
+    Con balanceado=True, el tope total se reparte por igual entre archivos, de modo que todas las
+    muestras aporten lecturas (antes, con 120.000 de tope y 20.000 por archivo, solo entraban las
+    primeras 6 muestras en orden alfabético)."""
     lengths = []
     qmeans = []
     total = 0
     rng = np.random.default_rng(seed)
+    if balanceado and paths:
+        reads_per_file_cap = max(1, min(reads_per_file_cap, int(np.ceil(reads_cap / len(paths)))))
     for p in paths:
         if total >= reads_cap:
             break
@@ -482,8 +506,7 @@ def sample_lengths_qscores(paths: List[str], reads_cap: int, reads_per_file_cap:
         try:
             for seq, qual in _iter_fastq_records(p):
                 L = len(seq)
-                qs = [ord(c)-33 for c in qual]
-                qmean = float(np.mean(qs)) if qs else np.nan
+                qmean = _qmean_read(qual, q_modo)
                 lengths.append(L)
                 qmeans.append(qmean)
                 taken += 1
@@ -596,6 +619,164 @@ def violin_n50(df: pd.DataFrame, outpath: Path, fig_scale: float = 1.0, use_rain
     plt.tight_layout()
     plt.savefig(outpath, dpi=240)
     plt.close()
+
+
+# ------------------------
+# 4) Figuras nuevas (--estilo nuevo): lecturas y calidad, con todas las muestras
+# ------------------------
+
+C_ANTES = "#0072B2"    # azul (Okabe-Ito, apto para daltonismo)
+C_DESPUES = "#E69F00"  # naranja (Okabe-Ito)
+
+
+def _num_es(x: float, dec: int = 0) -> str:
+    """Número con formato español: miles con punto y decimales con coma."""
+    s = f"{x:,.{dec}f}"
+    return s.replace(",", "§").replace(".", ",").replace("§", ".")
+
+
+_RC_TESIS = {
+    "font.size": 11, "axes.labelsize": 11, "xtick.labelsize": 10, "ytick.labelsize": 10,
+    "legend.fontsize": 9.5, "axes.spines.top": False, "axes.spines.right": False,
+    "axes.edgecolor": "0.3", "axes.linewidth": 0.8,
+    "axes.grid": True, "grid.color": "0.85", "grid.linewidth": 0.6,
+}
+
+
+def _estilo_tesis():
+    """Estilo limpio para la tesis, independiente del estilo de seaborn que usan las figuras anteriores."""
+    from contextlib import ExitStack
+    stack = ExitStack()
+    stack.enter_context(plt.style.context("default"))
+    stack.enter_context(plt.rc_context(_RC_TESIS))
+    return stack
+
+
+def _letra_panel(ax, letra: str):
+    ax.text(-0.13, 1.04, letra, transform=ax.transAxes, fontsize=14, fontweight="bold", va="bottom")
+
+
+def _con_estilo(func):
+    import functools
+    @functools.wraps(func)
+    def envoltura(*a, **k):
+        with _estilo_tesis():
+            return func(*a, **k)
+    return envoltura
+
+
+@_con_estilo
+def figura_lecturas(df: pd.DataFrame, outpath: Path, fig_scale: float = 1.0):
+    """(A) Lecturas antes vs. después por muestra, con todas las muestras.
+       (B) Distribución del porcentaje de retención por muestra."""
+    d = df.dropna(subset=["lecturas_before", "lecturas_after"]).copy()
+    if d.empty:
+        print("[WARN] Sin datos de lecturas para la figura nueva.", file=sys.stderr); return
+    ret = 100.0 * d["lecturas_after"] / d["lecturas_before"]
+    med = float(np.median(ret))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0 * fig_scale, 4.6 * fig_scale),
+                                   gridspec_kw={"width_ratios": [1.15, 1]})
+    fmt_miles = plt.FuncFormatter(lambda v, _: _num_es(v))
+
+    # (A) dispersión antes vs. después
+    xmax = float(d["lecturas_before"].max()) * 1.06
+    xs = np.array([0, xmax])
+    ax1.plot(xs, xs, ls="--", lw=1.1, color="0.55", zorder=1, label="Sin pérdida (100 %)")
+    ax1.plot(xs, xs * med / 100.0, lw=1.4, color=C_DESPUES, zorder=2,
+             label=f"Retención mediana ({_num_es(med, 1)} %)")
+    ax1.scatter(d["lecturas_before"], d["lecturas_after"], s=30, color=C_ANTES, alpha=0.85,
+                edgecolor="white", linewidth=0.5, zorder=3, label=f"Muestras (n = {len(d)})")
+    ax1.set_xlim(0, xmax); ax1.set_ylim(0, xmax)
+    ax1.set_aspect("equal", adjustable="box")
+    ax1.xaxis.set_major_formatter(fmt_miles); ax1.yaxis.set_major_formatter(fmt_miles)
+    ax1.set_xlabel("Lecturas antes del filtrado")
+    ax1.set_ylabel("Lecturas después del filtrado")
+    ax1.legend(loc="upper left", frameon=False)
+    _letra_panel(ax1, "A")
+
+    # (B) porcentaje de retención por muestra
+    lo, hi = np.floor(ret.min()), np.ceil(ret.max())
+    bins = np.arange(lo, hi + 0.5, 0.5)
+    cuentas, _, _ = ax2.hist(ret, bins=bins, color=C_ANTES, alpha=0.85, edgecolor="white", linewidth=0.8)
+    ax2.vlines(med, 0, cuentas.max() * 1.08, color=C_DESPUES, lw=1.8)
+    ax2.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: _num_es(v, 0)))
+    ax2.set_xlabel("Lecturas retenidas por muestra (%)")
+    ax2.set_ylabel("Número de muestras")
+    from matplotlib.ticker import MaxNLocator
+    ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax2.set_ylim(0, ax2.get_ylim()[1] * 1.45)
+    ax2.text(0.03, 0.97, f"Mediana: {_num_es(med, 1)} %\n"
+                         f"Rango: {_num_es(ret.min(), 1)}–{_num_es(ret.max(), 1)} %\n"
+                         f"Total: {_num_es(d['lecturas_before'].sum())} → {_num_es(d['lecturas_after'].sum())} lecturas",
+             transform=ax2.transAxes, ha="left", va="top", fontsize=9.5,
+             bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="0.8"))
+    _letra_panel(ax2, "B")
+
+    fig.tight_layout()
+    fig.savefig(outpath, dpi=300)
+    plt.close(fig)
+
+
+@_con_estilo
+def figura_calidad(df: pd.DataFrame, before_q: Optional[np.ndarray], after_q: Optional[np.ndarray],
+                   outpath: Path, q_umbral: Optional[float] = None, fig_scale: float = 1.0):
+    """(A) Distribución del QScore medio por lectura antes y después (requiere FASTQ).
+       (B) QScore promedio por muestra, antes y después, con una línea por muestra (usa las tablas)."""
+    tiene_a = before_q is not None and after_q is not None and np.isfinite(before_q).any() and np.isfinite(after_q).any()
+    tiene_b = "QScore promedio_before" in df.columns and "QScore promedio_after" in df.columns
+    if not (tiene_a or tiene_b):
+        print("[WARN] Sin datos de calidad para la figura nueva.", file=sys.stderr); return
+    n = int(tiene_a) + int(tiene_b)
+    fig, axes = plt.subplots(1, n, figsize=((5.6 * n) * fig_scale, 4.6 * fig_scale), squeeze=False)
+    axes = axes[0]
+    i = 0
+    if tiene_a:
+        ax = axes[i]; i += 1
+        a = before_q[np.isfinite(before_q)]; b = after_q[np.isfinite(after_q)]
+        bins = np.arange(np.floor(min(a.min(), b.min())), np.ceil(max(a.max(), b.max())) + 0.25, 0.25)
+        for v, c, lab in ((a, C_ANTES, "Antes"), (b, C_DESPUES, "Después")):
+            w = np.full(v.size, 100.0 / v.size)
+            ax.hist(v, bins=bins, weights=w, histtype="stepfilled", color=c, alpha=0.16, linewidth=0)
+            ax.hist(v, bins=bins, weights=w, histtype="step", color=c, lw=1.5,
+                    label=f"{lab} (mediana {_num_es(np.median(v), 1)})")
+            ax.axvline(np.median(v), color=c, ls="--", lw=1.2)
+        if q_umbral is not None:
+            ax.axvline(q_umbral, color="0.25", lw=1.1, ls=":")
+            ax.text(q_umbral, ax.get_ylim()[1] * 0.98, f" umbral Q{_num_es(q_umbral, 0)}", fontsize=9, va="top")
+        from matplotlib.ticker import MultipleLocator
+        ax.xaxis.set_major_locator(MultipleLocator(2))  # ticks enteros: evita que 17,5 se rotule como "18"
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: _num_es(v, 0)))
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: _num_es(v, 1)))
+        ax.set_xlabel("QScore medio por lectura")
+        ax.set_ylabel("Lecturas (%)")
+        ax.legend(loc="upper left", frameon=False)
+        _letra_panel(ax, "A")
+    if tiene_b:
+        ax = axes[i]
+        d = df.dropna(subset=["QScore promedio_before", "QScore promedio_after"])
+        qb = d["QScore promedio_before"].values; qa = d["QScore promedio_after"].values
+        for y0, y1 in zip(qb, qa):
+            ax.plot([0, 1], [y0, y1], color="0.6", lw=0.7, alpha=0.5, zorder=1)
+        rng = np.random.default_rng(7)
+        ax.scatter(rng.uniform(-0.04, 0.04, qb.size), qb, s=16, color=C_ANTES, zorder=3, edgecolor="white", linewidth=0.4)
+        ax.scatter(1 + rng.uniform(-0.04, 0.04, qa.size), qa, s=16, color=C_DESPUES, zorder=3, edgecolor="white", linewidth=0.4)
+        bp = ax.boxplot([qb, qa], positions=[-0.22, 1.22], widths=0.14, patch_artist=True, showfliers=False,
+                        medianprops=dict(color="black", lw=1.2))
+        for patch, c in zip(bp["boxes"], (C_ANTES, C_DESPUES)):
+            patch.set_facecolor(c); patch.set_alpha(0.55)
+        delta = float(np.median(qa - qb))
+        ax.set_xticks([0, 1]); ax.set_xticklabels(["Antes", "Después"])
+        ax.set_xlim(-0.45, 1.45)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: _num_es(v, 1)))
+        ax.set_ylabel("QScore promedio por muestra")
+        ax.grid(axis="x", visible=False)
+        signo = "+" if delta >= 0 else "−"
+        ax.text(0.5, 1.01, f"n = {len(d)} muestras · cambio mediano: {signo}{_num_es(abs(delta), 2)}",
+                transform=ax.transAxes, ha="center", va="bottom", fontsize=9.5, color="0.2")
+        _letra_panel(ax, "B" if tiene_a else "A")
+    fig.tight_layout()
+    fig.savefig(outpath, dpi=300)
+    plt.close(fig)
 
 
 # ------------------------
@@ -751,6 +932,15 @@ def main():
     ap.add_argument("--lengths-log10", action="store_true", help="Usa escala log10 para el violín de longitudes por lectura.")
     ap.add_argument("--raincloud", action="store_true", help="Usa gráficos tipo raincloud (ptitprince). Si no está, cae a violín estándar.")
 
+    # Figuras nuevas
+    ap.add_argument("--estilo", choices=["nuevo", "anterior", "ambos"], default="nuevo",
+                    help="'nuevo': 2 figuras (lecturas y calidad, todas las muestras). "
+                         "'anterior': mancuernas, violines y scatter originales. 'ambos': todo.")
+    ap.add_argument("--q-por-lectura", choices=["aritmetica", "probabilidad"], default="aritmetica",
+                    help="Cómo calcular el QScore medio de cada lectura. 'aritmetica' coincide con stats_fastq.py.")
+    ap.add_argument("--q-umbral", type=float, default=None,
+                    help="Dibuja una línea vertical en este QScore en la figura de calidad (opcional).")
+
     args = ap.parse_args()
 
     # Resolver carpeta de salida
@@ -804,9 +994,40 @@ def main():
         return outdir / f"{args.prefix}{name}"
 
     produced: List[Path] = []
+    viejo = args.estilo in ("anterior", "ambos")
+    nuevo = args.estilo in ("nuevo", "ambos")
+
+    # QScore por lectura (se lee una sola vez y se usa en las figuras que lo necesiten)
+    b_len = b_q = a_len = a_q = None
+    if args.fastq_before and args.fastq_after:
+        paths_b = _expand_fastq(args.fastq_before)
+        paths_a = _expand_fastq(args.fastq_after)
+        if args.after_filter:
+            paths_a = [p for p in paths_a if fnmatch(Path(p).name, args.after_filter)]
+        if not paths_b:
+            print(f"[WARN] No FASTQ en --fastq-before: {args.fastq_before}", file=sys.stderr)
+        if not paths_a:
+            print(f"[WARN] No FASTQ en --fastq-after (tras filtro): {args.fastq_after}", file=sys.stderr)
+        if paths_b and paths_a:
+            b_len, b_q = sample_lengths_qscores(paths_b, args.reads_cap, args.reads_per_file_cap, q_modo=args.q_por_lectura)
+            a_len, a_q = sample_lengths_qscores(paths_a, args.reads_cap, args.reads_per_file_cap, q_modo=args.q_por_lectura)
+    else:
+        print("[INFO] Sin FASTQ: la figura de calidad solo tendrá el panel por muestra.", file=sys.stderr)
+
+    # ====== 0) Figuras nuevas ======
+    if nuevo:
+        fA = OUT("01_lecturas_retencion.png")
+        fB = OUT("02_calidad_qscore.png")
+        figura_lecturas(df, fA, fig_scale=args.fig_scale)
+        figura_calidad(df, b_q, a_q, fB, q_umbral=args.q_umbral, fig_scale=args.fig_scale)
+        for p in (fA, fB):
+            if p.exists():
+                produced.append(p)
 
     # ====== 1) Mancuernas ======
-    if args.use_plotly:
+    if not viejo:
+        pass
+    elif args.use_plotly:
         html1 = OUT("01_dumbbell_lecturas.html")
         html2 = OUT("02_dumbbell_bases.html")
         png1  = OUT("01_dumbbell_lecturas.png")
@@ -830,34 +1051,22 @@ def main():
                 produced.append(p)
 
     # ====== 2) Longitudes por lectura + Scatter QScore (si hay FASTQ) ======
-    if args.fastq_before and args.fastq_after:
-        paths_b = _expand_fastq(args.fastq_before)
-        paths_a = _expand_fastq(args.fastq_after)
-        if args.after_filter:
-            paths_a = [p for p in paths_a if fnmatch(Path(p).name, args.after_filter)]
-        if not paths_b:
-            print(f"[WARN] No FASTQ en --fastq-before: {args.fastq_before}", file=sys.stderr)
-        if not paths_a:
-            print(f"[WARN] No FASTQ en --fastq-after (tras filtro): {args.fastq_after}", file=sys.stderr)
-        if paths_b and paths_a:
-            b_len, b_q = sample_lengths_qscores(paths_b, args.reads_cap, args.reads_per_file_cap)
-            a_len, a_q = sample_lengths_qscores(paths_a, args.reads_cap, args.reads_per_file_cap)
-            f3 = OUT("03_violin_read_lengths.png")
-            f4 = OUT("04_scatter_qscore_per_read.png")
-            violin_lengths(b_len, a_len, f3, lengths_log10=args.lengths_log10,
-                           fig_scale=args.fig_scale, use_raincloud=args.raincloud)
-            scatter_qscores(b_q, a_q, f4, fig_scale=args.fig_scale)
-            for p in [f3, f4]:
-                if p.exists():
-                    produced.append(p)
-    else:
-        print("[INFO] Sin FASTQ: se omite violín/raincloud de longitudes y scatter de QScore por lectura.", file=sys.stderr)
+    if viejo and b_q is not None and a_q is not None:
+        f3 = OUT("03_violin_read_lengths.png")
+        f4 = OUT("04_scatter_qscore_per_read.png")
+        violin_lengths(b_len, a_len, f3, lengths_log10=args.lengths_log10,
+                       fig_scale=args.fig_scale, use_raincloud=args.raincloud)
+        scatter_qscores(b_q, a_q, f4, fig_scale=args.fig_scale)
+        for p in [f3, f4]:
+            if p.exists():
+                produced.append(p)
 
     # ====== 3) N50 por muestra ======
-    f5 = OUT("05_violin_n50.png")
-    violin_n50(df, f5, fig_scale=args.fig_scale, use_raincloud=args.raincloud)
-    if f5.exists():
-        produced.append(f5)
+    if viejo:
+        f5 = OUT("05_violin_n50.png")
+        violin_n50(df, f5, fig_scale=args.fig_scale, use_raincloud=args.raincloud)
+        if f5.exists():
+            produced.append(f5)
 
     # ====== 4) CSV resumen (retención/remoción) ======
     try:
@@ -885,4 +1094,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
