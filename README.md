@@ -186,11 +186,11 @@ Estima, para cada par fago-bacteria, la probabilidad de que interactúen. Como n
 - **De ADN:** frecuencia de cada nucleótido, contenido GC, frecuencia de cada codón y su uso relativo entre codones sinónimos.
 - **De proteína:** propiedades fisicoquímicas (peso molecular, punto isoeléctrico, inestabilidad, fracciones de estructura secundaria), composición de aminoácidos y los descriptores CTD y Z-scale.
 
-Cada característica se resume sobre todos los genes del genoma con seis estadísticos (media, máximo, mínimo, desviación estándar, mediana y varianza), lo que da 1338 valores por genoma. Para cada par se unen los vectores del fago y de la bacteria (2676 valores), se estandarizan con el escalador del modelo y entran a una red neuronal densa de seis capas que termina en una neurona sigmoide, cuya salida es una probabilidad entre 0 y 1.
+Cada CDS queda descrito por 223 características (133 de ADN y 90 de proteína), que se resumen sobre todos los genes del genoma con seis estadísticos (media, máximo, mínimo, desviación estándar, mediana y varianza). Así, cada genoma queda representado por 6 × 223 = 1338 valores, sin importar su longitud. Para cada par se unen los vectores del fago y de la bacteria (2676 valores), se estandarizan con el escalador del modelo y entran a una red neuronal profunda con cinco capas ocultas y una neurona de salida sigmoide, cuyo resultado es una probabilidad entre 0 y 1.
 
 El modelo tiene dos versiones con la misma arquitectura y pesos distintos:
 
-- **Genes clave** (`key_gene_output`): usa solo los CDS de una lista de genes que los autores identificaron como determinantes de la interacción; estima el potencial de infección.
+- **Genes clave** (`key_gene_output`): usa solo los CDS de una lista de genes que los autores seleccionaron con Random Forest como determinantes de la interacción; estima el potencial de infección.
 - **Genoma completo** (`wgs_output`): usa todos los CDS; estima la compatibilidad a nivel de genoma.
 
 <details>
@@ -296,7 +296,7 @@ python3 $ALG/03_filtrado_y_redes/filtro_redes.py \
 
 ### Para qué sirve
 
-Representa las interacciones filtradas como una red en la que los nodos son fagos y bacterias, y cada arista es una interacción predicha. La red muestra qué bacterias concentran más interacciones y qué fagos podrían infectar a varias bacterias. Se construyó la red completa y una reducida a los cuatro taxones más abundantes del rizobioma (*Lactococcus lactis*, *Weissella soli*, *Weissella oryzae* y *Lactobacillus coryniformis*), cuyas interacciones con mayor puntaje se contrastan con la literatura (tablas *Top5_interacciones_por_taxon* de los Anexos 12 y 20). El resultado son los grafos de Gephi y una tabla de estadísticas de todas las redes.
+Representa las interacciones filtradas como una red en la que los nodos son fagos y bacterias, y cada arista es una interacción predicha. La red muestra qué bacterias concentran más interacciones y qué fagos podrían infectar a varias bacterias. Se construyó la red completa y una reducida a los cuatro taxones más abundantes del rizobioma (*Lactococcus lactis*, *Weissella soli*, *Weissella oryzae* y *Lactobacillus coryniformis*), cuyas interacciones con mayor puntaje se contrastan con la literatura (tablas *Top5_interacciones_por_taxon* de los Anexos 12 y 20) y se clasifican como evidencia directa, evidencia por cercanía taxonómica o sin evidencia. El resultado son los grafos de Gephi y una tabla de estadísticas de todas las redes.
 
 ### Herramientas
 
