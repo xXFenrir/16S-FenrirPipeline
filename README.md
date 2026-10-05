@@ -48,7 +48,7 @@ Los pasos se describen tal como se aplicaron a las muestras de gulupa con las ab
 | [2. Anotación y alineamiento](#2-anotación-y-alineamiento) | `prokka_blast_mod.sh` | `01_preparacion_entradas/` |
 | [3. Predicción con DeepPBI-KG](#3-predicción-con-deeppbi-kg) | `DeepPBI-KG_propio.py` | `02_prediccion_DeepPBI-KG/` |
 | [4. Filtrado de interacciones](#4-filtrado-de-interacciones) | `filtro_redes.py` | `03_filtrado_y_redes/` |
-| [5. Redes de interacción](#5-redes-de-interacción) | `generar_nodos_gephi.py` y `stats_redes.py` | `03_filtrado_y_redes/` |
+| [5. Redes de interacción](#5-redes-de-interacción) | `filtrar_top_taxones_comprobacion.py` | `03_filtrado_y_redes/` |
 
 Cada corrida tiene su propia carpeta de trabajo. Los comandos de abajo se ejecutan dentro de la de gulupa HAC y usan dos variables con la ubicación de esta rama y del repositorio original de DeepPBI-KG:
 
@@ -189,7 +189,7 @@ bash $ALG/01_preparacion_entradas/prokka_blast_mod.sh \
 
 ### Para qué sirve
 
-Estima, para cada par fago-bacteria, la probabilidad de que interactúen. Como no se sabe de antemano qué fagos podrían atacar a las bacterias del rizobioma, se evalúan todas las combinaciones entre los 3513 fagos de referencia y las bacterias del paso 1. El resultado es una tabla con dos probabilidades por par, un reporte HTML y gráficas que muestran cómo se distribuyen esas probabilidades.
+Estima, para cada par fago-bacteria, la probabilidad de que interactúen. Como no se sabe de antemano qué fagos podrían atacar a las bacterias del rizobioma, se evalúan todas las combinaciones entre los 3513 fagos de referencia y las bacterias del paso 1. El resultado es una tabla con dos probabilidades por par y un reporte HTML.
 
 ### Herramientas
 
@@ -212,9 +212,6 @@ El modelo tiene dos versiones con la misma arquitectura y pesos distintos:
 conda activate DeepPBI-KG
 pip install torch==1.9.0+cpu torchvision==0.10.0+cpu torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 pip install scikit-learn biopython numpy pandas
-
-# Para las gráficas
-pip install matplotlib seaborn plotly kaleido
 ```
 
 De DeepPBI-KG se usa la carpeta `model/`, con los pesos (`.pth`), los escaladores (`.pkl`), las listas de genes clave y la tabla de interacciones de referencia.
@@ -230,8 +227,6 @@ De DeepPBI-KG se usa la carpeta `model/`, con los pesos (`.pth`), los escaladore
 4. Arma la tabla de resultados con el producto cruzado de fagos y bacterias, en lugar de buscar cada par por separado.
 5. Relaciona los aciertos de BLAST con los FASTA por el identificador de cada secuencia y no por el nombre del archivo, porque los genomas bacterianos son ensamblajes de varios contigs.
 6. Escribe el reporte HTML por bloques de texto, para que funcione con cientos de miles de filas.
-
-`visualizacion_resultados_mod.py` lee `result.csv`, reemplaza los valores vacíos por 0 y calcula la probabilidad compuesta como el promedio de las dos salidas. Con matplotlib y seaborn dibuja un histograma de densidad en dos dimensiones (genoma completo frente a genes clave, con escala de color logarítmica), con líneas en el umbral y sombreado el cuadrante donde ambas probabilidades lo superan. Con plotly dibuja un embudo con el total de pares y los que superan el umbral según cada criterio. `visualizacion_resultados.py` es la versión con rutas fijas que se usó en el Objetivo 2.
 
 ### Ejecución
 
@@ -253,15 +248,6 @@ python3 $ALG/02_prediccion_DeepPBI-KG/DeepPBI-KG_propio.py \
 - `--model` carpeta `model/` de DeepPBI-KG.
 - `--template` carpeta de resultados intermedios: secuencias de los CDS y tablas de características.
 - `--output` carpeta donde se escriben `result.csv` y `result.html`.
-
-```bash
-python3 $ALG/02_prediccion_DeepPBI-KG/visualizacion_resultados_mod.py \
-  --dir_base output --umbral 0.85 --etiqueta "HAC - results"
-```
-
-- `--dir_base` carpeta que contiene `result.csv`; las gráficas se guardan en `graficas_tesis/` dentro de ella.
-- `--umbral` probabilidad que marcan las líneas del histograma y los filtros del embudo.
-- `--etiqueta` texto que se agrega a los títulos de las gráficas (opcional).
 
 ---
 
@@ -285,8 +271,6 @@ El filtrado se hace con código propio en pandas. Se aplica el umbral a cada sal
 
 En las tres, las columnas se renombran a `Source` (fago), `Target` (bacteria) y `Weight` (probabilidad), el formato de tabla de aristas que Gephi importa directamente.
 
-`integrate_seq_mod.py` compara los tres conjuntos filtrados del Objetivo 2 con un diagrama de Venn, el histograma de densidad, el embudo y las cinco interacciones con mayor probabilidad.
-
 ### Ejecución
 
 ```bash
@@ -308,50 +292,34 @@ python3 $ALG/03_filtrado_y_redes/filtro_redes.py \
 
 ### Para qué sirve
 
-Representa las interacciones filtradas como una red en la que los nodos son fagos y bacterias, y cada arista es una interacción predicha. La red muestra qué bacterias concentran más interacciones y qué fagos podrían infectar a varias bacterias. Se construyó la red completa y una reducida a los cuatro taxones más abundantes del rizobioma (*Lactococcus lactis*, *Weissella soli*, *Weissella oryzae* y *Lactobacillus coryniformis*), cuyas interacciones con mayor puntaje se contrastan con la literatura (tablas *Top5_interacciones_por_taxon* de los Anexos 12 y 20) y se clasifican como evidencia directa, evidencia por cercanía taxonómica o sin evidencia. El resultado son los grafos de Gephi y una tabla de estadísticas de todas las redes.
+Representa las interacciones filtradas como una red en la que los nodos son fagos y bacterias, y cada arista es una interacción predicha. La red muestra qué bacterias concentran más interacciones y qué fagos podrían infectar a varias bacterias. Se construyó la red completa y una reducida a los cuatro taxones más abundantes del rizobioma (*Lactococcus lactis*, *Weissella soli*, *Weissella oryzae* y *Lactobacillus coryniformis*), cuyas interacciones con mayor puntaje se contrastan con la literatura (tablas *Top5_interacciones_por_taxon* de los Anexos 12 y 20) y se clasifican como evidencia directa, evidencia por cercanía taxonómica o sin evidencia. El resultado son los grafos de Gephi de ambas redes.
 
 ### Herramientas
 
 - **Gephi** visualiza y analiza grafos. Las redes se dibujaron con una distribución dirigida por fuerzas, en la que los nodos conectados se atraen y los demás se repelen, de modo que los grupos de fagos que comparten bacterias quedan juntos. El tamaño de cada nodo es proporcional a su grado, es decir, a su número de interacciones.
-- **Densidad**: número de aristas dividido por el número de pares evaluados. Indica qué fracción de todas las combinaciones posibles se predijo como interacción.
-- **Grado promedio**: dos veces el número de aristas dividido por el número de nodos. Es el número medio de interacciones por organismo.
 
 ### Cómo se construyó el script
 
-1. `generar_nodos_gephi.py` reemplaza los identificadores por nombres legibles. Para los fagos, toma la descripción del encabezado de su FASTA (por ejemplo, `GQ303259` → *Mycobacterium phage Colbert*); para las bacterias, la deduce del nombre de archivo del paso 1. Si dos identificadores terminan con el mismo nombre, por ejemplo dos cepas de una especie, los fusiona en una sola arista con el peso máximo y lo avisa. `generar_nodos_gephi_v2.py` es la alternativa que deja las aristas con sus identificadores y crea aparte la tabla de nodos (`Id`, `Label`, `Type`), con la que Gephi pone las etiquetas y distingue fagos de bacterias.
-2. `rank_top_taxones_en_interacciones.py` ordena por abundancia los taxones que sí aparecen en la tabla de interacciones, usando la abundancia promedio de EMU (de la especie o, para los genomas representantes de un género, la suma del género), y conserva los N primeros. Sirve para elegir los taxones de la red reducida.
-3. `filtrar_top_taxones.py` filtra una tabla de aristas a una lista de taxones, sin distinguir mayúsculas y tolerando la variante *Weisella*. `filtrar_top_taxones_comprobacion.py` hace lo mismo sobre tablas con identificadores crudos y se usó en el Objetivo 2.
-4. `stats_redes.py` calcula, para cada red de cada corrida, el número de fagos, bacterias, nodos y aristas, la densidad, el grado promedio y el fago y la bacteria con más interacciones.
+1. `filtrar_top_taxones_comprobacion.py` toma una tabla de aristas con los identificadores originales, como la que produce `filtro_redes.py`, les asigna nombres legibles y la filtra a una lista de taxones. Para los fagos toma la descripción del encabezado de su FASTA (por ejemplo, `GQ303259` → *Mycobacterium phage Colbert*); para las bacterias, la deduce del nombre de archivo del paso 1. Si dos identificadores terminan con el mismo nombre, conserva la arista con el peso máximo y lo avisa. La comparación de nombres no distingue mayúsculas y tolera la variante *Weisella*.
+2. `filtrar_top_taxones.py` aplica el mismo filtro a una tabla que ya tiene nombres legibles.
+
+La red completa, que es la tabla `interacciones_comp.csv` del paso 4, y la red reducida a los cuatro taxones se importan en Gephi como tablas de aristas.
 
 ### Ejecución
 
 ```bash
-python3 $ALG/03_filtrado_y_redes/generar_nodos_gephi.py \
-  --edges output/red_gephi/interacciones_comp.csv \
+python3 $ALG/03_filtrado_y_redes/filtrar_top_taxones_comprobacion.py \
+  --input output/red_gephi/interacciones_comp.csv \
   --phage_fasta fagos_fna \
-  --output output/red_gephi/interacciones_comp_nombres.csv
-
-python3 $ALG/03_filtrado_y_redes/rank_top_taxones_en_interacciones.py \
-  --interacciones output/red_gephi/interacciones_comp.csv \
-  --feature_table /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/EMU_propio/EMUhac_results/feature_table_relabund_hac_results.tsv \
-  --top_n 4 \
-  --output output/red_gephi/interacciones_comp_top4_ranking.csv
-
-python3 $ALG/03_filtrado_y_redes/filtrar_top_taxones.py \
-  --input output/red_gephi/interacciones_comp_nombres.csv \
   --output output/red_gephi/interacciones_comp_top4.csv \
   --taxones "Lactococcus lactis,Weissella soli,Weissella oryzae,Lactobacillus coryniformis"
-
-python3 $ALG/03_filtrado_y_redes/stats_redes.py
 ```
 
-- `--edges` / `--input` / `--interacciones` tabla de aristas de entrada.
-- `--phage_fasta` carpeta con los FASTA de los fagos, o un único FASTA con todos ellos, de donde se toman los nombres.
-- `--output` tabla de salida, que se importa en Gephi como tabla de aristas.
-- `--feature_table` tabla de abundancias relativas de EMU usada en el paso 1.
-- `--top_n` número de taxones más abundantes que se conservan; el script imprime el ranking completo.
+- `--input` tabla de aristas de `filtro_redes.py`, con los identificadores originales.
+- `--phage_fasta` carpeta con los FASTA de los fagos, o un único FASTA con todos ellos, de donde se toman sus nombres; si se omite, los fagos conservan su identificador.
 - `--taxones` lista de taxones separados por comas.
-- `stats_redes.py` no recibe argumentos: recorre las cuatro corridas (HAC y SUP, con todas las muestras o solo las de 500 lecturas o más) dentro de `/home/fenrir/Documentos/Tesis/Algoritmo/con mis datos` y escribe `resumen_estadisticas_redes.csv`.
+- `--output` tabla filtrada con nombres legibles, que se importa en Gephi como tabla de aristas.
+- `filtrar_top_taxones.py` recibe `--input`, `--output` y `--taxones`, pero sobre una tabla que ya tiene nombres legibles.
 
 ---
 
