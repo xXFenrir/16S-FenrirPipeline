@@ -58,6 +58,18 @@ ALG=/ruta/a/16S-FenrirPipeline    # esta rama (algoritmo)
 DPBI=/ruta/a/DeepPBI-KG           # repositorio original de DeepPBI-KG
 ```
 
+<details>
+<summary><b>Revisión bibliográfica para escoger el algoritmo</b></summary>
+<br>
+
+DeepPBI-KG se escogió tras una búsqueda en Google Scholar, ScienceDirect y Oxford Academic (2020 en adelante). De ella salieron 8 herramientas con software publicado y repositorio de acceso libre (PTBGRP, CoMPHI, PB-LKS, PHISDetector, DeepPBI-KG, GSPHI, iPHoP y PBIP), que se compararon por reproducibilidad, costo computacional e interpretabilidad biológica. Las demás se descartaron por depender de redes preconstruidas, por su carga computacional y de dependencias, o por funcionar como cajas negras.
+
+<p align="center">
+  <img src="imagenes/prisma_objetivo2.jpg" alt="Diagrama de flujo PRISMA de la búsqueda del algoritmo predictivo: 47 159 registros identificados y 1 estudio incluido" width="700">
+  <br><sub>Diagrama de flujo PRISMA para la búsqueda y selección del algoritmo predictivo (Figura 22 de la tesis)</sub>
+</p>
+</details>
+
 ---
 
 ## 1. Selección y descarga de genomas
