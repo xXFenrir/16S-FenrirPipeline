@@ -1,89 +1,89 @@
 muestra,etiqueta,grupo,tipo,semana,parcela
-SRR26147154,S2A1,CS,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147165,S1U8,CS,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147176,S1U7,CSSwP,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147181,S3U7,CSSwP,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147182,S3U6,CSSwP,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147183,S3U5,CS,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147184,S3U4,CS,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147185,S3U3,CSSwP,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147186,S3U2,CSSwP,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147187,S3U1,CS,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147188,S3A8,CS,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147189,S0U3,CSSwP,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147190,S3A7,CSSwP,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147191,S3A6,CSSwP,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147192,S3A5,CS,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147193,S3A4,CS,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147194,S3A3,CSSwP,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147195,S3A2,CSSwP,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147196,S3A1,CS,bag,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147197,S2U8,CS,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147198,S2U7,CSSwP,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147199,S2U6,CSSwP,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147200,S0U2,CSSwP,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147201,S2U5,CS,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147202,S2U4,CS,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147203,S2U3,CSSwP,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147216,S2A4,CS,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147217,S0U1,CS,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147228,S2A3,CSSwP,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147239,S2A2,CSSwP,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147265,S1A7,CSSwP,bag,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147276,S1A6,CSSwP,bag,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147286,S5U8,CS,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147287,S0U7,CSSwP,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147288,S5U7,CSSwP,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147289,S5U6,CSSwP,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147290,S5U5,CS,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147292,S2U2,CSSwP,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147303,S2U1,CS,bulk,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147314,S2A8,CS,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147329,S1U6,CSSwP,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147340,S1U5,CS,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147351,S1U4,CS,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147365,S1A5,CS,bag,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147376,S1A4,CS,bag,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147387,S5U4,CS,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147388,S5U3,CSSwP,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147389,S5U2,CSSwP,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147390,S5U1,CS,bulk,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147391,S5A8,CS,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147392,S5A7,CSSwP,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147393,S5A6,CSSwP,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147394,S0U6,CSSwP,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147395,S5A5,CS,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147396,S5A4,CS,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147397,S5A3,CSSwP,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147398,S5A2,CSSwP,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147399,S5A1,CS,bag,week5,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147400,S4U8,CS,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147401,S4U7,CSSwP,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147402,S4U6,CSSwP,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147403,S4U5,CS,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147404,S4U4,CS,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147405,S0U5,CS,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147406,S4U3,CSSwP,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147407,S4U2,CSSwP,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147408,S4U1,CS,bulk,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147409,S4A8,CS,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147410,S4A7,CSSwP,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147411,S4A6,CSSwP,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147412,S4A5,CS,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147413,S4A4,CS,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147414,S4A3,CSSwP,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147415,S4A2,CSSwP,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147416,S0U4,CS,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147417,S4A1,CS,bag,week4,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147418,S3U8,CS,bulk,week3,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147421,S2A7,CSSwP,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147432,S2A6,CSSwP,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147443,S2A5,CS,bag,week2,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147458,S1U3,CSSwP,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147469,S1U2,CSSwP,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147470,S0A1,Control,autoclaved_soil_bac_2020,not applicable,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147481,S1U1,CS,bulk,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147483,S1A3,CSSwP,bag,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147505,S1A1,CS,bag,week1,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
-SRR26147516,S0U8,CS,bulk,week0,<pandas.plotting.PlotAccessor object at 0x7ca9a8077230>
+SRR26147154,S2A1,CS,bag,week2,113
+SRR26147165,S1U8,CS,bulk,week1,427
+SRR26147176,S1U7,CSSwP,bulk,week1,426
+SRR26147181,S3U7,CSSwP,bulk,week3,426
+SRR26147182,S3U6,CSSwP,bulk,week3,314
+SRR26147183,S3U5,CS,bulk,week3,310
+SRR26147184,S3U4,CS,bulk,week3,230
+SRR26147185,S3U3,CSSwP,bulk,week3,213
+SRR26147186,S3U2,CSSwP,bulk,week3,118
+SRR26147187,S3U1,CS,bulk,week3,113
+SRR26147188,S3A8,CS,bag,week3,427
+SRR26147189,S0U3,CSSwP,bulk,week0,213
+SRR26147190,S3A7,CSSwP,bag,week3,426
+SRR26147191,S3A6,CSSwP,bag,week3,314
+SRR26147192,S3A5,CS,bag,week3,310
+SRR26147193,S3A4,CS,bag,week3,230
+SRR26147194,S3A3,CSSwP,bag,week3,213
+SRR26147195,S3A2,CSSwP,bag,week3,118
+SRR26147196,S3A1,CS,bag,week3,113
+SRR26147197,S2U8,CS,bulk,week2,427
+SRR26147198,S2U7,CSSwP,bulk,week2,426
+SRR26147199,S2U6,CSSwP,bulk,week2,314
+SRR26147200,S0U2,CSSwP,bulk,week0,118
+SRR26147201,S2U5,CS,bulk,week2,310
+SRR26147202,S2U4,CS,bulk,week2,230
+SRR26147203,S2U3,CSSwP,bulk,week2,213
+SRR26147216,S2A4,CS,bag,week2,230
+SRR26147217,S0U1,CS,bulk,week0,113
+SRR26147228,S2A3,CSSwP,bag,week2,213
+SRR26147239,S2A2,CSSwP,bag,week2,118
+SRR26147265,S1A7,CSSwP,bag,week1,426
+SRR26147276,S1A6,CSSwP,bag,week1,314
+SRR26147286,S5U8,CS,bulk,week5,427
+SRR26147287,S0U7,CSSwP,bulk,week0,426
+SRR26147288,S5U7,CSSwP,bulk,week5,426
+SRR26147289,S5U6,CSSwP,bulk,week5,314
+SRR26147290,S5U5,CS,bulk,week5,310
+SRR26147292,S2U2,CSSwP,bulk,week2,118
+SRR26147303,S2U1,CS,bulk,week2,113
+SRR26147314,S2A8,CS,bag,week2,427
+SRR26147329,S1U6,CSSwP,bulk,week1,314
+SRR26147340,S1U5,CS,bulk,week1,310
+SRR26147351,S1U4,CS,bulk,week1,230
+SRR26147365,S1A5,CS,bag,week1,310
+SRR26147376,S1A4,CS,bag,week1,230
+SRR26147387,S5U4,CS,bulk,week5,230
+SRR26147388,S5U3,CSSwP,bulk,week5,213
+SRR26147389,S5U2,CSSwP,bulk,week5,118
+SRR26147390,S5U1,CS,bulk,week5,113
+SRR26147391,S5A8,CS,bag,week5,427
+SRR26147392,S5A7,CSSwP,bag,week5,426
+SRR26147393,S5A6,CSSwP,bag,week5,314
+SRR26147394,S0U6,CSSwP,bulk,week0,314
+SRR26147395,S5A5,CS,bag,week5,310
+SRR26147396,S5A4,CS,bag,week5,230
+SRR26147397,S5A3,CSSwP,bag,week5,213
+SRR26147398,S5A2,CSSwP,bag,week5,118
+SRR26147399,S5A1,CS,bag,week5,113
+SRR26147400,S4U8,CS,bulk,week4,427
+SRR26147401,S4U7,CSSwP,bulk,week4,426
+SRR26147402,S4U6,CSSwP,bulk,week4,314
+SRR26147403,S4U5,CS,bulk,week4,310
+SRR26147404,S4U4,CS,bulk,week4,230
+SRR26147405,S0U5,CS,bulk,week0,310
+SRR26147406,S4U3,CSSwP,bulk,week4,213
+SRR26147407,S4U2,CSSwP,bulk,week4,118
+SRR26147408,S4U1,CS,bulk,week4,113
+SRR26147409,S4A8,CS,bag,week4,427
+SRR26147410,S4A7,CSSwP,bag,week4,426
+SRR26147411,S4A6,CSSwP,bag,week4,314
+SRR26147412,S4A5,CS,bag,week4,310
+SRR26147413,S4A4,CS,bag,week4,230
+SRR26147414,S4A3,CSSwP,bag,week4,213
+SRR26147415,S4A2,CSSwP,bag,week4,118
+SRR26147416,S0U4,CS,bulk,week0,230
+SRR26147417,S4A1,CS,bag,week4,113
+SRR26147418,S3U8,CS,bulk,week3,427
+SRR26147421,S2A7,CSSwP,bag,week2,426
+SRR26147432,S2A6,CSSwP,bag,week2,314
+SRR26147443,S2A5,CS,bag,week2,310
+SRR26147458,S1U3,CSSwP,bulk,week1,213
+SRR26147469,S1U2,CSSwP,bulk,week1,118
+SRR26147470,S0A1,Control,autoclaved_soil_bac_2020,not applicable,no aplica
+SRR26147481,S1U1,CS,bulk,week1,113
+SRR26147483,S1A3,CSSwP,bag,week1,213
+SRR26147505,S1A1,CS,bag,week1,113
+SRR26147516,S0U8,CS,bulk,week0,427
 SRR26147494,SRR26147494,Sin metadata,,,
