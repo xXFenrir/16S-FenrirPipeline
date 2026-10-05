@@ -36,7 +36,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 | 18 | [Anexo_18_Diversidad_gulupa_HAC_SUP](Anexo_18_Diversidad_gulupa_HAC_SUP) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA de gulupa | Obj. 3 › Diversidad Alfa y Beta |
 | 19 | [Anexo_19_Genomas_bacterianos_gulupa](Anexo_19_Genomas_bacterianos_gulupa) | 79 genomas descargados para gulupa (HAC) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
 | 20 | [Anexo_20_Predicciones_DeepPBI-KG_gulupa](Anexo_20_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa; Comprobación de interacciones en gulupa |
-| 21 | [Anexo_21_Redes_Gephi_gulupa](Anexo_21_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de todas las redes | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
+| 21 | [Anexo_21_Redes_Gephi_gulupa](Anexo_21_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de las redes de HAC | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
 
 ## Descripción de los anexos
 
@@ -78,7 +78,7 @@ Presenta la misma comparación del Anexo 8 a nivel de especie, para las 853 espe
 
 **Anexo 10. Diversidad microbiana del proyecto PRJNA1020132**
 
-Reúne el análisis de diversidad del conjunto de referencia procesado con el pipeline propio: índices de Shannon y riqueza observada por muestra, prueba de Wilcoxon (Mann-Whitney U) entre las rotaciones de cultivo CS y CSSwP, matrices de disimilitud de Bray-Curtis y Jaccard, coordenadas del PCoA y resultado de la PERMANOVA. Incluye además las tablas de abundancia, conteos y taxonomía de EMU con las que se calcularon.
+Reúne el análisis de diversidad del conjunto de referencia procesado con el pipeline propio: índices de Shannon y riqueza observada por muestra, prueba de Wilcoxon (Mann-Whitney U) entre las rotaciones de cultivo CS y CSSwP, matrices de disimilitud de Bray-Curtis y Jaccard, coordenadas del PCoA y resultado de la PERMANOVA. Incluye además las tablas de abundancia y de conteos de EMU con las que se calcularon.
 
 **Anexo 11. Genomas bacterianos descargados para el Objetivo 2**
 
@@ -122,7 +122,7 @@ Contiene la matriz completa de predicciones para los 277 527 pares evaluados ent
 
 **Anexo 21. Redes de interacción bacteria-fago de gulupa**
 
-Contiene los grafos de Gephi de las interacciones predichas para gulupa con el modelo HAC: la red completa y la red de los cuatro taxones dominantes, en formato editable, PDF e imagen. Incluye las estadísticas de todas las redes construidas (nodos, aristas, densidad y grado promedio).
+Contiene los grafos de Gephi de las interacciones predichas para gulupa con el modelo HAC: la red completa y la red de los cuatro taxones dominantes, en formato editable, PDF e imagen. Incluye las estadísticas de las redes construidas con HAC (nodos, aristas, densidad y grado promedio).
 
 ## Notas
 

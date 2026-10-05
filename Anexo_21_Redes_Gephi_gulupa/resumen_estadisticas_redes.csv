@@ -1,13 +1,4 @@
 combo,red,n_fagos,n_bacterias,n_nodos,n_aristas,densidad_pct,grado_prom,fago_max_grado_id,fago_max_grado,bact_max_grado_id,bact_max_grado
-HAC/todo,key_gene,2913,103,3016,85078,23.5127,56.42,NC_015274,98,taxid_667306_Aciditerrimonas_ferrireducens,2126
-HAC/todo,wgs,1035,16,1051,2097,0.5795,3.99,NC_001447,15,taxid_1837343_Paenibacillus_qinlingensis,1035
-HAC/todo,comp,999,37,1036,9751,2.6948,18.82,NC_023581,26,taxid_1837343_Paenibacillus_qinlingensis,912
 HAC/results,key_gene,2908,79,2987,58112,20.9392,38.91,NC_027397,79,taxid_667306_Aciditerrimonas_ferrireducens,2126
 HAC/results,wgs,310,13,323,892,0.3214,5.52,NC_001447,13,taxid_1737571_Bacillus_oryzisoli,282
 HAC/results,comp,723,29,752,6724,2.4228,17.88,NC_008721,20,GENERO_Lacrimispora_94868,550
-SUP/todo,key_gene,2902,106,3008,82685,22.2046,54.98,NC_012663,104,GENERO_Solirubrobacter_490573,2066
-SUP/todo,wgs,301,14,315,815,0.2189,5.17,NC_001447,14,taxid_1737571_Bacillus_oryzisoli,282
-SUP/todo,comp,712,35,747,7450,2.0007,19.95,NC_023581,23,taxid_33968_Leuconostoc_pseudomesenteroides,525
-SUP/results,key_gene,2684,79,2763,52467,18.9052,37.98,NC_012663,79,GENERO_Stenotrophomonas_40324,1906
-SUP/results,wgs,393,17,410,1490,0.5369,7.27,NC_001447,17,taxid_1737571_Bacillus_oryzisoli,282
-SUP/results,comp,727,32,759,8065,2.906,21.25,NC_008721,25,GENERO_Lacrimispora_94868,550
