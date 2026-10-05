@@ -40,7 +40,7 @@ def descargar_ncbidatasets(query, filename_prefix, desc_log):
                 destino = os.path.join(HOST_RAW, f"{filename_prefix}.fna")
                 shutil.move(fna_files[0], destino)
                 shutil.rmtree(extract_path); os.remove(archivo_zip)
-                print(f"   [✅] {desc_log} ({nivel}) guardado.")
+                print(f"   [OK] {desc_log} ({nivel}) guardado.")
                 return True
             if os.path.exists(extract_path): shutil.rmtree(extract_path)
         if os.path.exists(archivo_zip): os.remove(archivo_zip)
@@ -71,7 +71,7 @@ def procesar_bacteria(feature_id, num_actual, total):
     if descargar_ncbidatasets(genero, f"GENERO_{genero}_{taxid_especie}", f"Representante de {genero}"):
         return True
 
-    print(f"   [❌] Sin éxito para {nombre_completo} en ninguna categoría.")
+    print(f"   [!] Sin éxito para {nombre_completo} en ninguna categoría.")
     return False
 
 def vincular_fagos():

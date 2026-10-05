@@ -49,7 +49,7 @@ def descargar_ncbidatasets(query, filename_prefix, desc_log, out_bact, reference
                 shutil.move(fna_files[0], destino)
                 shutil.rmtree(extract_path)
                 os.remove(archivo_zip)
-                print(f"   [✓] {desc_log} ({nivel}) guardado en {destino}.")
+                print(f"   [OK] {desc_log} ({nivel}) guardado en {destino}.")
                 return True
                 
             if os.path.exists(extract_path): 
