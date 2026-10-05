@@ -1,0 +1,36 @@
+# Basecalling y demultiplexing de la corrida de gulupa con Dorado 2.1.0
+# La corrida se procesó con los tres modelos (fast, hac y sup); en los pasos
+# siguientes del pipeline se usaron hac y sup.
+
+# Instalación (binario precompilado de Oxford Nanopore)
+curl "https://cdn.oxfordnanoportal.com/software/analysis/dorado-2.1.0-linux-x64.tar.gz" -o dorado-2.1.0-linux-x64.tar.gz
+tar -xzf dorado-2.1.0-linux-x64.tar.gz
+
+# Solo si la corrida quedó en FAST5 (Dorado lee POD5)
+pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
+
+# Modelo HAC
+~/dorado-2.1.0-linux-x64/bin/dorado basecaller hac \
+  /home/fenrir/Documentos/Tesis/datos_gulupa/20260715_1807_MN30942_FAZ24575_f8347d8d/pod5 \
+  --kit-name SQK-NBD114-96 \
+  --min-qscore 8 \
+  --emit-summary \
+  --output-dir /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/hac_8
+
+# Modelo SUP
+~/dorado-2.1.0-linux-x64/bin/dorado basecaller sup \
+  /home/fenrir/Documentos/Tesis/datos_gulupa/20260715_1807_MN30942_FAZ24575_f8347d8d/pod5 \
+  --kit-name SQK-NBD114-96 \
+  --min-qscore 8 \
+  --emit-summary \
+  --output-dir /home/fenrir/Documentos/Tesis/datos_gulupa/data_gulupa_qs8/sup_8
+
+# Modelo FAST: el mismo comando, cambiando "hac" por "fast" y la carpeta de salida.
+
+# Argumentos
+#   hac / sup / fast   modelo de basecalling
+#   ruta posicional    carpeta pod5/ de la corrida
+#   --kit-name         kit de barcodes nativos; con él Dorado demultiplexa durante el basecalling
+#   --min-qscore       descarta lecturas con QScore medio menor que 8
+#   --emit-summary     escribe sequencing_summary.txt, con métricas por lectura
+#   --output-dir       carpeta de salida, con un BAM por barcode (barcode01/, barcode02/, ...)

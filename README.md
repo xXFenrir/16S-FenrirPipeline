@@ -43,7 +43,7 @@ Los pasos se describen tal como se aplicaron a las muestras de gulupa con el mod
 
 | Paso | Script principal | Carpeta |
 |---|---|---|
-| [1. Basecalling y demultiplexing](#1-basecalling-y-demultiplexing) | Dorado (CLI) + `comparar_dorado.py` | `01_basecalling/` |
+| [1. Basecalling y demultiplexing](#1-basecalling-y-demultiplexing) | Dorado (`comando_dorado.txt`) | `01_basecalling/` |
 | [2. Reporte de estadísticas básicas](#2-reporte-de-estadísticas-básicas) | `stats_fastq.py` | `02_estadisticas/` |
 | [3. Limpieza: denoising y trimming](#3-limpieza-denoising-y-trimming) | `dentrim_bam.py` | `03_limpieza/` |
 | [4. Taxonomía](#4-taxonomía) | `EMU_propio.py` y scripts de conteos | `04_taxonomia/` |
@@ -101,9 +101,9 @@ pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
 
 ### Cómo se construyó el script
 
-El basecalling se ejecuta directamente con Dorado. Siguiendo la recomendación del fabricante, basecalling y demultiplexing van en un solo comando, en lugar de demultiplexar después con otra herramienta como Porechop.
+El basecalling se ejecuta directamente con Dorado, sin un script propio; el comando completo para cada modelo está en [`comando_dorado.txt`](pipeline_16S/01_basecalling/comando_dorado.txt). Siguiendo la recomendación del fabricante, basecalling y demultiplexing van en un solo comando, en lugar de demultiplexar después con otra herramienta como Porechop.
 
-Para escoger el modelo, la corrida se procesó con FAST, HAC y SUP y se compararon con `comparar_dorado.py`. El script lee los `sequencing_summary.txt` de cada modelo por bloques (para no cargar millones de filas en memoria), separa los barcodes de la gulupa (01 a 73) de los de otro proyecto que compartió la corrida, y calcula por modelo y por barcode lecturas totales, lecturas *pass* y *fail*, bases, longitud media y mediana, N50 y QScore. Entrega un Excel con las tablas y gráficas comparativas.
+Para escoger el modelo, la corrida se procesó con FAST, HAC y SUP y se compararon las lecturas aprobadas y rechazadas y el QScore de cada uno (Anexo 14). HAC y SUP fueron los modelos que se usaron en los pasos siguientes.
 
 ### Ejecución
 
@@ -122,19 +122,6 @@ Para escoger el modelo, la corrida se procesó con FAST, HAC y SUP y se comparar
 - `--min-qscore` descarta lecturas con QScore medio menor que 8.
 - `--emit-summary` escribe `sequencing_summary.txt`, con métricas por lectura.
 - `--output-dir` carpeta de salida, con un BAM por barcode (`barcode01/`, `barcode02/`, ...).
-
-```bash
-python3 pipeline_16S/01_basecalling/comparar_dorado.py \
-  --fast fast/sequencing_summary.txt \
-  --hac hac_8/sequencing_summary.txt \
-  --sup sup_8/sequencing_summary.txt \
-  --mapa "Mapa Barcodes Microbioma.csv" \
-  --out comparacion_dorado
-```
-
-- `--fast`, `--hac`, `--sup` `sequencing_summary.txt` de cada modelo; `--fast` es opcional y `--sin-fast` lo excluye de las tablas y gráficas.
-- `--mapa` CSV que relaciona cada barcode con su muestra.
-- `--out` carpeta donde se guardan el Excel y las gráficas.
 
 ---
 
@@ -239,7 +226,7 @@ python3 pipeline_16S/03_limpieza/dentrim_bam.py \
 
 ### Para qué sirve
 
-Identifica qué bacterias hay en cada muestra y en qué proporción. Como las lecturas cubren el gen 16S completo, se pueden clasificar directamente contra una base de referencia a nivel de especie, sin agruparlas antes en OTU o ASV. El resultado son tablas de abundancia relativa y de conteos por taxón y muestra, curvas de rarefacción que indican si la profundidad de secuenciación alcanzó para capturar la riqueza, y gráficas de composición por sistema agrícola.
+Identifica qué bacterias hay en cada muestra y en qué proporción. Como las lecturas cubren el gen 16S completo, se pueden clasificar directamente contra una base de referencia a nivel de especie, sin agruparlas antes en OTU o ASV. El resultado son tablas de abundancia relativa y de conteos por taxón y muestra, y curvas de rarefacción que indican si la profundidad de secuenciación alcanzó para capturar la riqueza.
 
 ### Herramientas
 
@@ -266,13 +253,14 @@ tar -xvf emu.tar
 
 ### Cómo se construyó el script
 
-La etapa se divide en cinco scripts que se ejecutan en orden:
+La etapa se divide en cuatro scripts que se ejecutan en orden:
 
 1. `EMU_propio.py` descarta las muestras con menos lecturas limpias que el mínimo, ejecuta `emu abundance` por muestra en una carpeta temporal y solo la mueve a su ubicación final si terminó sin errores, para que una muestra fallida no deje resultados a medias. Después une las tablas de todas las muestras en `tabla_abundancia_relativa.tsv` y `taxonomia.tsv`, con un identificador por taxón de la forma `rango|tax_id|nombre`, para no mezclar taxones con el mismo nombre y distinto `tax_id`.
 2. `rebuild_counts.py` reconstruye conteos enteros confiables. Multiplica la abundancia relativa de cada taxón por el total real de lecturas limpias de la muestra (tomado de la limpieza) y redondea por el método del mayor residuo, de modo que la suma coincide exactamente con ese total.
 3. `agrupar_counts_sistema.py` asigna cada muestra a su sistema agrícola (barcode → ID de finca → Sistema) y agrega a la tabla de conteos el total por taxón y en cuántas muestras de cada sistema aparece.
 4. `rarefaccion.py` submuestrea al azar, sin reemplazo, 30 profundidades por muestra con un paso proporcional a su propia profundidad, cuenta las especies observadas y promedia 10 repeticiones por punto. Traza todas las curvas en una sola figura, identificadas por finca y sistema. Si una curva se aplana, secuenciar más no habría agregado muchas especies nuevas.
-5. `taxonomy_profiling.py` dibuja barras apiladas de abundancia relativa con los N taxones más abundantes de un rango taxonómico, agrupando las muestras por sistema agrícola. Para gulupa se generaron con los 20 taxones más abundantes a nivel de familia, género y especie.
+
+`compare_taxa.py` se usó en la validación del Objetivo 1: compara las abundancias relativas medias por familia, género y especie con las del artículo guía y calcula la correlación de Pearson entre ambas (Anexos 7 a 9).
 
 ### Ejecución
 
@@ -299,18 +287,14 @@ python3 pipeline_16S/04_taxonomia/EMU_propio.py \
 python3 pipeline_16S/04_taxonomia/rebuild_counts.py --model hac --dataset results --rank species
 python3 pipeline_16S/04_taxonomia/agrupar_counts_sistema.py --model hac --dataset results
 python3 pipeline_16S/04_taxonomia/rarefaccion.py --model hac --dataset results --n-points 30 --iterations 10
-for rango in family genus species; do
-  python3 pipeline_16S/04_taxonomia/taxonomy_profiling.py --model hac --dataset results --rank $rango --top-n 20
-done
 ```
 
 - `--model` modelo de basecalling (`hac` o `sup`); con `--dataset` define las rutas por defecto de entrada y salida dentro de `EMU_propio/`.
 - `--dataset` `results` usa `EMUhac_results` (muestras con 500 lecturas o más); `todo` usa `EMUhac_todo` (todas las muestras).
-- `--rank` nivel taxonómico: especie para los conteos, y especie, género o familia para las barras de composición.
+- `--rank` nivel taxonómico de los conteos.
 - `--n-points` profundidades evaluadas por muestra en la rarefacción.
 - `--iterations` submuestreos promediados en cada profundidad.
-- `--top-n` número de taxones más abundantes que se muestran; el resto se agrupa como "Otros".
-- Opcionales: `--read-totals` (tabla de la limpieza de donde `rebuild_counts.py` toma el total de lecturas), y `--meta` / `--bridge` (archivos que traducen barcode → ID de finca → Sistema en `rarefaccion.py` y `taxonomy_profiling.py`).
+- Opcionales: `--read-totals` (tabla de la limpieza de donde `rebuild_counts.py` toma el total de lecturas), y `--meta` / `--bridge` (archivos que traducen barcode → ID de finca → Sistema en `rarefaccion.py`).
 
 ---
 
