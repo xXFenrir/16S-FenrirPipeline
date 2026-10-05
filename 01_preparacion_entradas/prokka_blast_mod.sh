@@ -33,16 +33,15 @@ while getopts ":i:o:p:d:b:O:" opt; do
 done
 
 # prokka batch annotation and blast
-# Al usar "$input_dir"/* evitamos el error por los espacios en el nombre de la carpeta
+# con "$input_dir"/* ya no falla por los espacios en el nombre de la carpeta
 for file in "$input_dir"/*; do
-    # Filtramos para que acepte tanto .fasta como .fna
+    # acepta .fasta y .fna
     if [[ "$file" == *.fasta || "$file" == *.fna ]]; then
         val=$(echo "${file##*/}" | cut -d '.' -f 1)
         
-        # Ejecución optimizada de Prokka (usando todos los hilos con --cpus 0)
+        # --cpus 0 usa todos los hilos
         "$prokka" "$file" --outdir "$output_dir/prokka_$val" --prefix "$val" --force --cpus 0
         
-        # Ejecución optimizada de BLAST (usando 16 hilos)
         "$blast" -query "$file" -db "$db" -outfmt 6 -max_target_seqs 1 -out "$out/$val.out" -num_threads 16
     fi
 done

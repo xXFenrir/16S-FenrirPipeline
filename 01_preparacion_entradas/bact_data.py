@@ -1,3 +1,5 @@
+# Versión anterior de descarga_genomas.py (la usada en el Objetivo 2): las N bacterias más abundantes, con rutas fijas
+
 import pandas as pd
 import subprocess
 import os
@@ -6,7 +8,6 @@ import shutil
 import time
 import argparse
 
-# --- CONFIGURACIÓN DE RUTAS ---
 PATH_ABUNDANCIA = '/home/fenrir/Documentos/Tesis/results_dentrim_Q9/EMU_Q9/feature_table_relabund.tsv'
 PHAGE_SOURCE = '/home/fenrir/Documentos/Tesis/Algoritmo/datos_phage/phage_raw_data'
 WORK_DIR = '/home/fenrir/Documentos/Tesis/Algoritmo/DeepPBI-KG_scripts'
@@ -21,8 +22,7 @@ def setup_workspace():
         os.makedirs(d, exist_ok=True)
 
 def descargar_ncbidatasets(query, filename_prefix, desc_log):
-    """ Intenta descargar genoma por TaxID o Nombre """
-    # Priorizamos completo, luego borrador
+    # primero genomas completos, si no hay, chromosome/scaffold
     niveles = ["complete", "chromosome,scaffold"]
     for nivel in niveles:
         archivo_zip = f"temp_{filename_prefix}.zip"
@@ -57,16 +57,16 @@ def procesar_bacteria(feature_id, num_actual, total):
 
     print(f"\n[{num_actual}/{total}] Intentando: {nombre_completo} (TaxID: {taxid_especie})")
     
-    # 1. Intento por TaxID exacto (Especie)
+    # 1. por TaxID de la especie
     if descargar_ncbidatasets(taxid_especie, f"taxid_{taxid_especie}_{nombre_archivo}", "Especie exacta"):
         return True
     
-    # 2. Intento por Nombre de Especie (Búsqueda tipo GTDB/NCBI Name)
+    # 2. por nombre
     print(f"   [!] No hallado por TaxID. Intentando por nombre científico...")
     if descargar_ncbidatasets(nombre_completo, f"name_{nombre_archivo}", "Búsqueda por nombre"):
         return True
 
-    # 3. Intento por Género (Aproximación biológica)
+    # 3. cualquier genoma del género
     print(f"   [!] No hallado por nombre. Buscando cualquier representante del género: {genero}...")
     if descargar_ncbidatasets(genero, f"GENERO_{genero}_{taxid_especie}", f"Representante de {genero}"):
         return True
@@ -90,13 +90,11 @@ if __name__ == "__main__":
 
     setup_workspace()
     
-    # Leer abundancias y ordenar
     df = pd.read_csv(PATH_ABUNDANCIA, sep='\t', index_col=0)
     df['mean_abundance'] = df.mean(axis=1)
     top_n = df.sort_values(by='mean_abundance', ascending=False).head(args.num)
 
     exitos = 0
-    # Usamos enumerate para que el contador [1/15] avance correctamente
     for i, (feature_id, row) in enumerate(top_n.iterrows(), 1):
         if procesar_bacteria(feature_id, i, args.num):
             exitos += 1

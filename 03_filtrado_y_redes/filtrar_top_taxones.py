@@ -1,8 +1,10 @@
+# Deja solo los taxones elegidos (top 4) en un CSV Source/Target/Weight que ya tiene nombres legibles
+
 import pandas as pd
 import argparse
 
+# minúsculas y corrige el typo weisella -> weissella
 def normalizar(nombre):
-    """Normaliza para comparar sin importar mayúsculas ni el typo weisella/weissella."""
     n = nombre.strip().lower()
     n = n.replace("weisella", "weissella")
     return n

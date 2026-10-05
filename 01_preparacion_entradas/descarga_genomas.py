@@ -1,3 +1,5 @@
+# Descarga de NCBI los genomas de las bacterias con abundancia promedio >= --min_abund en la tabla de EMU
+
 import pandas as pd
 import subprocess
 import os
@@ -6,11 +8,10 @@ import shutil
 import time
 import argparse
 
-MAX_ZIP_BYTES = 300 * 1024 * 1024  # 300MB: una consulta legítima (uno o pocos genomas) nunca debería superar esto
+MAX_ZIP_BYTES = 300 * 1024 * 1024  # 300MB, uno o pocos genomas no deberían pasar de esto
 
 def descargar_ncbidatasets(query, filename_prefix, desc_log, out_bact, reference=False):
-    """ Intenta descargar genoma por TaxID o Nombre """
-    # Priorizamos completo, luego borrador (scaffold/chromosome)
+    # primero genomas completos, si no hay, chromosome/scaffold
     niveles = ["complete", "chromosome,scaffold"]
     for nivel in niveles:
         archivo_zip = f"temp_{filename_prefix}.zip"
@@ -21,15 +22,11 @@ def descargar_ncbidatasets(query, filename_prefix, desc_log, out_bact, reference
             "--assembly-level", nivel, "--filename", archivo_zip
         ]
         if reference:
-            # A nivel de género sin este filtro, "datasets" descarga TODOS los
-            # ensamblajes del género (puede ser decenas de GB); limitamos a
-            # genomas de referencia para obtener un único representante.
+            # sin --reference por género baja todos los ensamblajes del género (decenas de GB)
             cmd.append("--reference")
 
-        # Ejecutamos vigilando el tamaño del zip: algunos taxones (géneros muy
-        # amplios, o especies con miles de ensamblajes depositados como
-        # Klebsiella pneumoniae) pueden generar descargas de decenas de GB.
-        # Abortamos si supera MAX_ZIP_BYTES en vez de arriesgar el disco.
+        # se vigila el tamaño del zip: algunas especies (p. ej. Klebsiella pneumoniae) tienen
+        # miles de ensamblajes y la descarga puede ser de decenas de GB
         proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         aborted = False
         while proc.poll() is None:
@@ -75,16 +72,16 @@ def procesar_bacteria(feature_id, num_actual, total, out_bact):
 
     print(f"\n[{num_actual}/{total}] Intentando: {nombre_completo} (TaxID: {taxid_especie})")
     
-    # 1. Intento por TaxID exacto (Especie)
+    # 1. por TaxID de la especie
     if descargar_ncbidatasets(taxid_especie, f"taxid_{taxid_especie}_{nombre_archivo}", "Especie exacta", out_bact):
         return True
     
-    # 2. Intento por Nombre de Especie
+    # 2. por nombre
     print(f"   [!] No hallado por TaxID. Intentando por nombre científico...")
     if descargar_ncbidatasets(nombre_completo, f"name_{nombre_archivo}", "Búsqueda por nombre", out_bact):
         return True
 
-    # 3. Intento por Género
+    # 3. un representante del género
     print(f"   [!] No hallado por nombre. Buscando representante del género: {genero}...")
     if descargar_ncbidatasets(genero, f"GENERO_{genero}_{taxid_especie}", f"Representante de {genero}", out_bact, reference=True):
         return True
@@ -111,11 +108,9 @@ def vincular_fagos(phage_source, out_phage):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filtra abundancias relativas y descarga genomas WGS desde NCBI.")
     
-    # Argumentos obligatorios
     parser.add_argument('-t', '--tsv', required=True, type=str, help='Ruta al archivo TSV de abundancias relativas de EMU.')
     parser.add_argument('-ob', '--out_bact', required=True, type=str, help='Ruta donde se guardarán los FASTA/FNA bacterianos.')
     
-    # Argumentos opcionales
     parser.add_argument('-ps', '--phage_source', type=str, help='Ruta de origen de los fagos (opcional).')
     parser.add_argument('-op', '--out_phage', type=str, help='Ruta donde se vincularán los fagos (opcional).')
     parser.add_argument('-min', '--min_abund', type=float, default=0.001, help='Abundancia relativa promedio mínima (por defecto: 0.001).')
@@ -127,10 +122,8 @@ if __name__ == "__main__":
     print(f"[*] Leyendo tabla de abundancias: {args.tsv}")
     df = pd.read_csv(args.tsv, sep='\t', index_col=0)
     
-    # Calcular abundancia promedio
     df['mean_abundance'] = df.mean(axis=1)
     
-    # Filtrar por abundancia relativa >= umbral y ordenar
     taxones_filtrados = df[df['mean_abundance'] >= args.min_abund].sort_values(by='mean_abundance', ascending=False)
     total_taxones = len(taxones_filtrados)
     
@@ -140,7 +133,7 @@ if __name__ == "__main__":
     for i, (feature_id, row) in enumerate(taxones_filtrados.iterrows(), 1):
         if procesar_bacteria(feature_id, i, total_taxones, args.out_bact):
             exitos += 1
-        time.sleep(1) # Pausa para respetar el límite de peticiones de la API de NCBI
+        time.sleep(1) # límite de peticiones de NCBI
 
     if args.phage_source and args.out_phage:
         vincular_fagos(args.phage_source, args.out_phage)

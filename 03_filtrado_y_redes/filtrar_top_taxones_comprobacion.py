@@ -1,3 +1,6 @@
+# Igual que filtrar_top_taxones.py pero sobre las tablas de filtro_redes.py, que traen IDs crudos:
+# el accession del fago pasa a su nombre (sacado de los fasta) y taxid_/GENERO_/name_ al nombre de la bacteria
+
 import pandas as pd
 import argparse
 import os
@@ -5,10 +8,9 @@ import re
 import glob
 
 
+# accession -> nombre del fago, a partir de headers tipo
+# >NC_024148.1 Mycobacterium phage Phantastic, complete genome
 def build_phage_name_map(fasta_source):
-    """Recorre uno o varios fasta con headers tipo:
-    '>NC_024148.1 Mycobacterium phage Phantastic, complete genome'
-    y devuelve un diccionario: accession_sin_version -> nombre descriptivo."""
     name_map = {}
     if os.path.isdir(fasta_source):
         files = glob.glob(os.path.join(fasta_source, "*.fasta")) + glob.glob(os.path.join(fasta_source, "*.fna"))
@@ -33,10 +35,9 @@ def build_phage_name_map(fasta_source):
     return name_map
 
 
+# taxid_1358_Lactococcus_lactis -> Lactococcus lactis
+# GENERO_Pseudonocardia_882449 -> Pseudonocardia
 def clean_bacteria_name(bact_id):
-    """Convierte 'taxid_1358_Lactococcus_lactis' -> 'Lactococcus lactis'
-    'GENERO_Pseudonocardia_882449' -> 'Pseudonocardia'
-    'name_Algo_asi' -> 'Algo asi'"""
     m = re.match(r'^taxid_\d+_(.+)$', bact_id)
     if m:
         return m.group(1).replace('_', ' ')
@@ -49,8 +50,8 @@ def clean_bacteria_name(bact_id):
     return bact_id
 
 
+# minúsculas y corrige el typo weisella -> weissella
 def normalizar(nombre):
-    """Normaliza para comparar sin importar mayusculas ni el typo weisella/weissella."""
     n = nombre.strip().lower()
     n = n.replace("weisella", "weissella")
     return n
@@ -87,9 +88,8 @@ def main():
             print(f"  [!] {len(sin_nombre)} fagos no encontraron nombre en el fasta (quedaron con su accession). "
                   f"Ejemplos: {list(sin_nombre)[:10]}")
 
-    # Si dos accessions distintos terminan con el mismo nombre de fago, o el mismo bact_id
-    # se limpia igual, podrian fusionarse en un solo par Source-Target. Nos quedamos con el
-    # Weight maximo de cada grupo.
+    # al renombrar pueden quedar pares Source-Target repetidos (dos accessions con el mismo
+    # nombre de fago, por ejemplo); se deja el de mayor Weight
     duplicados = df.duplicated(subset=['Source', 'Target'], keep=False)
     if duplicados.any():
         n_dup_grupos = df[duplicados].groupby(['Source', 'Target']).ngroups

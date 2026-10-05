@@ -89,11 +89,8 @@ def predict(phage_fea, host_fea, scaler, parameter):
     phage_vals = phage.values
     host_vals = host.values
 
-    # Group several phages per batch instead of one phage (= n_host rows) per
-    # iteration: with n_phage in the thousands, per-iteration Python/torch call
-    # overhead dominated runtime far more than the actual matrix math.
-    # Preallocating a float array (instead of writing into an object-dtype
-    # DataFrame row by row) also avoids pandas' slow per-row block updates.
+    # varios fagos por lote en vez de uno por iteración: con miles de fagos lo que más
+    # tardaba eran las llamadas a torch, no las cuentas
     rows_target = 10000
     batch_size = max(1, rows_target // max(n_host, 1))
     out_arr = np.empty((n_phage, n_host), dtype = np.float32)
@@ -477,9 +474,8 @@ def dna_features(dna_sequences):
     return features
 
 
-
+# 798 características de DNA de un archivo cds (133 x 6), se corre en paralelo
 def _dna_process_one(args):
-    """Compute the 798-length dna feature vector for a single cds file. Runs in a worker process."""
     ls, path, ref, pattern = args
     res_dir = path + os.sep + ls
     records = [r for r in SeqIO.parse(res_dir, "fasta")]
@@ -533,7 +529,7 @@ def dna_process(path, key_gene, pattern):
     for ls in walkfile:
         ID_diff.append(ls[4:-6])
 
-    #feature process (parallel across cds files)
+    #feature process (en paralelo por archivo cds)
     key_gene_num = {}
     results = {}
     cds_files = [ls for ls in walkfile if ls[:3] == 'cds']
@@ -546,7 +542,7 @@ def dna_process(path, key_gene, pattern):
             if values is not None:
                 results[key] = values
 
-    # build the table in one vectorized step instead of assigning row-by-row (which is O(n^2) in pandas)
+    # la tabla se arma de una vez, llenarla fila por fila era muy lento
     KP_df = pd.DataFrame.from_dict(results, orient = 'index', columns = CDD_diff)
     KP_df = KP_df.reindex(ID_diff)
     KP_df = KP_df.fillna(0)
@@ -554,8 +550,8 @@ def dna_process(path, key_gene, pattern):
     return KP_df, key_gene_num
 
 
+# 540 características de proteína de un archivo cds (90 x 6), se corre en paralelo
 def _protein_process_one(args):
-    """Compute the 540-length protein feature vector for a single cds file. Runs in a worker process."""
     ls, path, ref, pattern = args
     res_dir = path + os.sep + ls
     records = [r for r in SeqIO.parse(res_dir, "fasta")]
@@ -623,7 +619,7 @@ def protein_process(path, key_gene, pattern):
     for ls in walkfile:
         ID_diff.append(ls[8:-6])
 
-    #feature process (parallel across cds files)
+    #feature process (en paralelo por archivo cds)
     results = {}
     cds_files = [ls for ls in walkfile if ls[:3] == 'cds']
     tasks = [(ls, path, ref, pattern) for ls in cds_files]
@@ -633,7 +629,7 @@ def protein_process(path, key_gene, pattern):
             if values is not None:
                 results[key] = values
 
-    # build the table in one vectorized step instead of assigning row-by-row (which is O(n^2) in pandas)
+    # la tabla se arma de una vez, llenarla fila por fila era muy lento
     KP_df = pd.DataFrame.from_dict(results, orient = 'index', columns = CDD_diff)
     KP_df = KP_df.reindex(ID_diff)
     KP_df = KP_df.fillna(0)
@@ -852,8 +848,7 @@ def get_align_and_interaction_infor(phage_align, phage_raw_data, host_align, hos
                                    pi_infor_path, hi_infor_path):
     
     # store html link text content folder
-    # (re)create these dirs so re-running after a failed attempt doesn't crash on FileExistsError
-    # or mix stale files from a previous partial run with the current one
+    # se borran y se crean de nuevo para que una corrida que falló no deje archivos viejos
     for d in (pa_fasta_path, ha_fasta_path, pi_infor_path, hi_infor_path):
         if os.path.exists(d):
             shutil.rmtree(d)
@@ -870,10 +865,8 @@ def get_align_and_interaction_infor(phage_align, phage_raw_data, host_align, hos
     host_raw_data = walkFile_all_path(host_raw_data)
     dic_p_rd = {}
     dic_h_rd = {}
-    # Map by sequence accession (parsed from the fasta headers) rather than by filename stem:
-    # phage raw files hold a single record whose accession equals the filename, but bacterium
-    # raw files are multi-contig draft assemblies (filename is a genus label), so blast hits
-    # come back as a contig accession that never matches the filename-based key.
+    # se busca por el accession del header y no por el nombre del archivo: los genomas de
+    # bacterias tienen varios contigs y blast devuelve el accession del contig
     for path in phage_raw_data:
         for record in SeqIO.parse(path, "fasta"):
             dic_p_rd[record.id.split('.')[0]] = path
@@ -999,11 +992,8 @@ _ROW_TEMPLATE = (
 )
 
 def generate_html_report(res, path):
-    # Building one dominate tag object per table cell (~10 per row) does not
-    # scale to hundreds of thousands of rows: the object graph and its final
-    # render() traversal dominated the runtime for large result sets. Writing
-    # the markup directly as strings, in chunks, keeps the same visual output
-    # while avoiding that per-cell object overhead and bounding peak memory.
+    # el html se escribe directo como texto; con dominate (un objeto por celda) no
+    # terminaba con cientos de miles de filas
     col = [res.iloc[:, i].tolist() for i in range(10)]
 
     with open(path + os.sep + 'result.html', 'w') as f:
@@ -1098,8 +1088,7 @@ if __name__ == '__main__':
     phage = wgs_out.index.tolist()
     host = wgs_out.columns.tolist()
 
-    # build the phage x host cross product and fill in outputs via vectorized index alignment
-    # instead of an O(n^2) boolean-mask lookup per pair (which never finished for real dataset sizes)
+    # producto cruzado fago x bacteria; buscar cada par con una máscara nunca terminaba
     result = pd.DataFrame(list(itertools.product(phage, host)), columns = ['phage', 'bacterium'])
     result = result.set_index(['phage', 'bacterium'])
 

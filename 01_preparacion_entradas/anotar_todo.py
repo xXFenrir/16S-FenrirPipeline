@@ -1,3 +1,5 @@
+# Anota con prokka todos los genomas de bacterias y fagos descargados
+
 import os
 import subprocess
 import glob
@@ -34,7 +36,7 @@ def run_prokka(input_folder, output_base, kingdom):
             "--kingdom", kingdom,
             "--cpus", "4",
             "--quiet",
-            "--notbl2asn"  # Ahora sí funcionará con tu versión 1.13
+            "--notbl2asn"  # en prokka 1.13 sí existe esta opción
         ]
         subprocess.run(cmd)
 
