@@ -287,10 +287,10 @@ def ejecutar_limpieza(
                 "QScore promedio after": estadisticas_finales["mean_q"]
             })
             procesados.append(id_barcode)
-            print(f"✅ {id_barcode} listo. Lecturas finales: {lecturas_finales} (Remoción total: {pct_remocion_total}%)")
+            print(f"[OK] {id_barcode} listo. Lecturas finales: {lecturas_finales} (Remoción total: {pct_remocion_total}%)")
         except Exception as e:
             fallidos.append(id_barcode)
-            print(f"⚠️  {id_barcode} falló: {e}", file=sys.stderr)
+            print(f"[!] {id_barcode} falló: {e}", file=sys.stderr)
 
     resumen_tsv = os.path.join(carpeta_salida, "resumen_limpieza.tsv")
     columnas = [
@@ -308,8 +308,8 @@ def ejecutar_limpieza(
         for r in filas_resumen:
             w.writerow(r)
 
-    print(f"\n📄 Resumen global generado en: {resumen_tsv}")
-    if fallidos: print("⚠️  Barcodes con error:", ", ".join(fallidos))
+    print(f"\n[OK] Resumen global generado en: {resumen_tsv}")
+    if fallidos: print("[!] Barcodes con error:", ", ".join(fallidos))
     return {"processed": procesados, "failed": fallidos, "outdir": carpeta_salida}
 
 

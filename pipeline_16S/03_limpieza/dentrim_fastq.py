@@ -215,10 +215,10 @@ def run_dentrim(
                 "final_path": final_path
             })
             processed.append(sample)
-            print(f"✅ {sample} listo. %final_vs_raw={pct_final:.2f}%")
+            print(f"[OK] {sample} listo. %final_vs_raw={pct_final:.2f}%")
         except Exception as e:
             failed.append(sample)
-            print(f"⚠️  {sample} falló: {e}", file=sys.stderr)
+            print(f"[!] {sample} falló: {e}", file=sys.stderr)
 
     summary_csv = os.path.join(outdir, "dentrim_summary.csv")
     fieldnames = ["sample","in_raw","after_pychopper","final",
@@ -227,8 +227,8 @@ def run_dentrim(
         w = csv.DictWriter(fh, fieldnames=fieldnames); w.writeheader()
         for r in summary_rows: w.writerow(r)
 
-    print(f"\n📄 Resumen global: {summary_csv}")
-    if failed: print("⚠️  Muestras con error:", ", ".join(failed))
+    print(f"\n[OK] Resumen global: {summary_csv}")
+    if failed: print("[!] Muestras con error:", ", ".join(failed))
     return {"processed": processed, "failed": failed, "outdir": outdir}
 
 
