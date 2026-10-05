@@ -12,7 +12,7 @@ Trabajo de grado: *Análisis del microbioma de Passiflora edulis f. edulis media
 
 ## Índice de anexos
 
-Los anexos 1 a 9 corresponden a los ya citados en el documento. Los anexos 10 a 20 amplían los resultados que no pudieron incluirse en el cuerpo del texto.
+Los anexos 1 a 9 corresponden a los ya citados en el documento. Los anexos 10 a 21 amplían los resultados y la información que no pudieron incluirse en el cuerpo del texto.
 
 | Anexo | Carpeta | Contenido principal | Sección de la tesis |
 |---|---|---|---|
@@ -36,6 +36,7 @@ Los anexos 1 a 9 corresponden a los ya citados en el documento. Los anexos 10 a 
 | 18 | [Anexo_18_Predicciones_DeepPBI-KG_gulupa](Anexo_18_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | 10.3.5, 10.3.6 |
 | 19 | [Anexo_19_Redes_Gephi_gulupa](Anexo_19_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de todas las redes | 10.3.5 |
 | 20 | [Anexo_20_Diferencias_por_familia](Anexo_20_Diferencias_por_familia) | Abundancias relativas por familia (propias y del artículo), medias y correlación de Pearson (familia) | 10.1.7 |
+| 21 | [Anexo_21_Herramientas_pipelines_referencia](Anexo_21_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | — |
 
 ## Descripción de los anexos
 
@@ -118,6 +119,10 @@ Contiene los grafos de Gephi de las interacciones predichas para gulupa con el m
 **Anexo 20. Diferencias de abundancia por familia entre este estudio y el artículo de referencia**
 
 Compara la abundancia relativa media de las 132 familias presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la correlación de Pearson entre ambas series. Incluye las abundancias por familia de cada muestra, tanto propias como del artículo.
+
+**Anexo 21. Herramientas bioinformáticas de los pipelines de referencia**
+
+Resume las herramientas empleadas en seis estudios que analizan el gen 16S rRNA secuenciado con *Oxford Nanopore Technologies*, organizadas por etapa: basecalling, demultiplexing, denoising y trimming, clustering, asignación taxonómica, filogenia y diversidad. Permite contrastar las alternativas disponibles para cada etapa con las seleccionadas en el pipeline propio.
 
 ## Notas
 

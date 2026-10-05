@@ -1,0 +1,7 @@
+Artículo,Basecalling,Demultiplexing,Denoising y trimming,Clustering,Taxonomía,Filogenia,Diversidad
+"Comparative evaluation of sequencing platforms: Pacific Biosciences, Oxford Nanopore Technologies, and Illumina for 16S rRNA-based soil microbiome profiling",Dorado,Porechop,Chopper,-,Emu pipeline,-,RStudio con MicrobiotaProcess package
+Comparison of Oxford Nanopore Technologies and Illumina MiSeq sequencing with mock communities and agricultural soil,Guppy,Guppy,Filtlong / Cutadapt / vsearch,-,minimap2,-,Emu pipeline
+Full-length 16S rRNA gene amplicon analysis of human gut microbiota using MinION™ nanopore sequencing confers species-level resolution,Albacore software,-,SeqKit software / NanoPlot / TANTAN program / minimap2,-,minimap2,-,-
+Emu: species-level microbial community profiling of full-length 16S rRNA Oxford Nanopore sequencing data,Emu pipeline,Emu pipeline,Emu pipeline,-,Emu pipeline,-,Emu pipeline
+Optimized bacterial community characterization through full-length 16S rRNA gene sequencing utilizing MinION nanopore technology,Guppy,Guppy,BugSeq / Kraken2 / EPI2ME-16S / EPI2ME-WIMP,-,BugSeq / Kraken2 / EPI2ME-16S / EPI2ME-WIMP,-,BugSeq / Kraken2 / EPI2ME-16S / EPI2ME-WIMP
+Sterile sentinels and MinION sequencing capture active soil microbial communities that differentiate crop rotations,Guppy,Guppy,NanoPlot / NanoFilt / Cutadapt,-,minimap2 / Emu pipeline,-,permANOVA / ALDEx2
