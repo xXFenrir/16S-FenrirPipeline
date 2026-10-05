@@ -12,31 +12,31 @@ Trabajo de grado: *Análisis del microbioma de Passiflora edulis f. edulis media
 
 ## Índice de anexos
 
-Los anexos 1 a 9 corresponden a los ya citados en el documento. Los anexos 10 a 21 amplían los resultados y la información que no pudieron incluirse en el cuerpo del texto.
+Los anexos 1 a 7 están descritos en el apartado de Anexos del documento, y los anexos 1, 2, 3, 8 y 9 se citan en el texto. Los anexos 10 a 21 amplían los resultados y la información que no pudieron incluirse en el cuerpo del texto. La última columna indica la sección de Resultados del documento con la que se relaciona cada anexo.
 
-| Anexo | Carpeta | Contenido principal | Sección de la tesis |
+| Anexo | Carpeta | Contenido principal | Sección de Resultados donde se usa |
 |---|---|---|---|
-| 1 | [Anexo_01_Metadata_PRJNA1020132](Anexo_01_Metadata_PRJNA1020132) | Metadata del BioProject, SraRunTable y datos de muestra del artículo | 10.1.3, 10.1.5 |
-| 2 | [Anexo_02_Estadisticas_pre_limpieza](Anexo_02_Estadisticas_pre_limpieza) | Estadísticas básicas de las 88 muestras crudas | 10.1.5 |
-| 3 | [Anexo_03_Estadisticas_post_limpieza](Anexo_03_Estadisticas_post_limpieza) | Estadísticas tras Filtlong + Pychopper y retención por muestra | 10.1.6 |
-| 4 | [Anexo_04_Abundancia_generos_referencia](Anexo_04_Abundancia_generos_referencia) | Abundancias relativas por género del artículo | 10.1.7 |
-| 5 | [Anexo_05_Abundancia_especies_referencia](Anexo_05_Abundancia_especies_referencia) | Abundancias relativas por especie del artículo | 10.1.7 |
-| 6 | [Anexo_06_Diferencias_por_genero](Anexo_06_Diferencias_por_genero) | Medias propias vs. artículo y correlación de Pearson (género) | 10.1.7 |
-| 7 | [Anexo_07_Diferencias_por_especie](Anexo_07_Diferencias_por_especie) | Medias propias vs. artículo y correlación de Pearson (especie) | 10.1.7 |
-| 8 | [Anexo_08_Comparacion_modelos_Dorado](Anexo_08_Comparacion_modelos_Dorado) | Comparación FAST/HAC/SUP global y por muestra | 10.3.1 |
-| 9 | [Anexo_09_Reportes_pycoQC_HAC_SUP](Anexo_09_Reportes_pycoQC_HAC_SUP) | Reportes interactivos de calidad pycoQC (HAC y SUP) | 10.3.1 |
-| 10 | [Anexo_10_Diversidad_PRJNA1020132](Anexo_10_Diversidad_PRJNA1020132) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA del conjunto de referencia | 10.1.8 |
-| 11 | [Anexo_11_Limpieza_gulupa_HAC_SUP](Anexo_11_Limpieza_gulupa_HAC_SUP) | Limpieza por muestra de gulupa y reportes NanoPlot | 10.3.2 |
-| 12 | [Anexo_12_Taxonomia_EMU_gulupa](Anexo_12_Taxonomia_EMU_gulupa) | Tablas de EMU (abundancias, conteos, taxonomía, top 20) y rarefacción | 10.3.3 |
-| 13 | [Anexo_13_Diversidad_gulupa_HAC_SUP](Anexo_13_Diversidad_gulupa_HAC_SUP) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA de gulupa | 10.3.4 |
-| 14 | [Anexo_14_Genomas_bacterianos_Obj2](Anexo_14_Genomas_bacterianos_Obj2) | 192 genomas descargados para el Objetivo 2 | 10.2.2 |
-| 15 | [Anexo_15_Predicciones_DeepPBI-KG_Obj2](Anexo_15_Predicciones_DeepPBI-KG_Obj2) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | 10.2.4, 10.2.5 |
-| 16 | [Anexo_16_Redes_Gephi_Obj2](Anexo_16_Redes_Gephi_Obj2) | Grafos de Gephi (red completa y top 4) | 10.2.4 |
-| 17 | [Anexo_17_Genomas_bacterianos_gulupa](Anexo_17_Genomas_bacterianos_gulupa) | 79 genomas descargados para gulupa (HAC) | 9.3.6, 10.3.5 |
-| 18 | [Anexo_18_Predicciones_DeepPBI-KG_gulupa](Anexo_18_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | 10.3.5, 10.3.6 |
-| 19 | [Anexo_19_Redes_Gephi_gulupa](Anexo_19_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de todas las redes | 10.3.5 |
-| 20 | [Anexo_20_Diferencias_por_familia](Anexo_20_Diferencias_por_familia) | Abundancias relativas por familia (propias y del artículo), medias y correlación de Pearson (familia) | 10.1.7 |
-| 21 | [Anexo_21_Herramientas_pipelines_referencia](Anexo_21_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | — |
+| 1 | [Anexo_01_Metadata_PRJNA1020132](Anexo_01_Metadata_PRJNA1020132) | Metadata del BioProject, SraRunTable y datos de muestra del artículo | Obj. 1 › Selección de repositorios; Diseño conceptual: Reporte de estadísticas básicas |
+| 2 | [Anexo_02_Estadisticas_pre_limpieza](Anexo_02_Estadisticas_pre_limpieza) | Estadísticas básicas de las 88 muestras crudas | Obj. 1 › Diseño conceptual: Reporte de estadísticas básicas; Diseño conceptual: Denoising y trimming |
+| 3 | [Anexo_03_Estadisticas_post_limpieza](Anexo_03_Estadisticas_post_limpieza) | Estadísticas tras Filtlong + Pychopper y retención por muestra | Obj. 1 › Diseño conceptual: Denoising y trimming |
+| 4 | [Anexo_04_Abundancia_generos_referencia](Anexo_04_Abundancia_generos_referencia) | Abundancias relativas por género del artículo | Obj. 1 › Diseño conceptual: Taxonomía |
+| 5 | [Anexo_05_Abundancia_especies_referencia](Anexo_05_Abundancia_especies_referencia) | Abundancias relativas por especie del artículo | Obj. 1 › Diseño conceptual: Taxonomía |
+| 6 | [Anexo_06_Diferencias_por_genero](Anexo_06_Diferencias_por_genero) | Medias propias vs. artículo y correlación de Pearson (género) | Obj. 1 › Diseño conceptual: Taxonomía |
+| 7 | [Anexo_07_Diferencias_por_especie](Anexo_07_Diferencias_por_especie) | Medias propias vs. artículo y correlación de Pearson (especie) | Obj. 1 › Diseño conceptual: Taxonomía |
+| 8 | [Anexo_08_Comparacion_modelos_Dorado](Anexo_08_Comparacion_modelos_Dorado) | Comparación FAST/HAC/SUP global y por muestra | Obj. 3 › Basecalling y evaluación de calidad de secuencias |
+| 9 | [Anexo_09_Reportes_pycoQC_HAC_SUP](Anexo_09_Reportes_pycoQC_HAC_SUP) | Reportes interactivos de calidad pycoQC (HAC y SUP) | Obj. 3 › Basecalling y evaluación de calidad de secuencias |
+| 10 | [Anexo_10_Diversidad_PRJNA1020132](Anexo_10_Diversidad_PRJNA1020132) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA del conjunto de referencia | Obj. 1 › Diseño conceptual: Diversidad |
+| 11 | [Anexo_11_Limpieza_gulupa_HAC_SUP](Anexo_11_Limpieza_gulupa_HAC_SUP) | Limpieza por muestra de gulupa y reportes NanoPlot | Obj. 3 › Filtrado de calidad y remoción de ruido (Denoising y Trimming) |
+| 12 | [Anexo_12_Taxonomia_EMU_gulupa](Anexo_12_Taxonomia_EMU_gulupa) | Tablas de EMU (abundancias, conteos, taxonomía, top 20) y rarefacción | Obj. 3 › Clasificación taxonómica y análisis de rarefacción |
+| 13 | [Anexo_13_Diversidad_gulupa_HAC_SUP](Anexo_13_Diversidad_gulupa_HAC_SUP) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA de gulupa | Obj. 3 › Diversidad Alfa y Beta |
+| 14 | [Anexo_14_Genomas_bacterianos_Obj2](Anexo_14_Genomas_bacterianos_Obj2) | 192 genomas descargados para el Objetivo 2 | Obj. 2 › Preparación de datos de entrada |
+| 15 | [Anexo_15_Predicciones_DeepPBI-KG_Obj2](Anexo_15_Predicciones_DeepPBI-KG_Obj2) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 2 › Filtrado de probabilidades; Comprobación con literatura |
+| 16 | [Anexo_16_Redes_Gephi_Obj2](Anexo_16_Redes_Gephi_Obj2) | Grafos de Gephi (red completa y top 4) | Obj. 2 › Filtrado de probabilidades |
+| 17 | [Anexo_17_Genomas_bacterianos_gulupa](Anexo_17_Genomas_bacterianos_gulupa) | 79 genomas descargados para gulupa (HAC) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
+| 18 | [Anexo_18_Predicciones_DeepPBI-KG_gulupa](Anexo_18_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa; Comprobación de interacciones en gulupa |
+| 19 | [Anexo_19_Redes_Gephi_gulupa](Anexo_19_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de todas las redes | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
+| 20 | [Anexo_20_Diferencias_por_familia](Anexo_20_Diferencias_por_familia) | Abundancias relativas por familia (propias y del artículo), medias y correlación de Pearson (familia) | Obj. 1 › Diseño conceptual: Taxonomía |
+| 21 | [Anexo_21_Herramientas_pipelines_referencia](Anexo_21_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | Obj. 1 › Caracterización de herramientas bioinformáticas (Tabla 1) |
 
 ## Descripción de los anexos
 
@@ -50,21 +50,21 @@ Resume las métricas de calidad obtenidas en las lecturas crudas de las 88 muest
 
 **Anexo 3. Estadísticas básicas después del proceso de limpieza**
 
-Presenta las mismas métricas del Anexo 2 calculadas sobre las lecturas que superaron el recorte de primers con Pychopper y el filtrado por longitud y calidad con Filtlong. Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
+Presenta las mismas métricas del Anexo 2 calculadas sobre las lecturas que superaron el recorte de primers con Pychopper y el filtrado por longitud (1000–1700 pb) y calidad con Filtlong. Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
 
-**Anexo 4. Abundancia relativa por género del artículo de referencia**
+**Anexo 4. Abundancia relativa de géneros del conjunto de referencia**
 
 Contiene las abundancias relativas por género reportadas por Erlandson et al. (2024) para cada muestra del proyecto PRJNA1020132. Sirve como punto de comparación para validar la clasificación taxonómica obtenida con el pipeline propio.
 
-**Anexo 5. Abundancia relativa por especie del artículo de referencia**
+**Anexo 5. Abundancia relativa de especies del conjunto de referencia**
 
 Contiene las abundancias relativas por especie reportadas por Erlandson et al. (2024) para cada muestra del proyecto PRJNA1020132. Complementa el Anexo 4 en la comparación a nivel de especie.
 
-**Anexo 6. Diferencias de abundancia por género entre este estudio y el artículo de referencia**
+**Anexo 6. Diferencia de abundancias relativas por género**
 
 Compara la abundancia relativa media de los 344 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio.
 
-**Anexo 7. Diferencias de abundancia por especie entre este estudio y el artículo de referencia**
+**Anexo 7. Diferencia de abundancias relativas por especie**
 
 Presenta la misma comparación del Anexo 6 a nivel de especie, para las 853 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
 
@@ -116,13 +116,13 @@ Contiene la matriz completa de predicciones para los 277 527 pares evaluados ent
 
 Contiene los grafos de Gephi de las interacciones predichas para gulupa con el modelo HAC: la red completa y la red de los cuatro taxones dominantes, en formato editable, PDF e imagen. Incluye las estadísticas de todas las redes construidas (nodos, aristas, densidad y grado promedio).
 
-**Anexo 20. Diferencias de abundancia por familia entre este estudio y el artículo de referencia**
+**Anexo 20. Diferencia de abundancias relativas por familia**
 
 Compara la abundancia relativa media de las 132 familias presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la correlación de Pearson entre ambas series. Incluye las abundancias por familia de cada muestra, tanto propias como del artículo.
 
-**Anexo 21. Herramientas bioinformáticas de los pipelines de referencia**
+**Anexo 21. Herramientas bioinformáticas reportadas por artículo en cada etapa del procesamiento del gen 16S**
 
-Resume las herramientas empleadas en seis estudios que analizan el gen 16S rRNA secuenciado con *Oxford Nanopore Technologies*, organizadas por etapa: basecalling, demultiplexing, denoising y trimming, clustering, asignación taxonómica, filogenia y diversidad. Permite contrastar las alternativas disponibles para cada etapa con las seleccionadas en el pipeline propio.
+Resume las herramientas empleadas en seis estudios que analizan el gen 16S rRNA secuenciado con *Oxford Nanopore Technologies*, organizadas por etapa: basecalling, demultiplexing, denoising y trimming, clustering, asignación taxonómica, filogenia y diversidad. Corresponde a la Tabla 1 del documento; el guion (-) indica que la etapa no se reportó o no aplica.
 
 ## Notas
 
