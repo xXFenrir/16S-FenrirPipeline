@@ -89,7 +89,7 @@ def main():
 
     # Si dos accessions distintos terminan con el mismo nombre de fago, o el mismo bact_id
     # se limpia igual, podrian fusionarse en un solo par Source-Target. Nos quedamos con el
-    # Weight maximo de cada grupo, igual que hace generar_nodos_gephi.py.
+    # Weight maximo de cada grupo.
     duplicados = df.duplicated(subset=['Source', 'Target'], keep=False)
     if duplicados.any():
         n_dup_grupos = df[duplicados].groupby(['Source', 'Target']).ngroups
