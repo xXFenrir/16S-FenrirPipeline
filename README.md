@@ -200,6 +200,8 @@ conda install bioconda::samtools
   <br><sub>Diagrama de caja para reporte de estadísticas y limpieza (Figura 3 de la tesis)</sub>
 </p>
 
+El diagrama muestra cada filtro por separado. En `dentrim_bam.py` el orden es Pychopper primero y Filtlong después: Pychopper orienta y recorta las lecturas, y Filtlong aplica al final el rango de longitud del gen 16S completo.
+
 ### Cómo se construyó el script
 
 `dentrim_bam.py` procesa las carpetas `barcode01`, `barcode02`, ... en orden. Antes de empezar verifica que existan las entradas y que `samtools`, `pychopper` y `filtlong` estén instalados, incluido el módulo `edlib` que Pychopper necesita. Para cada barcode ejecuta en cadena `samtools fastq` → Pychopper → Filtlong y mide las lecturas en tres puntos: crudas, después de Pychopper y después de Filtlong. En cada punto calcula lecturas, bases, longitud media y mediana, N50 y QScore medio, este último promediando las probabilidades de error por base. Con eso escribe `resumen_limpieza.tsv`, con los porcentajes de remoción por muestra. Si un barcode falla, lo registra y sigue con el siguiente.
@@ -332,6 +334,8 @@ Los cálculos se hacen con **scikit-bio** y **SciPy**:
   <img src="imagenes/paso5_diversidad.jpg" alt="Diagrama de caja de las estadísticas poblacionales: diversidad alfa y beta" width="650">
   <br><sub>Diagrama de caja para estadísticas poblacionales (Figura 5 de la tesis)</sub>
 </p>
+
+El diagrama muestra los índices alfa que se consideraron al diseñar el paso (Observed, Chao1, Shannon y Simpson). En los resultados se usaron la riqueza observada y Shannon, que son los que calcula `diversidad_mod.py`. Las salidas se guardan como TSV y PNG, no como CSV.
 
 ### Cómo se construyó el script
 
