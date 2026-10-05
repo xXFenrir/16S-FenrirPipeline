@@ -243,7 +243,7 @@ La etapa se divide en cinco scripts que se ejecutan en orden:
 2. `rebuild_counts.py` reconstruye conteos enteros confiables. Multiplica la abundancia relativa de cada taxón por el total real de lecturas limpias de la muestra (tomado de la limpieza) y redondea por el método del mayor residuo, de modo que la suma coincide exactamente con ese total.
 3. `agrupar_counts_sistema.py` asigna cada muestra a su sistema agrícola (barcode → ID de finca → Sistema) y agrega a la tabla de conteos el total por taxón y en cuántas muestras de cada sistema aparece.
 4. `rarefaccion.py` submuestrea al azar, sin reemplazo, 30 profundidades por muestra con un paso proporcional a su propia profundidad, cuenta las especies observadas y promedia 10 repeticiones por punto. Traza todas las curvas en una sola figura, identificadas por finca y sistema. Si una curva se aplana, secuenciar más no habría agregado muchas especies nuevas.
-5. `taxonomy_profiling.py` dibuja barras apiladas de abundancia relativa con los N taxones más abundantes de un rango taxonómico (especie, género o familia), agrupando las muestras por sistema agrícola.
+5. `taxonomy_profiling.py` dibuja barras apiladas de abundancia relativa con los N taxones más abundantes de un rango taxonómico, agrupando las muestras por sistema agrícola. Para gulupa se generaron con los 20 taxones más abundantes a nivel de familia, género y especie.
 
 ### Ejecución
 
@@ -270,7 +270,9 @@ python3 pipeline_16S/04_taxonomia/EMU_propio.py \
 python3 pipeline_16S/04_taxonomia/rebuild_counts.py --model hac --dataset results --rank species
 python3 pipeline_16S/04_taxonomia/agrupar_counts_sistema.py --model hac --dataset results
 python3 pipeline_16S/04_taxonomia/rarefaccion.py --model hac --dataset results --n-points 30 --iterations 10
-python3 pipeline_16S/04_taxonomia/taxonomy_profiling.py --model hac --dataset results --rank genus --top-n 10
+for rango in family genus species; do
+  python3 pipeline_16S/04_taxonomia/taxonomy_profiling.py --model hac --dataset results --rank $rango --top-n 20
+done
 ```
 
 - `--model` modelo de basecalling (`hac` o `sup`); con `--dataset` define las rutas por defecto de entrada y salida dentro de `EMU_propio/`.
@@ -294,7 +296,7 @@ Responde la pregunta central del proyecto: si la comunidad bacteriana del rizobi
 Los cálculos se hacen con **scikit-bio** y **SciPy**:
 
 - **Índice de Shannon** (−Σ pᵢ log pᵢ): combina cuántas especies hay y qué tan pareja es su abundancia; aumenta con la riqueza y con la equidad. Junto con la **riqueza observada** (número de especies presentes) describe la diversidad alfa.
-- **Mann-Whitney U**: compara los índices alfa entre cada par de sistemas sin suponer normalidad.
+- **Prueba de suma de rangos de Wilcoxon (Mann-Whitney U)**: compara los índices alfa entre cada par de sistemas sin suponer normalidad.
 - **Bray-Curtis**: disimilitud cuantitativa, sensible a cambios de abundancia. **Jaccard**: disimilitud cualitativa, basada solo en presencia o ausencia.
 - **PCoA** (Análisis de Coordenadas Principales): proyecta la matriz de Bray-Curtis en dos ejes para ver si las muestras de cada sistema se agrupan.
 - **PERMANOVA**: prueba, con 999 permutaciones de las etiquetas de grupo, si los centroides de los sistemas difieren en ese espacio de distancias (estadístico pseudo-F y valor p).
@@ -303,7 +305,7 @@ Los cálculos se hacen con **scikit-bio** y **SciPy**:
 
 `diversidad_mod.py` carga la tabla de abundancias relativas de EMU y traduce cada barcode a su sistema agrícola en dos pasos: barcode → ID de finca con el CSV puente, e ID de finca → Sistema con el Excel de metadatos. Después calcula:
 
-1. Shannon (`skbio.diversity.alpha_diversity`) y riqueza observada por muestra, las pruebas de Mann-Whitney U entre pares de sistemas (`scipy.stats.mannwhitneyu`) y los boxplots por sistema.
+1. Shannon (`skbio.diversity.alpha_diversity`) y riqueza observada por muestra, las pruebas de suma de rangos de Wilcoxon entre pares de sistemas (`scipy.stats.mannwhitneyu`) y los boxplots por sistema.
 2. Las matrices de Bray-Curtis y Jaccard (`scipy.spatial.distance.pdist`) y sus mapas de calor.
 3. La PCoA sobre Bray-Curtis (`skbio.stats.ordination.pcoa`), con una elipse de dispersión por sistema calculada a partir de la covarianza de sus muestras (1,96 desviaciones estándar). Los límites de los ejes se ajustan para que se vean todas las muestras y todas las elipses.
 4. La PERMANOVA (`skbio.stats.distance.permanova`), usando solo las muestras de los sistemas comparados y una semilla fija (42), de modo que el valor p es el mismo cada vez que se ejecuta.
