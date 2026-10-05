@@ -57,6 +57,18 @@ Los pasos se describen tal como se aplicaron a las muestras de gulupa con el mod
 </p>
 </details>
 
+<details>
+<summary><b>Revisión bibliográfica para escoger las herramientas</b></summary>
+<br>
+
+Las herramientas de cada paso se escogieron a partir de una búsqueda en Google Scholar, ScienceDirect, SpringerLink y la Biblioteca Juan Roa Vázquez con la ecuación `bioinformatics AND 16S oxford nanopore AND (soils OR passiflora)`. Solo seis estudios tenían una metodología bioinformática completa y las lecturas 16S disponibles en un repositorio; sus herramientas se resumen en el Anexo 1, y uno de ellos, Erlandson et al. (2024), es el artículo guía con el que se validó el pipeline.
+
+<p align="center">
+  <img src="imagenes/prisma_objetivo1.jpg" alt="Diagrama de flujo PRISMA de la búsqueda bibliográfica: 11 483 registros identificados y 6 estudios incluidos" width="700">
+  <br><sub>Diagrama de flujo PRISMA de la búsqueda bibliográfica (Figura 7 de la tesis)</sub>
+</p>
+</details>
+
 ---
 
 ## 1. Basecalling y demultiplexing
@@ -81,6 +93,11 @@ dorado-2.1.0-linux-x64/bin/dorado --version
 pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
 ```
 </details>
+
+<p align="center">
+  <img src="imagenes/paso1_basecalling.jpg" alt="Diagrama de caja del basecalling y demultiplexing con Dorado" width="700">
+  <br><sub>Diagrama de caja para basecalling (Figura 2 de la tesis)</sub>
+</p>
 
 ### Cómo se construyó el script
 
@@ -129,7 +146,7 @@ Antes de limpiar hay que saber en qué estado llegan las lecturas: cuántas son,
 
 ### Herramientas
 
-Las métricas se calculan con código propio, sin herramientas bioinformáticas externas. Como complemento visual se generaron reportes con **pycoQC**, que resume la corrida a partir de `sequencing_summary.txt` (rendimiento en el tiempo, calidad y longitud por barcode), y con **NanoPlot**, que grafica la distribución de longitud y calidad de los FASTQ limpios. Sus reportes están en la rama `anexos` (Anexos 15 y 16).
+Las métricas se calculan con código propio, sin herramientas bioinformáticas externas. Como complemento visual se generaron reportes con **pycoQC**, que resume la corrida a partir de `sequencing_summary.txt` (rendimiento en el tiempo, calidad y longitud por barcode), y con **NanoPlot**, que grafica la distribución de longitud y calidad de los FASTQ limpios. Sus reportes están en la rama `anexos` (Anexos 15 y 16). El diagrama de caja de este paso se comparte con la limpieza y se muestra en el [paso 3](#3-limpieza-denoising-y-trimming).
 
 ### Cómo se construyó el script
 
@@ -177,6 +194,11 @@ conda install bioconda::filtlong
 conda install bioconda::samtools
 ```
 </details>
+
+<p align="center">
+  <img src="imagenes/paso2-3_estadisticas_limpieza.jpg" alt="Diagrama de caja del reporte de estadísticas y la limpieza con Filtlong y Pychopper" width="700">
+  <br><sub>Diagrama de caja para reporte de estadísticas y limpieza (Figura 3 de la tesis)</sub>
+</p>
 
 ### Cómo se construyó el script
 
@@ -234,6 +256,11 @@ osf -p 56uf7 fetch osfstorage/emu-prebuilt/emu.tar
 tar -xvf emu.tar
 ```
 </details>
+
+<p align="center">
+  <img src="imagenes/paso4_taxonomia.jpg" alt="Diagrama de caja de la clasificación taxonómica con EMU: minimap2 y esperanza-maximización" width="800">
+  <br><sub>Diagrama de caja para clasificación taxonómica (Figura 4 de la tesis)</sub>
+</p>
 
 ### Cómo se construyó el script
 
@@ -300,6 +327,11 @@ Los cálculos se hacen con **scikit-bio** y **SciPy**:
 - **Bray-Curtis**: disimilitud cuantitativa, sensible a cambios de abundancia. **Jaccard**: disimilitud cualitativa, basada solo en presencia o ausencia.
 - **PCoA** (Análisis de Coordenadas Principales): proyecta la matriz de Bray-Curtis en dos ejes para ver si las muestras de cada sistema se agrupan.
 - **PERMANOVA**: prueba, con 999 permutaciones de las etiquetas de grupo, si los centroides de los sistemas difieren en ese espacio de distancias (estadístico pseudo-F y valor p).
+
+<p align="center">
+  <img src="imagenes/paso5_diversidad.jpg" alt="Diagrama de caja de las estadísticas poblacionales: diversidad alfa y beta" width="650">
+  <br><sub>Diagrama de caja para estadísticas poblacionales (Figura 5 de la tesis)</sub>
+</p>
 
 ### Cómo se construyó el script
 
