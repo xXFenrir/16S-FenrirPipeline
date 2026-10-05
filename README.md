@@ -129,7 +129,7 @@ Antes de limpiar hay que saber en qué estado llegan las lecturas: cuántas son,
 
 ### Herramientas
 
-Las métricas se calculan con código propio, sin herramientas bioinformáticas externas. Como complemento visual se generaron reportes con **pycoQC**, que resume la corrida a partir de `sequencing_summary.txt` (rendimiento en el tiempo, calidad y longitud por barcode), y con **NanoPlot**, que grafica la distribución de longitud y calidad de los FASTQ limpios. Sus reportes están en la rama `anexos` (Anexos 9 y 11).
+Las métricas se calculan con código propio, sin herramientas bioinformáticas externas. Como complemento visual se generaron reportes con **pycoQC**, que resume la corrida a partir de `sequencing_summary.txt` (rendimiento en el tiempo, calidad y longitud por barcode), y con **NanoPlot**, que grafica la distribución de longitud y calidad de los FASTQ limpios. Sus reportes están en la rama `anexos` (Anexos 15 y 16).
 
 ### Cómo se construyó el script
 
