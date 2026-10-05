@@ -27,7 +27,7 @@ def cargar_mapeo_doble(ruta_puente: Path, ruta_meta: Path, columna_grupo: str) -
     """
     Barcode(int) -> Sistema (o el valor de columna_grupo que corresponda), usando
     el mismo puente CSV (Mapa Barcodes Microbioma.csv) + maestro (Sistemas
-    Agrícolas y Muestras.xlsx) que rarefaccion.py / taxonomy_profiling.py.
+    Agrícolas y Muestras.xlsx) que rarefaccion.py.
     """
     mapeo = {}
     df_puente = pd.read_csv(ruta_puente, sep=';')
