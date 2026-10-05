@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+# Rehace tabla_conteos.tsv: abundancia relativa de EMU x total de lecturas limpias de cada muestra,
+# redondeando por mayor residuo para que cada muestra sume exactamente su total.
 
 import argparse, sys, re, gzip
 from pathlib import Path
@@ -13,7 +15,7 @@ def imprimir_error(*a, **k): print(*a, file=sys.stderr, **k)
 def asegurar_directorio(p: Path): p.mkdir(parents=True, exist_ok=True)
 
 def _escribir_xlsx(df: pd.DataFrame, path: Path, index: bool = True):
-    """Escribe un DataFrame a .xlsx, avisando si excede los límites de Excel."""
+    # excel no aguanta más de ~1M filas
     n_filas, n_cols = df.shape
     if n_filas > 1_048_575 or n_cols > 16_383:
         imprimir_error(f"[WARN] {path.name}: {n_filas} filas x {n_cols} columnas excede el límite de Excel; se omite el .xlsx.")
@@ -62,12 +64,8 @@ def _contar_lecturas_fastq(fq: Path) -> int:
     return n // 4
 
 def _cargar_totales_lecturas(path: Optional[Path], col: str) -> Dict[str, int]:
-    """
-    Carga totales reales de lecturas por barcode desde el resumen de
-    dentrim_bam.py (resumen_limpieza.tsv o su .xlsx), usando la columna
-    'lecturas after filtlong' por defecto (las lecturas limpias que
-    realmente entraron a EMU). Devuelve {'barcode01': 1593, ...}.
-    """
+    # devuelve {'barcode01': lecturas, ...} desde resumen_limpieza de dentrim_bam.py
+    # (por defecto 'lecturas after filtlong', que son las que entraron a EMU)
     if path is None:
         return {}
     ext = path.suffix.lower()
@@ -159,7 +157,7 @@ def reconstruir_conteos(emu_outdir: Path, nivel: str, profundidad_pseudo: int, t
         total = None
         origen = None
 
-        # 1) Prioridad máxima: total real desde el resumen de dentrim_bam.py
+        # el total se busca primero en el resumen de la limpieza
         if totales_lecturas:
             m = re.search(r"barcode0*(\d+)", muestra, re.IGNORECASE)
             if m:
@@ -168,7 +166,7 @@ def reconstruir_conteos(emu_outdir: Path, nivel: str, profundidad_pseudo: int, t
                     total = totales_lecturas[clave_bc]
                     origen = f"resumen dentrim ({clave_bc})"
 
-        # 2) assignments de EMU
+        # si no, en los assignments de EMU
         if total is None and rutas["assign"] and rutas["assign"].exists():
             try:
                 nfilas = sum(1 for _ in open(rutas["assign"], "r")) - 1
@@ -176,14 +174,14 @@ def reconstruir_conteos(emu_outdir: Path, nivel: str, profundidad_pseudo: int, t
                 origen = "assignments"
             except Exception:
                 total = None
-        # 3) FASTQ original
+        # o contando el FASTQ
         if total is None and rutas["fastq"] and Path(rutas["fastq"]).exists():
             try:
                 total = _contar_lecturas_fastq(Path(rutas["fastq"]))
                 origen = "fastq"
             except Exception:
                 total = None
-        # 4) Último recurso: profundidad fija
+        # si nada de eso existe se usa una profundidad fija, que ya no es un conteo real
         if total is None:
             total = int(profundidad_pseudo)
             origen = "pseudo-depth (¡respaldo, no es un total real!)"
@@ -225,8 +223,7 @@ def reconstruir_conteos(emu_outdir: Path, nivel: str, profundidad_pseudo: int, t
     if not ruta_taxonomia.exists():
         df_taxonomia.to_csv(ruta_taxonomia, sep="\t", index=False)
 
-    # Si existe la tabla de abundancias relativas (generada previamente por el pipeline de EMU),
-    # también la convertimos a .xlsx para facilitar su revisión.
+    # de paso la tabla de relativas en xlsx para revisarla más fácil
     ruta_relativa_xlsx = None
     tsv_relativa_global = emu_outdir / "tabla_abundancia_relativa.tsv"
     if tsv_relativa_global.exists():
@@ -263,7 +260,7 @@ def main():
                      help="Ignora --read-totals aunque exista (usa assignments/FASTQ/pseudo-depth).")
     args = ap.parse_args()
 
-    # Defaults derivados del modelo (solo se aplican si no se pasó la ruta explícitamente)
+    # rutas por defecto según modelo y dataset
     if args.emu_outdir is None:
         args.emu_outdir = base / "EMU_propio" / f"EMU{args.model}_{args.dataset}"
     if args.read_totals is None:

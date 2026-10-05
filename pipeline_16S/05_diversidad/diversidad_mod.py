@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# Alfa y beta diversidad de gulupa por sistema agrícola: Shannon/observados con Wilcoxon,
+# Bray-Curtis y Jaccard, PCoA y PERMANOVA
+
 import argparse
 import os
 import re
@@ -24,11 +28,7 @@ def imprimir_error(*a, **k):
     print(*a, file=sys.stderr, **k)
 
 def cargar_mapeo_doble(ruta_puente: Path, ruta_meta: Path, columna_grupo: str) -> dict:
-    """
-    Barcode(int) -> Sistema (o el valor de columna_grupo que corresponda), usando
-    el mismo puente CSV (Mapa Barcodes Microbioma.csv) + maestro (Sistemas
-    Agrícolas y Muestras.xlsx) que rarefaccion.py.
-    """
+    # barcode -> Sistema, con el mismo puente y maestro de rarefaccion.py
     mapeo = {}
     df_puente = pd.read_csv(ruta_puente, sep=';')
     if not {"ID", "Barcode"}.issubset(df_puente.columns):
@@ -87,7 +87,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     PREFIJO_SALIDA = os.path.join(args.output_dir, args.prefix)
 
-    # 1. CARGA DE TABLA DE ABUNDANCIA
+    # se quitan las columnas Total/Frecuencia si la tabla viene de agrupar_counts_sistema.py
     print(f"Cargando tabla de abundancia: {args.input}")
     datos_crudos = pd.read_csv(args.input, index_col=0, sep='\t')
     columnas_resumen = [c for c in datos_crudos.columns if str(c).startswith(("Total_counts", "Frecuencia_"))]
@@ -97,11 +97,10 @@ def main():
     conteos = abundancia.copy()
     nombres_muestras = list(conteos.index)
 
-    # 2 y 3. PUENTE (Barcode -> ID) + METADATOS (ID -> Sistema), en un solo paso
+    # barcode -> ID de finca -> Sistema
     print(f"Cargando puente ({args.barcode_map}) y metadatos ({args.metadata})...")
     barcode_a_grupo = cargar_mapeo_doble(Path(args.barcode_map), Path(args.metadata), args.group_col)
 
-    # 4. TRADUCCIÓN POR MUESTRA (Barcode -> Sistema)
     print("Traduciendo Barcodes a Sistemas...")
     GRUPOS = {}
     sin_mapeo = []
@@ -124,9 +123,7 @@ def main():
     metadatos = pd.DataFrame(index=abundancia.index)
     metadatos['Group'] = metadatos.index.map(GRUPOS)
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 1: ALFA DIVERSIDAD (SHANNON Y OBSERVADOS)
-    # =========================================================================
+    # alfa diversidad
     print("Calculando índices de Alfa Diversidad...")
     shannon = alpha_diversity('shannon', conteos.values, ids=conteos.index)
     observados = (conteos.values > 0).sum(axis=1)
@@ -141,7 +138,7 @@ def main():
 
     df_alfa_filtrado = df_alfa[df_alfa['Group'].isin(args.groups)]
 
-    # Pruebas estadísticas automáticas
+    # Wilcoxon (Mann-Whitney) para cada par de sistemas
     resultados_wilcoxon = {}
     print(f"Calculando pruebas de Wilcoxon para las combinaciones de {len(args.groups)} grupos...")
     for metrica in ['Shannon', 'Observados']:
@@ -157,7 +154,6 @@ def main():
     df_valores_p = pd.DataFrame(resultados_wilcoxon)
     df_valores_p.to_csv(f'{PREFIJO_SALIDA}_Alfa_Wilcoxon_pvalues.tsv', sep='\t')
 
-    # Boxplots
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     sns.set_theme(style="whitegrid")
     for i, metrica in enumerate(['Shannon', 'Observados']):
@@ -170,9 +166,7 @@ def main():
     plt.savefig(f'{PREFIJO_SALIDA}_Alfa_Diversidad_Boxplots.png', dpi=300)
     plt.close()
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 2: DISTANCIA BETA Y HEATMAPS
-    # =========================================================================
+    # beta diversidad
     print("Calculando matrices de distancia Beta...")
     distancias_bray = pdist(abundancia.values, metric='braycurtis')
     distancias_jaccard = pdist(abundancia.values, metric='jaccard')
@@ -196,9 +190,7 @@ def main():
         plt.savefig(f'{PREFIJO_SALIDA}_{nombre}_heatmap.png', dpi=300)
         plt.close()
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 3: PCoA
-    # =========================================================================
+    # PCoA solo con Bray-Curtis
     print("Calculando PCoA...")
     resultado_pcoa = pcoa(dm_bray, number_of_dimensions=2)
     coordenadas = resultado_pcoa.samples.iloc[:, 0:2]
@@ -261,9 +253,7 @@ def main():
     plt.savefig(f'{PREFIJO_SALIDA}_PCoA.png', dpi=300)
     plt.close()
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 4: PERMANOVA
-    # =========================================================================
+    # PERMANOVA
     metadatos_filtrados = metadatos[metadatos['Group'].isin(args.groups)]
 
     print("Calculando PERMANOVA...")

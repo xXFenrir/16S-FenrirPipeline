@@ -1,42 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-compare_taxa.py — Comparación de composiciones taxonómicas (tus resultados vs. artículo)
-
-Permite cargar tablas agregadas o per-muestra (relativas) y comparar en un rango
-taxonómico específico (p. ej., genus). Genera tablas de comparación y figuras.
-
-Requisitos (conda-forge):
-  conda install -c conda-forge pandas numpy plotly kaleido
-
-Ejemplos de uso:
-
-# 1) Mis resultados ya agregados (relativas + taxonomy) VS artículo (counts+taxonomy)
-python compare_taxa.py \
-  --my-results-dir /ruta/EMU_out \
-  --article-counts /ruta/art/emu_16S_counts_2020.csv \
-  --article-taxonomy /ruta/art/emu_16S_taxonomy_2020.csv \
-  --rank genus
-
-# 2) Mis per-muestra relativas (glob) VS artículo per-muestra relativas (glob)
-python compare_taxa.py \
-  --my-relabund-glob "/ruta/EMU_out/samples/*/*_rel-abundance.tsv" \
-  --article-relabund-glob "/ruta/art/rel_abund/barcode*.t_rel-abundance*.tsv" \
-  --rank genus \
-  --outdir /ruta/compare_out
-
-Salidas (en --outdir, por defecto <my-results-dir>/compare_taxa):
-  - mine_{rank}_rel.tsv            (tabla rank x muestras, relativas)
-  - article_{rank}_rel.tsv
-  - compare_{rank}_means.tsv       (medias por taxón y deltas)
-  - compare_{rank}_correlations.tsv (Pearson sobre taxones comunes: r y p)
-  - compare_{rank}_scatter.html/png (dispersión medias: este estudio vs artículo)
-  - compare_{rank}_top{N}_bars.html/png (barras lado a lado top taxa)
-  - correlacion_pearson.tsv/.xlsx (una columna por rango, fila 'Pearson')
-
-Se pueden pasar varios rangos a la vez: --rank family genus species
-"""
+# Compara las abundancias relativas medias por taxón entre mis resultados de EMU y los del
+# artículo guía, y saca la correlación de Pearson (validación del Objetivo 1).
+# Ejemplo:
+#   python compare_taxa.py --my-results-dir EMU_out \
+#     --article-counts emu_16S_counts_2020.csv --article-taxonomy emu_16S_taxonomy_2020.csv \
+#     --rank family genus species
+# Para PNG hace falta kaleido, si no solo guarda los HTML.
 
 from __future__ import annotations
 import argparse
@@ -49,7 +19,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-# export estático
 _HAS_KALEIDO = False
 try:
     import kaleido  # noqa: F401
@@ -64,8 +33,6 @@ ETQ_MIO, ETQ_ART = "Este estudio", "Artículo guía"
 COLORES = {ETQ_MIO: "#1f77b4", ETQ_ART: "#d62728"}
 
 
-# -------------------------- utilidades generales --------------------------
-
 def eprint(*a, **k): print(*a, file=sys.stderr, **k)
 
 def _ensure_dir(p: Path) -> Path:
@@ -73,7 +40,6 @@ def _ensure_dir(p: Path) -> Path:
     return p
 
 def _read_table_any(path: Path, index_col: Optional[int|str] = None) -> pd.DataFrame:
-    """Lee CSV o TSV (detecta sep automáticamente)."""
     return pd.read_csv(path, sep=None, engine="python", index_col=index_col)
 
 def _coerce_numeric_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -86,8 +52,8 @@ def _is_sample_like_index(idx: pd.Index) -> bool:
     s = pd.Series(idx.astype(str))
     return s.str.match(r"^(SRR|ERR|DRR)\d+").any() or s.str.contains(r"^barcode", case=False, na=False).any()
 
+# filas = taxones, columnas = muestras
 def _maybe_features_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Asegura orientación: filas=features, columnas=muestras."""
     if _is_sample_like_index(df.index):
         return df.T
     return df
@@ -103,7 +69,6 @@ def _save_fig(fig: go.Figure, html_path: Path, png_path: Optional[Path] = None,
     elif png_path:
         eprint(f"[INFO] Instala 'kaleido' para PNG/SVG/PDF. Guardé HTML: {html_path}")
 
-# ---------------------- parsing taxonómico (cadenas QIIME) ----------------------
 
 _QIIME_PATTERNS = {
     "superkingdom": re.compile(r"k__([^;]+)"),
@@ -115,8 +80,8 @@ _QIIME_PATTERNS = {
     "species": re.compile(r"s__([^;]+)"),
 }
 
-# Etiquetas sin asignación real; se excluyen y cada muestra se renormaliza sobre lo asignado
-# (igual que ocurre con las celdas vacías de los TSV del artículo, que groupby descarta).
+# estas no son taxones; se quitan y se renormaliza, igual que pasa con las celdas vacías
+# de los TSV del artículo (groupby las descarta)
 _NO_ASIGNADO = {"", "nan", "none", "na", "unassigned", "uncultured", "metagenome"}
 
 def _drop_unassigned(G: pd.DataFrame) -> pd.DataFrame:
@@ -135,18 +100,15 @@ def _from_qiime(s: str, rank: str) -> str:
     return val
 
 def taxonomy_to_rank_map(tax_df: pd.DataFrame, rank: str) -> pd.Series:
-    """Devuelve Serie index=feature_id, values=nombre del rank."""
     df = tax_df.copy()
-    # estandariza nombre de id
     if "feature_id" in df.columns:
         df = df.set_index("feature_id")
-    # detecta si ya trae columna del rank
     if rank in df.columns:
         s = df[rank].astype(str)
     elif "taxonomy" in df.columns:
         s = df["taxonomy"].map(lambda x: _from_qiime(str(x), rank))
     else:
-        # intenta reconstruir cadena taxonomy si tiene columnas de ranks
+        # columnas por rango, se arma la cadena tipo QIIME
         cols_lower = {c.lower(): c for c in df.columns}
         if all(r in cols_lower for r in TAX_RANKS):
             joined = (
@@ -164,16 +126,14 @@ def taxonomy_to_rank_map(tax_df: pd.DataFrame, rank: str) -> pd.Series:
     s.name = "rank_name"
     return s
 
-# ------------------------- detectar columna de relativas -------------------------
 
 def detect_rel_col(df: pd.DataFrame) -> Optional[str]:
-    # candidata que sume ~1
+    # la que sume ~1
     for c in df.columns:
         if pd.api.types.is_numeric_dtype(df[c]):
             s = pd.to_numeric(df[c], errors="coerce").fillna(0).sum()
             if 0.9 <= s <= 1.1:
                 return c
-    # por nombre
     cand = [c for c in df.columns if re.search(r"abund", c, flags=re.I)]
     for c in cand:
         s = pd.to_numeric(df[c], errors="coerce").fillna(0).sum()
@@ -181,7 +141,6 @@ def detect_rel_col(df: pd.DataFrame) -> Optional[str]:
             return c
     return None
 
-# --------------------------- construcción de tablas rank ---------------------------
 
 def counts_to_relative(counts: pd.DataFrame) -> pd.DataFrame:
     C = _coerce_numeric_df(counts)
@@ -193,12 +152,10 @@ def counts_to_relative(counts: pd.DataFrame) -> pd.DataFrame:
     return C / colsum
 
 def aggregate_by_rank_rel(rel: pd.DataFrame, taxmap: pd.Series) -> pd.DataFrame:
-    """Entrada: rel (features x samples), taxmap (index=features -> rank_name)."""
     R = _maybe_features_rows(rel.copy()).fillna(0.0)
-    # alinear
     common = R.index.intersection(taxmap.index)
     if common.empty:
-        # quizá rel trae features en columnas
+        # puede venir traspuesta
         R = R.T
         common = R.index.intersection(taxmap.index)
     if common.empty:
@@ -206,7 +163,6 @@ def aggregate_by_rank_rel(rel: pd.DataFrame, taxmap: pd.Series) -> pd.DataFrame:
     R = R.loc[common]
     taxmap = taxmap.loc[common]
     G = _drop_unassigned(R.groupby(taxmap).sum())
-    # normaliza por muestra a proporciones
     colsum = G.sum(axis=0)
     colsum[colsum == 0] = 1.0
     return G / colsum
@@ -218,15 +174,7 @@ def load_my(
     my_taxonomy: Optional[Path],
     my_relabund_glob: Optional[str],
 ) -> pd.DataFrame:
-    """
-    Devuelve tabla rank x muestras (relativas) para tus datos.
-    Orden de preferencia:
-      1) counts + taxonomy  -> relativas + agregación por rank
-      2) results_dir con feature_table_relabund.tsv + taxonomy.tsv
-      3) glob de *_rel-abundance.tsv (requiere tener rank o taxonomy en cada TSV,
-         o proporcionar --my-taxonomy para mapear).
-    """
-    # 1) counts + taxonomy
+    # se prueba en orden: counts + taxonomy, carpeta de resultados, TSV por muestra
     if my_counts and my_taxonomy:
         C = _read_table_any(Path(my_counts), index_col=0)
         T = _read_table_any(Path(my_taxonomy))
@@ -234,7 +182,6 @@ def load_my(
         R = counts_to_relative(C)
         return aggregate_by_rank_rel(R, taxmap)
 
-    # 2) results_dir
     if my_results_dir:
         rel_p = my_results_dir / "feature_table_relabund.tsv"
         tax_p = my_results_dir / "taxonomy.tsv"
@@ -244,7 +191,6 @@ def load_my(
             taxmap = taxonomy_to_rank_map(T, rank=rank)
             return aggregate_by_rank_rel(Rel, taxmap)
 
-    # 3) glob per-muestra
     if my_relabund_glob:
         paths = glob.glob(my_relabund_glob)
         if not paths:
@@ -253,11 +199,9 @@ def load_my(
         need_tax = False
         for p in paths:
             df = _read_table_any(Path(p))
-            # detectar rel col
             relc = detect_rel_col(df)
             if relc is None:
                 raise RuntimeError(f"No detecté columna de relativas en: {p}")
-            # rank directo o desde taxonomy
             if rank in df.columns:
                 df_rank = df[[rank, relc]].groupby(rank).sum()
             elif "taxonomy" in df.columns:
@@ -266,15 +210,13 @@ def load_my(
                 df_rank.index.name = rank
             else:
                 need_tax = True
-                tabs = []  # invalida acumulado
+                tabs = []
                 break
             sname = _sample_name_from_path(Path(p))
             tabs.append(df_rank.rename(columns={relc: sname}))
         if need_tax:
             if not my_taxonomy:
                 raise RuntimeError("Tus TSV no traen columna rank ni 'taxonomy'. Pasa --my-taxonomy para mapear.")
-            # construir rels por feature -> luego agregar por rank
-            # asumimos que TSV por muestra traen filas=features y una columna de relativas
             rels = []
             for p in paths:
                 df = _read_table_any(Path(p))
@@ -286,7 +228,6 @@ def load_my(
                 elif "id" in df.columns:
                     df = df.set_index("id")
                 else:
-                    # si no trae id explícito, lo intentamos con una columna que parezca id
                     raise RuntimeError(f"{p} no tiene 'feature_id' ni 'id' para alinear con taxonomy.")
                 sname = _sample_name_from_path(Path(p))
                 rels.append(df[[relc]].rename(columns={relc: sname}))
@@ -299,7 +240,6 @@ def load_my(
         if not tabs:
             raise RuntimeError("No pude extraer información de relativas por muestra (mis datos).")
         G = _drop_unassigned(pd.concat(tabs, axis=1).fillna(0.0))
-        # normaliza columnas a 1 (por seguridad)
         colsum = G.sum(axis=0); colsum[colsum == 0] = 1.0
         return G / colsum
 
@@ -317,8 +257,6 @@ def load_article(
     article_taxonomy: Optional[Path],
     article_relabund_glob: Optional[str],
 ) -> pd.DataFrame:
-    """Devuelve rank x muestras (relativas) para el artículo."""
-    # A) counts + taxonomy
     if article_counts and article_taxonomy:
         C = _read_table_any(Path(article_counts), index_col=0)
         T = _read_table_any(Path(article_taxonomy))
@@ -326,7 +264,6 @@ def load_article(
         R = counts_to_relative(C)
         return aggregate_by_rank_rel(R, taxmap)
 
-    # B) glob per-muestra de relativas
     if article_relabund_glob:
         paths = glob.glob(article_relabund_glob)
         if not paths:
@@ -384,27 +321,22 @@ def load_article(
     )
 
 def _sample_name_from_path(p: Path) -> str:
-    """Nombre de muestra estable a partir de archivo rel-abundance TSV."""
-    # intenta capturar 'barcodeNN'
     m = re.search(r"(barcode\d+)", p.name, flags=re.I)
     if m:
         return m.group(1)
-    # si viene como SRR/ERR/DRR
+    # nombres tipo SRR/ERR/DRR
     m = re.search(r"(SRR|ERR|DRR)\d{5,}", p.name)
     if m:
         return m.group(0)
-    # si el stem tiene sufijo tipo '.t_rel-abundance'
     stem = p.stem
     stem = re.sub(r"\.t_?rel-?abundance.*$", "", stem, flags=re.I)
     return stem
 
-# ------------------------------- comparación / plots -------------------------------
 
 def compare_means(mine: pd.DataFrame, art: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Retorna (df_means, df_corrs). df_means: mine_mean, art_mean, delta, abs_delta."""
     mine_mean = mine.mean(axis=1) if mine.shape[1] > 0 else pd.Series(dtype=float)
     art_mean  = art.mean(axis=1) if art.shape[1] > 0 else pd.Series(dtype=float)
-    # alinear por taxón (intersección)
+    # solo taxones en común
     common_taxa = mine_mean.index.intersection(art_mean.index)
     if common_taxa.empty:
         raise RuntimeError("No hay taxones en común para comparar promedios.")
@@ -415,7 +347,7 @@ def compare_means(mine: pd.DataFrame, art: pd.DataFrame) -> Tuple[pd.DataFrame, 
     mm["delta"] = mm["mine_mean"] - mm["art_mean"]
     mm["abs_delta"] = mm["delta"].abs()
 
-    # Correlación de Pearson sobre taxones comunes (medias por taxón).
+    # Pearson sobre las medias por taxón
     from scipy.stats import pearsonr
     r, p = pearsonr(mm["mine_mean"].values, mm["art_mean"].values)
     dfc = pd.DataFrame({
@@ -426,13 +358,12 @@ def compare_means(mine: pd.DataFrame, art: pd.DataFrame) -> Tuple[pd.DataFrame, 
 
 def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, r: Optional[float] = None,
                        pseudocount: float = 1e-6):
-    """Dispersión de medias (este estudio vs artículo) en %, escala log10 con pseudocuenta."""
+    # pseudocuenta para poder usar escala log
     x = (mm["mine_mean"].clip(lower=0) + pseudocount) * 100
     y = (mm["art_mean"].clip(lower=0) + pseudocount) * 100
     fig = px.scatter(mm.reset_index(), x=x, y=y, hover_name=mm.index)
     fig.update_traces(marker=dict(size=9, color=COLORES[ETQ_MIO], opacity=0.75), name=RANK_ES[rank],
                       showlegend=False)
-    # línea y=x
     minv = float(min(x.min(), y.min()))
     maxv = float(max(x.max(), y.max()))
     line = go.Scatter(x=[minv, maxv], y=[minv, maxv], mode="lines", name="Concordancia perfecta (y = x)",
@@ -451,13 +382,12 @@ def plot_scatter_means(mm: pd.DataFrame, outdir: Path, rank: str, r: Optional[fl
     _save_fig(fig, outdir / f"compare_{rank}_scatter.html", outdir / f"compare_{rank}_scatter.png")
 
 def plot_top_bars(mine: pd.DataFrame, art: pd.DataFrame, outdir: Path, rank: str, topn: int = 20):
-    """Barras lado a lado de los top taxones por media (en cualquiera de los dos)."""
     mmean = mine.mean(axis=1)
     amean = art.mean(axis=1)
     taxa_union = mmean.index.union(amean.index)
     comb = pd.DataFrame({"mine": mmean.reindex(taxa_union).fillna(0.0),
                          "art":  amean.reindex(taxa_union).fillna(0.0)})
-    # top por suma de ambas medias
+    # top por la suma de las dos medias
     top = comb.assign(sum=comb["mine"] + comb["art"]).sort_values("sum", ascending=False).head(topn)
     col_rank = RANK_ES[rank]
     df_long = (top.drop(columns=["sum"])
@@ -473,13 +403,11 @@ def plot_top_bars(mine: pd.DataFrame, art: pd.DataFrame, outdir: Path, rank: str
     fig.update_layout(xaxis_tickangle=45)
     _save_fig(fig, outdir / f"compare_{rank}_top{topn}_bars.html", outdir / f"compare_{rank}_top{topn}_bars.png")
 
-# ---------------------------------- CLI / MAIN ----------------------------------
 
 def build_parser():
     p = argparse.ArgumentParser(
         description="Compara composiciones taxonómicas (tus resultados vs. artículo) a un rango dado."
     )
-    # Mis datos
     p.add_argument("--my-results-dir", type=Path, default=None,
                    help="Carpeta con feature_table_relabund.tsv y taxonomy.tsv.")
     p.add_argument("--my-counts", type=Path, default=None,
@@ -489,7 +417,6 @@ def build_parser():
     p.add_argument("--my-relabund-glob", type=str, default=None,
                    help="Glob para tus *_rel-abundance.tsv por muestra.")
 
-    # Artículo
     p.add_argument("--article-counts", type=Path, default=None,
                    help="Tabla de conteos del artículo (CSV/TSV).")
     p.add_argument("--article-taxonomy", type=Path, default=None,
@@ -497,7 +424,6 @@ def build_parser():
     p.add_argument("--article-relabund-glob", type=str, default=None,
                    help="Glob a *_rel-abundance.tsv del artículo.")
 
-    # Parámetros
     p.add_argument("--rank", type=str, nargs="+", default=["genus"], choices=TAX_RANKS,
                    help="Uno o varios niveles taxonómicos (p. ej. family genus species).")
     p.add_argument("--outdir", type=Path, default=None,
@@ -508,7 +434,6 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
 
-    # outdir por defecto
     if args.outdir is None:
         base = args.my_results_dir if args.my_results_dir else Path(".")
         args.outdir = base / "compare_taxa"
@@ -517,7 +442,6 @@ def main():
     resumen = {}
     for rank in args.rank:
         eprint(f"\n===== Rango: {rank} =====")
-        # Cargar mis datos
         mine = load_my(
             my_results_dir=args.my_results_dir.resolve() if args.my_results_dir else None,
             rank=rank,
@@ -527,7 +451,6 @@ def main():
         )
         eprint(f"[OK] Mis datos: tabla {rank} x {mine.shape[1]} muestras (relativas).")
 
-        # Cargar artículo
         art = load_article(
             rank=rank,
             article_counts=args.article_counts,
@@ -536,11 +459,9 @@ def main():
         )
         eprint(f"[OK] Artículo: tabla {rank} x {art.shape[1]} muestras (relativas).")
 
-        # Guardar tablas rank
         mine.to_csv(outdir / f"mine_{rank}_rel.tsv", sep="\t")
         art.to_csv(outdir / f"article_{rank}_rel.tsv", sep="\t")
 
-        # Comparar promedios / correlación
         means_df, corrs_df = compare_means(mine, art)
         means_df.to_csv(outdir / f"compare_{rank}_means.tsv", sep="\t", index=True, header=True)
         corrs_df.to_csv(outdir / f"compare_{rank}_correlations.tsv", sep="\t", index=False)
@@ -548,7 +469,6 @@ def main():
         resumen[RANK_ES[rank]] = r
         eprint(f"[OK] Pearson r ({rank}) = {r:.4f}")
 
-        # Figuras
         try:
             plot_scatter_means(means_df, outdir, rank, r=r)
         except Exception as e:
@@ -558,7 +478,7 @@ def main():
         except Exception as e:
             eprint(f"[WARN] No se pudo generar barras top: {e}")
 
-    # Tabla resumen: columnas = rangos, fila 'Pearson'
+    # tabla de Pearson con una columna por rango
     tabla = pd.DataFrame([resumen], index=["Pearson"])
     tabla.to_csv(outdir / "correlacion_pearson.tsv", sep="\t")
     try:

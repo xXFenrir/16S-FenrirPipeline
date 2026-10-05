@@ -1,23 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-EMU.py — Ejecuta EMU sobre FASTQ 16S, agrega resultados y calcula diversidad alfa/beta + PCoA,
-con ejecución atómica y limpieza en fallos (no deja salidas parciales).
-
-Salidas (solo si TODO OK, en --outdir):
-  - Por muestra (subcarpeta):
-      sample_rel-abundance.tsv, sample_counts.tsv (si --keep-counts),
-      sample_read-assignments.tsv (si --keep-assignments)
-  - Globales:
-      manifest.tsv
-      feature_table_counts.tsv
-      feature_table_relabund.tsv
-      taxonomy.tsv
-      alpha_diversity.tsv
-      braycurtis_dm.tsv, pcoa_braycurtis_coords.tsv, pcoa_braycurtis_eigvals.tsv, pcoa_braycurtis_variance.tsv
-      jaccard_dm.tsv,    pcoa_jaccard_coords.tsv,    pcoa_jaccard_eigvals.tsv,    pcoa_jaccard_variance.tsv
-"""
+# Corre EMU sobre los FASTQ del repositorio (Objetivo 1) y une los resultados en tablas.
+# También saca alfa diversidad y Bray-Curtis/Jaccard con su PCoA. Todo se arma en
+# <outdir>.__build__ y solo se mueve a outdir si no hubo errores.
 
 from __future__ import annotations
 
@@ -40,7 +25,6 @@ try:
 except Exception:
     _HAS_MPL = False
 
-# ---------- utilidades básicas ----------
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -58,9 +42,9 @@ def atomic_write_df(df: pd.DataFrame, path: Path, sep: str = "\t", index: bool =
 
 def atomic_move_tree(src: Path, dst: Path):
     try:
-        os.replace(src, dst)  # rename atómico (misma partición)
+        os.replace(src, dst)
     except OSError:
-        # fallback a copytree + rmtree si diferente FS
+        # os.replace falla si están en discos distintos
         if dst.exists():
             shutil.rmtree(dst, ignore_errors=True)
         shutil.copytree(src, dst, dirs_exist_ok=False)
@@ -82,7 +66,6 @@ def read_table_maybe(path: Path) -> Optional[pd.DataFrame]:
         eprint(f"[WARN] No se pudo leer {path}: {e}")
         return None
 
-# ---------- taxonomía y métricas ----------
 
 TAX_COLS = ["superkingdom","phylum","class","order","family","genus","species"]
 
@@ -117,7 +100,6 @@ def simpson_index(p: np.ndarray) -> float:
     p = np.asarray(p, dtype=float)
     return float(1.0 - np.sum(p * p))
 
-# ---------- EMU por muestra ----------
 
 def run_emu_for_sample(
     emu_cmd: str,
@@ -157,7 +139,6 @@ def run_emu_for_sample(
             assigns_tsv = f
 
     if rel_tsv is None:
-        # fallback
         cand = outdir_sample_tmp / f"{sample}_rel-abundance.tsv"
         if cand.exists():
             rel_tsv = cand
@@ -167,7 +148,6 @@ def run_emu_for_sample(
 
     return rel_tsv, counts_tsv, assigns_tsv
 
-# ---------- agregación y validaciones ----------
 
 def select_rank(df: pd.DataFrame, rank: str) -> pd.DataFrame:
     col_low = _norm_cols(df.columns)
@@ -282,7 +262,6 @@ def aggregate_tables(
         if count_col is None:
             eprint(f"[WARN] No se detectó columna de conteos en {tsv}")
             continue
-        # filtro por lecturas mínimas por muestra (si aplica)
         tot = float(df[count_col].sum())
         if min_reads_per_sample > 0 and tot < min_reads_per_sample:
             eprint(f"[WARN] Muestra {sample} descartada por pocas lecturas: {tot} < {min_reads_per_sample}")
@@ -321,7 +300,7 @@ def aggregate_tables(
         tax_path = outdir / "taxonomy.tsv"
         atomic_write_df(tax_df, tax_path, sep="\t", index=False)
 
-    # alpha-diversidad
+    # alfa diversidad
     if cnt_tabs or rel_tabs:
         table = None
         if cnt_tabs:
@@ -352,7 +331,6 @@ def aggregate_tables(
 
     return (cnt_path, rel_path, tax_path, alpha_path)
 
-# ---------- Beta + PCoA ----------
 
 def _bray_curtis_dm(X: np.ndarray) -> np.ndarray:
     n = X.shape[0]
@@ -450,7 +428,6 @@ def write_beta_and_pcoa_from_table(feature_table_tsv: Path, outdir: Path,
     else:
         raise ValueError("mode debe ser 'braycurtis' o 'jaccard'")
 
-# ---------- descubrimiento inputs ----------
 
 def discover_fastqs(input_dir: Optional[Path], pattern: Optional[str], input_glob: Optional[str]) -> List[Path]:
     paths: List[Path] = []
@@ -478,10 +455,8 @@ def merge_assignments(assign_paths: Dict[str, Path], out_csv: Path) -> Optional[
     atomic_write_df(big, out_csv, sep=",", index=False)
     return out_csv
 
-# ---------- pre-chequeos/atomicidad ----------
 
 def preflight_checks(args) -> Tuple[str, Path, List[Path]]:
-    # EMU
     emu_cmd = args.emu_cmd or which("emu")
     if not emu_cmd:
         raise RuntimeError("No se encontró 'emu' en PATH. Especifica --emu-cmd o ajusta tu entorno.")
@@ -490,20 +465,17 @@ def preflight_checks(args) -> Tuple[str, Path, List[Path]]:
     except Exception:
         eprint("[WARN] No se pudo verificar 'emu --version' (continuo de todas formas).")
 
-    # BD
     if not args.db.exists() or not args.db.is_dir():
         raise RuntimeError(f"La BD de EMU no existe o no es carpeta: {args.db}")
     if not any(args.db.iterdir()):
         raise RuntimeError(f"La BD de EMU está vacía: {args.db}")
 
-    # OUTDIR build
     outdir = args.outdir.resolve()
     build = outdir.parent / (outdir.name + ".__build__")
     if build.exists():
         shutil.rmtree(build, ignore_errors=True)
     ensure_dir(build)
 
-    # FASTQ
     fastqs = discover_fastqs(args.input_dir, args.pattern, args.input_glob)
     if not fastqs:
         raise RuntimeError("No se encontraron FASTQ con los criterios dados.")
@@ -524,7 +496,6 @@ def abort_and_cleanup(build: Path, msg: str, code: int = 1):
         eprint(f"[ERROR] {msg}")
         sys.exit(code)
 
-# ---------- CLI ----------
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -558,7 +529,6 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Si --outdir existe, reemplazarlo al finalizar exitosamente.")
     return p
 
-# ---------- main ----------
 
 def main() -> int:
     args = build_parser().parse_args()
@@ -566,7 +536,7 @@ def main() -> int:
     try:
         emu_cmd, build_dir, fastqs = preflight_checks(args)
     except Exception as e:
-        abort_and_cleanup(build=None, msg=str(e), code=2)  # no build aún
+        abort_and_cleanup(build=None, msg=str(e), code=2)
 
     eprint("=== EMU pipeline (ejecución atómica) ===")
     eprint(f"- DB: {args.db}")
@@ -576,7 +546,6 @@ def main() -> int:
     eprint(f"- Stop on error: {args.stop_on_error}")
     eprint(f"- Build dir: {build_dir}")
 
-    # subcarpeta para salidas por muestra
     samples_root = build_dir / "samples"
     ensure_dir(samples_root)
 
@@ -585,7 +554,6 @@ def main() -> int:
     per_sample_assign: Dict[str, Path] = {}
     manifest_rows = []
 
-    # Ejecutar EMU por muestra dentro del build
     for fq in fastqs:
         fq = Path(fq)
         sample = safe_basename_noext(fq)
@@ -601,7 +569,6 @@ def main() -> int:
                 keep_counts=args.keep_counts,
                 keep_assignments=args.keep_assignments,
             )
-            # mover carpeta tmp -> final (atómico)
             atomic_move_tree(sample_tmp, sample_final)
 
             manifest_rows.append({
@@ -621,7 +588,6 @@ def main() -> int:
                 per_sample_assign[sample] = sample_final / Path(asg_tsv).name
 
         except Exception as e:
-            # limpiar tmp de esa muestra y decidir continuar o abortar
             shutil.rmtree(sample_tmp, ignore_errors=True)
             msg = f"Fallo procesando la muestra '{sample}': {e}"
             if args.stop_on_error:
@@ -630,7 +596,6 @@ def main() -> int:
                 eprint("[WARN]", msg)
                 continue
 
-    # Verificación: ¿quedó al menos 1 muestra válida?
     if not per_sample_rel:
         abort_and_cleanup(build=build_dir, msg="No hay muestras válidas con tabla de abundancias.", code=4)
 
@@ -641,7 +606,6 @@ def main() -> int:
     except Exception as e:
         abort_and_cleanup(build=build_dir, msg=f"Error escribiendo manifest: {e}", code=5)
 
-    # Agregados globales
     try:
         cnt_path, rel_path, tax_path, alpha_path = aggregate_tables(
             per_sample_rel=per_sample_rel,
@@ -674,7 +638,7 @@ def main() -> int:
         except Exception as e:
             abort_and_cleanup(build=build_dir, msg=f"Error en beta-diversidad/PCoA: {e}", code=7)
 
-    # Finalizar: mover build -> outdir
+    # build -> outdir
     try:
         finalize_success(build_dir, args.outdir.resolve(), force=args.force)
     except Exception as e:

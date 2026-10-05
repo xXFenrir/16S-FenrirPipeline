@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-rarefaccion.py — Curva de rarefacción (HAC), con paso adaptativo por muestra
-(cada curva usa un número de puntos proporcional a su propia profundidad,
-para no simular mesetas falsas en muestras con pocas lecturas).
-Líneas continuas, ID de finca al final de la curva y leyenda 'ID - Sistema'.
-"""
+# Curvas de rarefacción (HAC) con la tabla de conteos de EMU, todas las muestras en una sola gráfica.
+# Cada muestra tiene su propio paso: con un paso fijo las muestras con pocas lecturas
+# quedaban con muy pocos puntos y parecía que ya habían saturado.
 
 import argparse
 import sys
@@ -21,14 +17,9 @@ def imprimir_error(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 def cargar_mapeo_doble(ruta_puente: Path, ruta_meta: Path) -> dict:
-    """
-    Traduce Barcode -> {'id': ID de finca, 'sistema': Sistema Agrícola}.
-    ruta_puente: CSV con columnas '#;ID;Barcode' (separador ';'), p. ej. Mapa_Barcodes_Microbioma.csv.
-    ruta_meta:   Sistemas_Agrícolas_y_Muestras.xlsx (columnas 'ID', 'Sistema').
-    """
     mapeo = {}
     try:
-        # 1. Puente: Barcode -> ID (CSV, separador ; con respaldo a ,)
+        # puente barcode -> ID (viene con ; pero a veces con ,)
         df_puente = pd.read_csv(ruta_puente, sep=';')
         if not {"ID", "Barcode"}.issubset(df_puente.columns):
             df_puente = pd.read_csv(ruta_puente, sep=',')
@@ -45,11 +36,10 @@ def cargar_mapeo_doble(ruta_puente: Path, ruta_meta: Path) -> dict:
             except (ValueError, TypeError):
                 continue
 
-        # 2. Metadatos: ID -> Sistema
+        # maestro ID -> Sistema
         df_meta = pd.read_excel(ruta_meta, sheet_name=0, engine='openpyxl').dropna(subset=['ID'])
         id_a_sistema = dict(zip(df_meta['ID'].astype(str).str.strip(), df_meta['Sistema'].astype(str).str.strip()))
 
-        # Construir diccionario: Barcode_Num -> {'id':..., 'sistema':...}
         for num_bc, finca_id in barcode_a_id.items():
             sistema = id_a_sistema.get(finca_id, "Desconocido")
             mapeo[num_bc] = {"id": finca_id, "sistema": sistema}
@@ -60,12 +50,6 @@ def cargar_mapeo_doble(ruta_puente: Path, ruta_meta: Path) -> dict:
     return mapeo
 
 def obtener_info_muestra(nombre_columna: str, mapeo: dict):
-    """
-    Retorna:
-    - etiqueta_final: el ID de la finca (p. ej. 'J95') para el texto al final de la curva.
-    - etiqueta_leyenda: 'ID - Sistema' (p. ej. 'J95 - Empresarial') para la leyenda.
-    Si no hay mapeo disponible para esa muestra, usa 'BCXX' como respaldo.
-    """
     coincidencia = re.search(r'barcode0*(\d+)', nombre_columna.lower())
     num_bc = int(coincidencia.group(1)) if coincidencia else None
     str_bc = f"BC{num_bc:02d}" if num_bc is not None else nombre_columna
@@ -88,25 +72,16 @@ def cargar_tabla_conteos(ruta_conteos: Path) -> pd.DataFrame:
         df = pd.read_csv(ruta_conteos, sep="\t", index_col=0)
     if any("species" in str(x).lower() or "|" in str(x) for x in df.columns):
         df = df.T
-    # Descartamos columnas de resumen agregadas por agrupar_counts_sistema.py
-    # (Total_counts, Frecuencia_muestras, Frecuencia_<Sistema>...), que no son
-    # muestras reales y arruinarían la rarefacción si se tratan como tal.
+    # si la tabla ya pasó por agrupar_counts_sistema.py trae Total_counts y Frecuencia_*,
+    # que no son muestras
     columnas_resumen = [c for c in df.columns if str(c).startswith(("Total_counts", "Frecuencia_"))]
     if columnas_resumen:
         imprimir_error(f"[INFO] Ignorando columnas de resumen (no son muestras): {columnas_resumen}")
         df = df.drop(columns=columnas_resumen)
     return df
 
+# cada punto es el promedio de varios submuestreos (iteraciones), si no la curva sale muy ruidosa
 def rarefactar_muestra(vector_conteos: np.ndarray, n_puntos: int = 30, iteraciones: int = 10):
-    """
-    Calcula la curva de rarefacción con un número de puntos comparable
-    entre muestras, sin importar su profundidad total (en vez de un
-    tamaño de paso fijo, que le da muy pocos puntos a las muestras con pocas
-    lecturas y hace que su curva parezca "meseta" solo por falta de
-    resolución). 'iteraciones' es el número de submuestreos promediados
-    en cada punto: más iteraciones = curva menos ruidosa y más confiable
-    para juzgar si de verdad saturó o no.
-    """
     lecturas_totales = int(vector_conteos.sum())
     if lecturas_totales == 0:
         return np.array([0]), np.array([0])
@@ -133,7 +108,7 @@ def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30,
     plt.style.use('default')
     fig, ax = plt.subplots(figsize=(14, 8), dpi=300)
 
-    # Estética de ejes (cuadro completo, como en la referencia)
+    # ejes con el cuadro completo, como en la referencia
     ax.tick_params(direction='in', length=6, width=1, labelsize=11)
     for spine in ax.spines.values():
         spine.set_linewidth(1.0)
@@ -150,7 +125,7 @@ def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30,
 
     imprimir_error(f"[INFO] Trazando '{titulo}' para {len(muestras)} muestras...")
 
-    # Forzamos una paleta de 20 colores distintos para máxima diferenciación
+    # tab20 para que los colores se distingan
     cmap = matplotlib.colormaps['tab20']
     x_max = 0
 
@@ -166,8 +141,7 @@ def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30,
         color = cmap(i % 20)
         ax.plot(profundidades, riqueza, label=etiqueta_leyenda, color=color, linestyle='-', linewidth=1.6, alpha=0.85)
 
-        # ID de la finca al final de la línea (ahora que las curvas terminan en
-        # profundidades distintas, ya no se amontonan como cuando todas llegaban a 10000)
+        # ID de la finca al final de cada curva
         ax.annotate(etiqueta_final,
                     xy=(profundidades[-1], riqueza[-1]),
                     xytext=(5, 0),
@@ -183,8 +157,7 @@ def graficar_rarefaccion(df_conteos, mapeo, prefijo_salida, titulo, n_puntos=30,
     ax.set_ylabel("Riqueza Observada (Especies)", fontsize=13, labelpad=12)
     ax.set_title(titulo, fontsize=15, fontweight='bold', pad=15)
 
-    # Leyenda fuera del gráfico (sin etiquetas flotantes sobre las curvas): una columna, o dos
-    # cuando hay tantas muestras que una sola columna quedaría más alta que la gráfica
+    # leyenda afuera; con más de 40 muestras en dos columnas porque no cabe
     if columnas_leyenda is None:
         columnas_leyenda = 1 if len(muestras) <= 40 else 2
     box = ax.get_position()
@@ -237,7 +210,6 @@ def main():
     df_conteos = cargar_tabla_conteos(args.counts)
 
     sufijo = args.model.upper() if args.dataset == "todo" else f"{args.model.upper()}_{args.dataset}"
-    # Una sola gráfica, con todas las muestras (paso adaptativo por muestra)
     graficar_rarefaccion(
         df_conteos, mapeo,
         args.outdir / f"Rarefaccion_{sufijo}",

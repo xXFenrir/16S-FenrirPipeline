@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-dentrim_bam.py — Pipeline para 16S (Nanopore) desde archivos BAM en carpetas por barcode.
-"""
+# Limpieza de los BAM de Dorado (una carpeta por barcode): samtools fastq -> pychopper -> filtlong
 
 import argparse, csv, glob, math, os, shlex, shutil, subprocess, sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
-# ---------------------- Métricas FASTQ ----------------------
 
 def _calcular_estadisticas_fastq(ruta_fastq: str) -> Dict[str, Any]:
-    """
-    Calcula lecturas, bases, longitud media, longitud mediana, N50 y QScore promedio.
-    """
     if not os.path.exists(ruta_fastq) or os.path.getsize(ruta_fastq) == 0:
         return {
             "reads": 0, "bases": 0, "mean_len": 0,
@@ -41,7 +34,7 @@ def _calcular_estadisticas_fastq(ruta_fastq: str) -> Dict[str, Any]:
             longitudes.append(l)
             bases_totales += l
 
-            # Calculo de QScore promedio basado en probabilidad de error
+            # el QScore se saca de la prob. de error de cada base, no promediando los Phred
             for caracter in calidad:
                 q = ord(caracter) - 33
                 prob_error_total += 10.0 ** (-q / 10.0)
@@ -53,17 +46,14 @@ def _calcular_estadisticas_fastq(ruta_fastq: str) -> Dict[str, Any]:
             "median_len": 0, "n50": 0, "mean_q": 0.0
         }
 
-    # Longitud media
     longitud_media = int(round(bases_totales / num_lecturas))
 
-    # Longitud mediana y N50
     longitudes.sort()
     if num_lecturas % 2 == 1:
         longitud_mediana = longitudes[num_lecturas // 2]
     else:
         longitud_mediana = int(round((longitudes[num_lecturas // 2 - 1] + longitudes[num_lecturas // 2]) / 2.0))
 
-    # N50
     mitad_bases = bases_totales / 2.0
     bases_acumuladas = 0
     n50 = 0
@@ -73,7 +63,6 @@ def _calcular_estadisticas_fastq(ruta_fastq: str) -> Dict[str, Any]:
             n50 = l
             break
 
-    # QScore medio global
     prob_error_media = prob_error_total / bases_totales
     if prob_error_media > 0:
         qscore_medio = round(-10.0 * math.log10(prob_error_media), 2)
@@ -89,7 +78,6 @@ def _calcular_estadisticas_fastq(ruta_fastq: str) -> Dict[str, Any]:
         "mean_q": qscore_medio
     }
 
-# ---------------------- Utils ----------------------
 
 def _debe_existir(ruta: str, tipo: str) -> None:
     if tipo == "dir" and not os.path.isdir(ruta):
@@ -118,7 +106,6 @@ def _ejecutar_bash(cmd: str, detallado: bool = True) -> int:
     if detallado: print(f"$ {cmd}")
     return subprocess.run(cmd, shell=True, executable="/bin/bash").returncode
 
-# ---------------------- Core ----------------------
 
 def procesar_muestra(
     archivo_bam: str,
@@ -143,7 +130,7 @@ def procesar_muestra(
     orientado_temp = os.path.join(carpeta_muestra, f"{id_barcode}__orientado_tmp.fastq")
     ruta_limpio    = os.path.join(carpeta_muestra, f"{id_barcode}_limpio.fastq")
 
-    # 0) Convertir BAM a FASTQ
+    # 0) BAM -> FASTQ
     comando_bam_a_fastq = f"samtools fastq {shlex.quote(archivo_bam)} > {shlex.quote(fastq_crudo)} 2>/dev/null || true"
     _ejecutar_bash(comando_bam_a_fastq, detallado)
 
@@ -151,7 +138,7 @@ def procesar_muestra(
     if estadisticas_crudas["reads"] == 0:
         raise RuntimeError(f"No se pudieron extraer lecturas FASTQ de {id_barcode}")
 
-   # 1) pychopper (asociación correcta de banderas y backend)
+    # 1) pychopper (-g con phmm, -b con edlib)
     if alineador == "phmm" or alineador == "hmmer":
         bandera_primer = f"-g {shlex.quote(cebadores)}"
         alineador_real = "phmm"
@@ -193,14 +180,13 @@ def procesar_muestra(
 
     estadisticas_finales = _calcular_estadisticas_fastq(ruta_limpio)
 
-    # Limpieza de temporales
+    # borrar temporales
     _eliminar_si_existe(fastq_crudo)
     if not conservar_intermedios:
         _eliminar_si_existe(orientado_temp)
 
     return ruta_limpio, estadisticas_crudas, estadisticas_pychopper, estadisticas_finales
 
-# ---------------------- Lote / CLI ----------------------
 
 def ejecutar_limpieza(
     carpeta_entrada: str,
@@ -268,7 +254,7 @@ def ejecutar_limpieza(
                 conservar_intermedios=conservar_intermedios, detallado=detallado
             )
 
-            # Cálculo de Porcentajes de Remoción
+            # % de remoción
             lecturas_crudas   = estadisticas_crudas["reads"]
             lecturas_pychopper  = estadisticas_pychopper["reads"]
             lecturas_finales  = estadisticas_finales["reads"]
@@ -326,7 +312,6 @@ def ejecutar_limpieza(
     if fallidos: print("⚠️  Barcodes con error:", ", ".join(fallidos))
     return {"processed": procesados, "failed": fallidos, "outdir": carpeta_salida}
 
-# ---------------------- CLI ----------------------
 
 def _construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(

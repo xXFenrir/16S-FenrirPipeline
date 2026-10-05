@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-EMU_propio.py — Ejecuta EMU sobre FASTQ 16S y agrega resultados (tablas de conteos/relativas + taxonomía),
-con ejecución atómica, limpieza en fallos y filtro previo de lecturas mínimas por muestra.
-"""
+# Corre EMU por muestra sobre los FASTQ limpios y une todo en tablas de conteos, relativas y taxonomía.
+# Se trabaja en una carpeta <outdir>.__build__ que solo se mueve a outdir si todo terminó bien,
+# así no quedan resultados a medias. Los FASTQ con menos de --min-reads-input lecturas se saltan.
 
 from __future__ import annotations
 
@@ -22,7 +20,6 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-# ---------- utilidades básicas ----------
 
 def imprimir_error(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -64,7 +61,6 @@ def leer_tabla_opcional(path: Path) -> Optional[pd.DataFrame]:
         return None
 
 def contar_lecturas_fastq(ruta_fastq: Path) -> int:
-    """Cuenta el número total de lecturas en un archivo FASTQ (.fastq o .fastq.gz)."""
     lineas = 0
     try:
         if ruta_fastq.suffix == ".gz":
@@ -80,7 +76,6 @@ def contar_lecturas_fastq(ruta_fastq: Path) -> int:
         imprimir_error(f"[WARN] No se pudo contar lecturas en {ruta_fastq}: {e}")
         return 0
 
-# ---------- taxonomía y métricas ----------
 
 COLUMNAS_TAXONOMICAS = ["superkingdom","phylum","class","order","family","genus","species"]
 
@@ -95,7 +90,6 @@ def a_cadena_taxonomica_qiime(row: pd.Series) -> str:
         out.append(f"{lab}{val}")
     return "; ".join(out)
 
-# ---------- EMU por muestra ----------
 
 def ejecutar_emu_por_muestra(
     comando_emu: str,
@@ -144,7 +138,6 @@ def ejecutar_emu_por_muestra(
 
     return tsv_relativa, tsv_conteos, tsv_asignaciones
 
-# ---------- agregación y validaciones ----------
 
 def filtrar_por_nivel(df: pd.DataFrame, nivel: str) -> pd.DataFrame:
     col_min = _normalizar_columnas(df.columns)
@@ -298,7 +291,6 @@ def agregar_tablas(
 
     return (ruta_conteos, ruta_relativas, ruta_taxonomia)
 
-# ---------- descubrimiento inputs ----------
 
 def descubrir_fastqs(carpeta_entrada: Optional[Path], patron: Optional[str], glob_entrada: Optional[str]) -> List[Path]:
     rutas: List[Path] = []
@@ -312,7 +304,6 @@ def descubrir_fastqs(carpeta_entrada: Optional[Path], patron: Optional[str], glo
                 rutas.append(p.resolve())
     return sorted(set(rutas))
 
-# ---------- pre-chequeos/atomicidad ----------
 
 def verificaciones_previas(args) -> Tuple[str, Path, List[Path]]:
     comando_emu = args.emu_cmd or buscar_comando("emu")
@@ -338,7 +329,7 @@ def verificaciones_previas(args) -> Tuple[str, Path, List[Path]]:
     if not fastqs_crudos:
         raise RuntimeError("No se encontraron FASTQ con los criterios dados.")
 
-    # Filtro previo de lecturas mínimas por FASTQ
+    # se saltan los FASTQ con muy pocas lecturas antes de correr EMU
     fastqs = []
     lecturas_minimas = args.min_reads_input
     imprimir_error(f"[INFO] Evaluando lecturas mínimas en los archivos FASTQ (Umbral: >= {lecturas_minimas})...")
@@ -371,7 +362,6 @@ def abortar_y_limpiar(carpeta_build: Path, msg: str, code: int = 1):
         imprimir_error(f"[ERROR] {msg}")
         sys.exit(code)
 
-# ---------- CLI ----------
 
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -398,7 +388,6 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help="Si --outdir existe, reemplazarlo al finalizar exitosamente.")
     return p
 
-# ---------- main ----------
 
 def main() -> int:
     args = construir_parser().parse_args()
@@ -456,7 +445,6 @@ def main() -> int:
     if not relativas_por_muestra:
         abortar_y_limpiar(carpeta_build=carpeta_build, msg="No hay muestras válidas con tabla de abundancias.", code=4)
 
-    # Agregados globales
     try:
         ruta_conteos, ruta_relativas, ruta_taxonomia = agregar_tablas(
             relativas_por_muestra=relativas_por_muestra,
@@ -468,7 +456,7 @@ def main() -> int:
     except Exception as e:
         abortar_y_limpiar(carpeta_build=carpeta_build, msg=f"Error agregando tablas: {e}", code=6)
 
-    # Finalizar: mover build -> outdir
+    # build -> outdir
     try:
         finalizar_exito(carpeta_build, args.outdir.resolve(), forzar=args.force)
     except Exception as e:

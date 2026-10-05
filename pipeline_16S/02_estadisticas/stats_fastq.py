@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+# Estadísticas de los FASTQ (lecturas, longitudes, N50, QScore, primers) en TXT y XLSX
 
 import argparse, gzip, os, re, sys, time, shutil, subprocess as sp, fnmatch
 from pathlib import Path
 from typing import Optional, List
 
-# ---------- Utilidades básicas ----------
 
 def is_gzip(p: Path) -> bool:
     return str(p).endswith(".gz")
@@ -39,7 +39,6 @@ def n50_from_lengths(lengths, total_bases):
             return L
     return 0
 
-# ---------- PRIMERS ----------
 
 def read_fasta_seqs(path: Path) -> List[str]:
     seqs, cur = [], []
@@ -86,7 +85,6 @@ def any_primer_in_window(seq: str, primers: List[str], k: int) -> bool:
                 return True
     return False
 
-# ---------- Métricas por archivo ----------
 
 def process_fastq(path: Path,
                   phred_offset: int = 33,
@@ -170,7 +168,6 @@ def process_fastq(path: Path,
         "primer_any_percent": primer_any_pct,
     }
 
-# ---------- Construcción de la tabla (nombres en español) ----------
 
 HEADERS = [
     "Muestra","lecturas","bases","longitud promedio","longitud mínima","longitud máxima",
@@ -224,7 +221,6 @@ def row_to_excel(row: dict) -> dict:
         "% primers": round(float(row["primer_any_percent"]), 2) if row["primer_any_percent"] != "" else None,
     }
 
-# ---------- Salidas: TXT bonito + TSV + XLSX ----------
 
 def write_pretty_table(rows: list, headers: list, out_path: Path):
     str_rows = [row_to_display(r) for r in rows]
@@ -252,7 +248,6 @@ def write_tsv(rows: list, out_path: Path):
             f.write("\t".join("" if ex[h] is None else str(ex[h]) for h in HEADERS) + "\n")
 
 def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> bool:
-    # 1) pandas
     try:
         import pandas as pd
         df = pd.DataFrame([row_to_excel(r) for r in rows], columns=HEADERS)
@@ -261,7 +256,7 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
         return True
     except Exception as e:
         print(f"[INFO] pandas no disponible/usable ({e.__class__.__name__}): intento openpyxl...", file=sys.stderr)
-    # 2) openpyxl
+    # si no hay pandas, openpyxl
     try:
         from openpyxl import Workbook
         wb = Workbook()
@@ -275,7 +270,7 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
         return True
     except Exception as e:
         print(f"[INFO] openpyxl no disponible/usable ({e.__class__.__name__}): intento LibreOffice...", file=sys.stderr)
-    # 3) LibreOffice headless (fallback)
+    # último recurso: LibreOffice
     soffice = shutil.which("libreoffice") or shutil.which("soffice")
     if soffice and tmp_tsv:
         write_tsv(rows, tmp_tsv)
@@ -312,7 +307,6 @@ def try_write_xlsx(rows: list, out_xlsx: Path, tmp_tsv: Optional[Path]=None) -> 
     return False
 
 def format_xlsx_two_decimals(xlsx_path: Path):
-    """Fija formato '0.00' en columnas decimales del XLSX."""
     try:
         from openpyxl import load_workbook
     except ImportError:
@@ -343,7 +337,6 @@ def format_xlsx_two_decimals(xlsx_path: Path):
     wb.save(xlsx_path)
     print("[INFO] Formato XLSX fijado a 2 decimales", file=sys.stderr)
 
-# ---------- Descubrimiento, CLI y main ----------
 
 def find_fastqs(root: Path, recursive: bool = False):
     files = []
@@ -400,7 +393,7 @@ def main():
         print(f"[WARN] No se encontraron archivos FASTQ en: {inp}", file=sys.stderr)
         return
 
-    # Filtro por patrón solo cuando 'input' es carpeta
+    # el patrón solo aplica si input es carpeta
     if inp.is_dir():
         before = len(files)
         files = [f for f in files if fnmatch.fnmatch(f.name, args.name_pattern)]
@@ -425,11 +418,9 @@ def main():
             primer_scan=args.primer_scan
         ))
 
-    # TXT bonito
     write_pretty_table(rows, HEADERS, out_txt)
     print(f"[OK] TXT guardado en: {out_txt.resolve()}", file=sys.stderr)
 
-    # XLSX
     if try_write_xlsx(rows, out_xlsx, tmp_tsv):
         format_xlsx_two_decimals(out_xlsx)
         print(f"[OK] XLSX guardado en: {out_xlsx.resolve()}", file=sys.stderr)

@@ -1,32 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-dentrim_paperlike.py — Pipeline "paper-like" para 16S (Nanopore) usando pychopper + filtlong.
-
-Orden (recomendado, acorde al artículo):
-  1) pychopper  -> orienta y recorta entre primers (remueve adaptadores/colas)
-  2) filtlong   -> filtra por calidad media y longitud 1000–1700 nt
-
-Salidas por muestra (en outdir/<sample>/):
-  - <sample>_clean.fastq                (ÚNICA salida por muestra por defecto)
-
-En la raíz de outdir:
-  - dentrim_summary.csv                 (resumen global de todas las muestras)
-
-Opcional con --keep-intermediates:
-  - <sample>__oriented_tmp.fastq        (salida intermedia de pychopper)
-  - Reportes/buckets de pychopper (si se piden intermedios)
-  - <sample>_metrics.tsv                (conteos simples)
-
-Requisitos en PATH: filtlong, pychopper, bash
-"""
+# Limpieza de los FASTQ del repositorio (Objetivo 1), igual que en el artículo:
+# primero pychopper (orienta y recorta entre primers) y luego filtlong (calidad y 1000-1700 pb).
+# Deja solo <muestra>_clean.fastq por muestra y dentrim_summary.csv en la carpeta de salida.
 
 import argparse, csv, glob, gzip, os, shlex, shutil, subprocess, sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# ---------------------- Utils ----------------------
 
 def _must_exist(path: str, kind: str) -> None:
     if kind == "dir" and not os.path.isdir(path):
@@ -93,7 +74,6 @@ def _write_metrics_tsv(path: str, metrics: Dict[str, int]) -> None:
         w.writerow(["bucket","count_reads"])
         for k,v in metrics.items(): w.writerow([k,v])
 
-# ---------------------- Core ----------------------
 
 def process_sample_paperlike(
     fq: str,
@@ -111,15 +91,12 @@ def process_sample_paperlike(
     keep_intermediates: bool,
     verbose: bool
 ) -> Tuple[str, Dict[str,int]]:
-    """
-    Pipeline paper-like: pychopper (orient/trim) -> filtlong (meanQ + len[1000–1700])
-    """
     sample = _sample_name(fq)
     os.makedirs(sdir, exist_ok=True)
     oriented_tmp = os.path.join(sdir, f"{sample}__oriented_tmp.fastq")
     clean_path   = os.path.join(sdir, f"{sample}_clean.fastq")
 
-    # 1) pychopper (recorta a región entre primers y orienta)
+    # 1) pychopper
     cmd1 = (
         f"pychopper -m {mapper} -b {shlex.quote(primers)} -c {shlex.quote(pconfig)} "
         f"-Q {qscore_pc} -z {post_minlen} -t {threads} -Y 0 -q {qcut_pc} "
@@ -139,8 +116,7 @@ def process_sample_paperlike(
     if _run_bash(cmd1, verbose) != 0:
         raise RuntimeError(f"pychopper falló en {sample}")
 
-    # 2) filtlong — calidad media y ventana de longitud
-    #    NOTA: el artículo aplicaba meanQ y longitud ~1000–1700 (ajustable con flags)
+    # 2) filtlong (el artículo usó 1000-1700 pb)
     cmd2 = (
         f"filtlong --min_mean_q {fl_min_mean_q} --min_length {post_minlen} --max_length {post_maxlen} "
         f"{shlex.quote(oriented_tmp)} > {shlex.quote(clean_path)}"
@@ -148,7 +124,7 @@ def process_sample_paperlike(
     if _run_bash(cmd2, verbose) != 0:
         raise RuntimeError(f"filtlong (post) falló en {sample}")
 
-    # Métricas mínimas
+    # conteos para el resumen
     metrics = {
         "in_raw": _fastq_count(fq),
         "after_pychopper": _fastq_count(oriented_tmp) if os.path.exists(oriented_tmp) else 0,
@@ -160,7 +136,6 @@ def process_sample_paperlike(
 
     return clean_path, metrics
 
-# ---------------------- Lote / CLI ----------------------
 
 def run_dentrim(
     input_dir: str,
@@ -187,7 +162,6 @@ def run_dentrim(
     _assert_edlib_available_for_pychopper()
     os.makedirs(outdir, exist_ok=True)
 
-    # Recolectar entradas
     patterns = ["*.fastq.gz","*.fq.gz","*.fastq","*.fq"]
     inputs: List[str] = []
     for pat in patterns: inputs.extend(glob.glob(os.path.join(input_dir, pat)))
@@ -246,7 +220,6 @@ def run_dentrim(
             failed.append(sample)
             print(f"⚠️  {sample} falló: {e}", file=sys.stderr)
 
-    # Resumen global
     summary_csv = os.path.join(outdir, "dentrim_summary.csv")
     fieldnames = ["sample","in_raw","after_pychopper","final",
                   "pct_after_pychopper_vs_raw","pct_final_vs_raw","final_path"]
@@ -258,7 +231,6 @@ def run_dentrim(
     if failed: print("⚠️  Muestras con error:", ", ".join(failed))
     return {"processed": processed, "failed": failed, "outdir": outdir}
 
-# ---------------------- CLI ----------------------
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -269,7 +241,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--primers", required=True, help="FASTA de primers (pychopper -b)")
     p.add_argument("--pconfig", required=True, help="Config de primers (TXT de pychopper -c)")
 
-    # Parámetros paper-like (defaults pensados para replicar el artículo)
+    # defaults como en el artículo
     p.add_argument("--post-minlen", type=int, default=1000, help="MinLen final (filtlong)")
     p.add_argument("--post-maxlen", type=int, default=1700, help="MaxLen final (filtlong)")
     p.add_argument("-Q","--qscore", type=int, default=12, help="QScore mínimo de pychopper (-Q)")
@@ -278,7 +250,6 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("-m","--mapper", default="edlib", choices=["edlib","hmmer"], help="Motor de mapeo de primers")
     p.add_argument("-t","--threads", type=int, default=8, help="Hilos para pychopper")
 
-    # Intermedios / verbose
     p.add_argument("--no-reports", action="store_true", help="(Solo si usas --keep-intermediates) No guardar reportes de pychopper")
     p.add_argument("--keep-intermediates", action="store_true", help="Conservar orientado/buckets/reportes y métricas por muestra")
     p.add_argument("-v","--verbose", action="store_true", help="Imprimir comandos")

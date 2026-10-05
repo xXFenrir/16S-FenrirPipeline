@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# Diversidad de las muestras del repositorio (Objetivo 1), grupos según crop_rotation del SraRunTable
+
 import argparse
 import os
 import warnings
@@ -39,21 +42,19 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     OUTPUT_PREFIX = os.path.join(args.output_dir, args.prefix)
 
-    # 1. CARGA DE TABLA DE ABUNDANCIA DE EMU Y TRANSPOSICIÓN
     print(f"Cargando tabla de abundancia de EMU: {args.input}")
     raw_data = pd.read_csv(args.input, index_col=0, sep='\t')
     abundance = raw_data.T
     counts = abundance.copy()
     srr_samples = list(counts.index)
 
-    # 2. CARGA DE METADATOS (SraRunTable)
     print(f"Cargando metadatos base desde: {args.metadata}")
     df_meta = pd.read_csv(args.metadata)
     df_meta['Run'] = df_meta['Run'].astype(str).str.strip()
     df_meta['crop_rotation'] = df_meta['crop_rotation'].astype(str).str.strip()
     run_a_rotacion = dict(zip(df_meta['Run'], df_meta['crop_rotation']))
 
-    # 3. ASIGNACIÓN DE TRATAMIENTOS POR IDENTIFICADOR SRR (no por posición)
+    # el grupo se asigna por SRR y no por el orden de las columnas
     print("Asignando tratamientos por identificador SRR...")
     NOMBRES_GRUPO = {"CSCS": "CS", "CS": "CS", "CSSWP": "CSSwP", "NOT APPLICABLE": "Control"}
     GROUPS = {}
@@ -66,13 +67,10 @@ def main():
     print(counts_series.value_counts())
     print("----------------------------------------------\n")
 
-    # Guardar matriz de metadatos consolidada para skbio
     metadata = pd.DataFrame(index=abundance.index)
     metadata['Group'] = metadata.index.map(GROUPS)
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 1: ALFA DIVERSIDAD (SHANNON Y OBSERVADOS)
-    # =========================================================================
+    # alfa diversidad
     print("Calculando índices de Alfa Diversidad...")
     shannon = alpha_diversity('shannon', counts.values, ids=counts.index)
     observados = (counts.values > 0).sum(axis=1)
@@ -99,7 +97,6 @@ def main():
         df_wilcoxon = pd.DataFrame(wilcoxon_results).T
         df_wilcoxon.to_csv(f'{OUTPUT_PREFIX}_Alfa_Wilcoxon_Resultados.tsv', sep='\t')
 
-    # Boxplots de Alfa Diversidad
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     sns.set_theme(style="whitegrid")
     for i, metric in enumerate(['Shannon', 'Observados']):
@@ -112,9 +109,7 @@ def main():
     plt.savefig(f'{OUTPUT_PREFIX}_Alfa_Diversidad_Boxplots.png', dpi=300)
     plt.close()
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 2: DISTANCIA BETA Y HEATMAPS (LETRA PEQUEÑA CORREGIDA)
-    # =========================================================================
+    # beta diversidad
     print("Calculando matrices de distancia Beta...")
     bray_distances = pdist(abundance.values, metric='braycurtis')
     jaccard_distances = pdist(abundance.values, metric='jaccard')
@@ -130,11 +125,10 @@ def main():
 
     for matrix, name in zip([bray_df, jaccard_df], ['BrayCurtis', 'Jaccard']):
         fig, ax = plt.subplots(figsize=(12, 10))
-        # Ajustamos cbar_kws para que la barra de color sea estéticamente proporcional
         sns.heatmap(matrix, cmap='viridis', xticklabels=True, yticklabels=True, ax=ax,
                     cbar_kws={'label': f'Distancia de {name}'})
         
-        # AJUSTE CRUCIAL: Reducción del tamaño de la fuente para las 88 muestras
+        # letra pequeña, son 88 muestras
         ax.tick_params(axis='both', which='major', labelsize=5.5)
         
         plt.title(f'Matriz de Distancia - {name}', fontsize=14, pad=15)
@@ -142,9 +136,7 @@ def main():
         plt.savefig(f'{OUTPUT_PREFIX}_{name}_heatmap.png', dpi=300)
         plt.close()
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 3: PCoA CON ELIPSES COMPLETAS Y MÁRGENES EXPANDIDOS
-    # =========================================================================
+    # PCoA
     print("Calculando PCoA...")
     pcoa_results = pcoa(bray_dm, number_of_dimensions=2)
     coords = pcoa_results.samples.iloc[:, 0:2]
@@ -164,7 +156,6 @@ def main():
     handles, labels = ax.get_legend_handles_labels()
     color_map = {label: handle.get_color() for handle, label in zip(handles, labels)}
 
-    # Listas para rastrear la extensión total de las elipses y evitar que se corten
     all_ellipse_x = []
     all_ellipse_y = []
 
@@ -173,21 +164,18 @@ def main():
             x = group_data['PC1'].values
             y = group_data['PC2'].values
             
-            # Centro de la elipse
             mean_x, mean_y = np.mean(x), np.mean(y)
             
-            # Calcular matriz de covarianza y valores/vectores propios
+            # elipse con la covarianza de los puntos de cada grupo
             cov = np.cov(x, y)
             vals, vecs = np.linalg.eig(cov)
             
-            # Ordenar de mayor a menor componente principal
             order = vals.argsort()[::-1]
             vals, vecs = vals[order], vecs[:, order]
             
-            # Ángulo de rotación en grados
             theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
             
-            # Radios de la elipse usando el intervalo de confianza del 95% (1.96 * sqrt(val))
+            # radios = 1.96 * sqrt(valor propio)
             width, height = 2 * 1.96 * np.sqrt(vals)
             
             ellipse = patches.Ellipse(
@@ -200,11 +188,10 @@ def main():
             )
             ax.add_patch(ellipse)
             
-            # Aproximar los límites de la elipse para ajustar los ejes dinámicamente
             all_ellipse_x.extend([mean_x - width/2, mean_x + width/2])
             all_ellipse_y.extend([mean_y - height/2, mean_y + height/2])
 
-    # AJUSTE CRUCIAL: Expandir los límites del gráfico un 20% más allá de las elipses para que no se corten
+    # 20% de margen para que no se corten las elipses
     all_ellipse_x.extend(coords_plot['PC1'].tolist())
     all_ellipse_y.extend(coords_plot['PC2'].tolist())
     if all_ellipse_x and all_ellipse_y:
@@ -227,9 +214,7 @@ def main():
     plt.savefig(f'{OUTPUT_PREFIX}_PCoA.png', dpi=300)
     plt.close()
 
-    # =========================================================================
-    # MULTI-ANÁLISIS 4: PERMANOVA
-    # =========================================================================
+    # PERMANOVA
     metadata_filtered = metadata[metadata['Group'].isin(['CS', 'CSSwP'])]
     
     print("Calculando PERMANOVA...")
