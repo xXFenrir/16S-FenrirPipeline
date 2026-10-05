@@ -16,7 +16,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 
 | Anexo | Carpeta | Contenido principal | Sección de Resultados donde se usa |
 |---|---|---|---|
-| 1 | [Anexo_01_Herramientas_pipelines_referencia](Anexo_01_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | Obj. 1 › Caracterización de herramientas bioinformáticas (Tabla 1) |
+| 1 | [Anexo_01_Herramientas_pipelines_referencia](Anexo_01_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | Obj. 1 › Caracterización de herramientas bioinformáticas |
 | 2 | [Anexo_02_Metadata_PRJNA1020132](Anexo_02_Metadata_PRJNA1020132) | Metadata del BioProject, SraRunTable y datos de muestra del artículo | Obj. 1 › Selección de repositorios; Diseño conceptual: Reporte de estadísticas básicas |
 | 3 | [Anexo_03_Estadisticas_pre_limpieza](Anexo_03_Estadisticas_pre_limpieza) | Estadísticas básicas de las 88 muestras crudas | Obj. 1 › Diseño conceptual: Reporte de estadísticas básicas; Diseño conceptual: Denoising y trimming |
 | 4 | [Anexo_04_Estadisticas_post_limpieza](Anexo_04_Estadisticas_post_limpieza) | Estadísticas tras Filtlong + Pychopper y retención por muestra | Obj. 1 › Diseño conceptual: Denoising y trimming |
@@ -42,7 +42,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 
 **Anexo 1. Herramientas bioinformáticas reportadas por artículo en cada etapa del procesamiento del gen 16S**
 
-Resume las herramientas empleadas en seis estudios que analizan el gen 16S rRNA secuenciado con *Oxford Nanopore Technologies*, organizadas por etapa: basecalling, demultiplexing, denoising y trimming, clustering, asignación taxonómica, filogenia y diversidad. Corresponde a la Tabla 1 del documento; el guion (-) indica que la etapa no se reportó o no aplica.
+Resume las herramientas empleadas en seis estudios que analizan el gen 16S rRNA secuenciado con *Oxford Nanopore Technologies*, organizadas por etapa: basecalling, demultiplexing, denoising y trimming, clustering, asignación taxonómica, filogenia y diversidad.
 
 **Anexo 2. Metadata del proyecto PRJNA1020132**
 
@@ -126,6 +126,7 @@ Contiene los grafos de Gephi de las interacciones predichas para gulupa con el m
 
 ## Notas
 
+- En la tabla del Anexo 1, el guion (-) indica que la etapa no se reportó en el estudio o no aplica.
 - Las tablas *Top5_interacciones_por_taxon* (anexos 12 y 20) están ordenadas por puntaje y tienen columnas vacías de "Nivel de evidencia" y "Referencia" para completar con la verificación bibliográfica.
 - Los archivos .zip contienen matrices CSV de gran tamaño; se descomprimen con cualquier gestor de archivos.
 - Los archivos .gephi se abren con Gephi 0.10 o superior; los .html se abren con cualquier navegador.
