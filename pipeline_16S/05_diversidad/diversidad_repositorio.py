@@ -230,7 +230,7 @@ def main():
     
     print("\n--- RESULTADOS DEL PERMANOVA ---")
     print(permanova_results)
-    print(f"\n¡Imágenes optimizadas generadas con éxito en: {args.output_dir}")
+    print(f"\n[OK] Resultados en: {args.output_dir}")
 
 if __name__ == '__main__':
     main()

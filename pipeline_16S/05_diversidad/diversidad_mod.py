@@ -269,7 +269,7 @@ def main():
 
     print("\n--- RESULTADOS DEL PERMANOVA ---")
     print(resultado_permanova)
-    print(f"\n¡Métricas generadas con éxito en: {args.output_dir}")
+    print(f"\n[OK] Resultados en: {args.output_dir}")
 
 if __name__ == '__main__':
     main()
