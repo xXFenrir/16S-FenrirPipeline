@@ -16,9 +16,9 @@
 
 ## Introducción
 
-Esta rama reúne la implementación de **DeepPBI-KG** ([Wei et al., 2024](https://github.com/Tongqing-Wei/DeepPBI-KG)) desarrollada para el trabajo de grado *Análisis del microbioma de Passiflora edulis f. edulis mediante secuenciación dirigida al gen 16S usando MinION, y predicción de las posibles interacciones bacteria-fago* (Johann Sebastian Gallego Sierra, Universidad El Bosque). DeepPBI-KG es un modelo de aprendizaje profundo que estima la probabilidad de que un fago interactúe con una bacteria a partir de sus genomas. Aquí se adaptó para que reciba los perfiles taxonómicos que entrega el pipeline 16S de la rama `pipeline` y evalúe todas las combinaciones posibles entre las bacterias más abundantes y los 3513 fagos de referencia del modelo.
+Esta rama del repositorio reúne la implementación de **DeepPBI-KG** ([Wei et al., 2024](https://github.com/Tongqing-Wei/DeepPBI-KG)) desarrollada para el trabajo de grado *Análisis del microbioma de Passiflora edulis f. edulis mediante secuenciación dirigida al gen 16S usando MinION y predicción de las posibles interacciones bacteria-fago*. DeepPBI-KG es un modelo de aprendizaje profundo que estima la probabilidad de que un fago interactúe con una bacteria a partir de sus genomas. Aquí se adaptó para recibir los perfiles taxonómicos que entrega el pipeline 16S de la rama `pipeline` y evaluar todas las combinaciones posibles entre las bacterias más abundantes y los 3513 fagos de referencia del modelo.
 
-El objetivo es anticipar qué fagos podrían interactuar con las bacterias que componen el rizobioma de la gulupa, en particular con las más abundantes. Junto con la caracterización del rizobioma, ese conocimiento sirve de cimiento para formular, en el futuro, bioproductos dirigidos a este cultivo.
+El objetivo es anticipar qué fagos podrían interactuar con las bacterias que componen el rizobioma de la gulupa, en particular con las más abundantes. Junto con la caracterización del rizobioma, ese conocimiento sirve de base para formular, en el futuro, bioproductos dirigidos a este cultivo.
 
 El modelo, sus pesos y el panel de fagos de referencia pertenecen a sus autores. Los scripts de esta rama son adaptaciones del código original o scripts propios.
 
@@ -27,7 +27,7 @@ El modelo, sus pesos y el panel de fagos de referencia pertenecen a sus autores.
 | Rama | Contenido |
 |---|---|
 | [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
-| [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) (esta rama) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
+| [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) (Aquí) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
 | [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
 
 La entrada de esta rama es la tabla de abundancias relativas que produce el paso de taxonomía de la rama `pipeline`. Los genomas descargados, las matrices de predicción, las tablas filtradas y los grafos están en la rama `anexos` (Anexos 11 a 13 y 19 a 21).
