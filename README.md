@@ -78,7 +78,7 @@ Presenta la misma comparación del Anexo 8 a nivel de especie, para las 853 espe
 
 **Anexo 10. Diversidad microbiana del proyecto PRJNA1020132**
 
-Reúne el análisis de diversidad del conjunto de referencia procesado con el pipeline propio: índices de Shannon y riqueza observada por muestra, prueba de Wilcoxon (Mann-Whitney U) entre las rotaciones de cultivo CS y CSSwP, matrices de disimilitud de Bray-Curtis y Jaccard, coordenadas del PCoA y resultado de la PERMANOVA. Incluye además las tablas de abundancia y de conteos de EMU con las que se calcularon.
+Reúne el análisis de diversidad del conjunto de referencia procesado con el pipeline propio: índices de Shannon y riqueza observada por muestra, prueba de Wilcoxon entre las rotaciones de cultivo CS y CSSwP, matrices de disimilitud de Bray-Curtis y Jaccard, coordenadas del PCoA y resultado de la PERMANOVA. Incluye además las tablas de abundancia y de conteos de EMU con las que se calcularon.
 
 **Anexo 11. Genomas bacterianos descargados para el Objetivo 2**
 
