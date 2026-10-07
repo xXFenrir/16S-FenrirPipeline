@@ -6,7 +6,7 @@ Trabajo de grado: *Análisis del microbioma de Passiflora edulis f. edulis media
 
 | Rama | Contenido |
 |---|---|
-| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
+| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/pipeline) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
 | [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
 | [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) (Aquí) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
 
@@ -83,7 +83,7 @@ Reúne el análisis de diversidad del conjunto de referencia procesado con el pi
 
 **Anexo 11. Comparación paso a paso con el artículo guía**
 
-Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 87 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra y de PERMANOVA.
+Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 87 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis, la correlación de Pearson y las especies compartidas entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra, de medias por tipo de muestra y de PERMANOVA.
 
 **Anexo 12. Genomas bacterianos descargados para el Objetivo 2**
 
