@@ -105,7 +105,7 @@ pod5 convert fast5 /ruta/fast5/*.fast5 --output pod5_out/
 
 El basecalling se ejecuta directamente con Dorado, sin un script propio; el comando completo para cada modelo está en [`comando_dorado.txt`](pipeline_16S/01_basecalling/comando_dorado.txt). Siguiendo la recomendación del fabricante, basecalling y demultiplexing van en un solo comando, en lugar de demultiplexar después con otra herramienta como Porechop.
 
-Para escoger el modelo, la corrida se procesó con FAST, HAC y SUP y se compararon las lecturas aprobadas y rechazadas y el QScore de cada uno (Anexo 14). HAC y SUP fueron los modelos que se usaron en los pasos siguientes.
+Para escoger el modelo, la corrida se procesó con FAST, HAC y SUP y se compararon las lecturas aprobadas y rechazadas y el QScore de cada uno (Anexo 15). HAC y SUP fueron los modelos que se usaron en los pasos siguientes.
 
 ### Ejecución
 
@@ -135,7 +135,7 @@ Antes de limpiar hay que saber en qué estado llegan las lecturas: cuántas son,
 
 ### Herramientas
 
-Las métricas se calculan con código propio, sin herramientas bioinformáticas externas. Como complemento visual se generaron reportes con **pycoQC**, que resume la corrida a partir de `sequencing_summary.txt` (rendimiento en el tiempo, calidad y longitud por barcode), y con **NanoPlot**, que grafica la distribución de longitud y calidad de los FASTQ limpios. Sus reportes están en la rama `anexos` (Anexos 15 y 16). El diagrama de caja de este paso se comparte con la limpieza y se muestra en el [paso 3](#3-limpieza-denoising-y-trimming).
+Las métricas se calculan con código propio, sin herramientas bioinformáticas externas. Como complemento visual se generaron reportes con **pycoQC**, que resume la corrida a partir de `sequencing_summary.txt` (rendimiento en el tiempo, calidad y longitud por barcode), y con **NanoPlot**, que grafica la distribución de longitud y calidad de los FASTQ limpios. Sus reportes están en la rama `anexos` (Anexos 16 y 17). El diagrama de caja de este paso se comparte con la limpieza y se muestra en el [paso 3](#3-limpieza-denoising-y-trimming).
 
 ### Cómo se construyó el script
 
@@ -356,7 +356,7 @@ python3 pipeline_16S/05_diversidad/diversidad_mod.py \
 
 ### Para qué sirve
 
-Comprueba, paso a paso, que el pipeline reproduce los resultados de Erlandson et al. (2024) sobre las mismas muestras del BioProject PRJNA1020132 (Objetivo 1). El artículo no publicó estadísticas por etapa para 2020, solo totales, así que la comparación se hace muestra por muestra: si una muestra tiene más lecturas, otra composición o más diversidad en el artículo, debería tenerla también en este trabajo. Complementa la correlación de Pearson de `compare_taxa.py` (Anexos 7 a 9); los resultados están en el Anexo 22.
+Comprueba, paso a paso, que el pipeline reproduce los resultados de Erlandson et al. (2024) sobre las mismas muestras del BioProject PRJNA1020132 (Objetivo 1). El artículo no publicó estadísticas por etapa para 2020, solo totales, así que la comparación se hace muestra por muestra: si una muestra tiene más lecturas, otra composición o más diversidad en el artículo, debería tenerla también en este trabajo. Complementa la correlación de Pearson de `compare_taxa.py` (Anexos 7 a 9); los resultados están en el Anexo 11.
 
 ### Herramientas
 
