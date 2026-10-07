@@ -18,7 +18,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 |---|---|---|---|
 | 1 | [Anexo_01_Herramientas_pipelines_referencia](Anexo_01_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | Obj. 1 › Caracterización de herramientas bioinformáticas |
 | 2 | [Anexo_02_Metadata_PRJNA1020132](Anexo_02_Metadata_PRJNA1020132) | Metadata del BioProject, SraRunTable y datos de muestra del artículo | Obj. 1 › Selección de repositorios; Diseño conceptual: Reporte de estadísticas básicas |
-| 3 | [Anexo_03_Estadisticas_pre_limpieza](Anexo_03_Estadisticas_pre_limpieza) | Estadísticas básicas de las 89 muestras crudas | Obj. 1 › Diseño conceptual: Reporte de estadísticas básicas; Diseño conceptual: Denoising y trimming |
+| 3 | [Anexo_03_Estadisticas_pre_limpieza](Anexo_03_Estadisticas_pre_limpieza) | Estadísticas básicas de las 88 muestras crudas | Obj. 1 › Diseño conceptual: Reporte de estadísticas básicas; Diseño conceptual: Denoising y trimming |
 | 4 | [Anexo_04_Estadisticas_post_limpieza](Anexo_04_Estadisticas_post_limpieza) | Estadísticas tras Filtlong + Pychopper y retención por muestra | Obj. 1 › Diseño conceptual: Denoising y trimming |
 | 5 | [Anexo_05_Abundancia_generos_referencia](Anexo_05_Abundancia_generos_referencia) | Abundancias relativas por género del artículo | Obj. 1 › Diseño conceptual: Taxonomía |
 | 6 | [Anexo_06_Abundancia_especies_referencia](Anexo_06_Abundancia_especies_referencia) | Abundancias relativas por especie del artículo | Obj. 1 › Diseño conceptual: Taxonomía |
@@ -51,7 +51,7 @@ Contiene la información contextual y experimental del proyecto de referencia em
 
 **Anexo 3. Estadísticas básicas antes del proceso de limpieza**
 
-Resume las métricas de calidad obtenidas en las lecturas crudas de las 89 muestras del proyecto PRJNA1020132, previas al filtrado, como número total de lecturas, longitud promedio, contenido GC, N50 y Q-scores. Permite evaluar la calidad inicial de las secuencias obtenidas mediante tecnología *Oxford Nanopore Technologies*.
+Resume las métricas de calidad obtenidas en las lecturas crudas de las 88 muestras del proyecto PRJNA1020132, previas al filtrado, como número total de lecturas, longitud promedio, contenido GC, N50 y Q-scores. Permite evaluar la calidad inicial de las secuencias obtenidas mediante tecnología *Oxford Nanopore Technologies*.
 
 **Anexo 4. Estadísticas básicas después del proceso de limpieza**
 
@@ -67,15 +67,15 @@ Contiene las abundancias relativas por especie reportadas por Erlandson et al. (
 
 **Anexo 7. Diferencia de abundancias relativas por familia**
 
-Compara la abundancia relativa media de las 132 familias presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la correlación de Pearson entre ambas series. Incluye las abundancias por familia de cada muestra, tanto propias como del artículo.
+Compara la abundancia relativa media de las 125 familias presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la correlación de Pearson entre ambas series. Incluye las abundancias por familia de cada muestra, tanto propias como del artículo.
 
 **Anexo 8. Diferencia de abundancias relativas por género**
 
-Compara la abundancia relativa media de los 344 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio.
+Compara la abundancia relativa media de los 329 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio.
 
 **Anexo 9. Diferencia de abundancias relativas por especie**
 
-Presenta la misma comparación del Anexo 8 a nivel de especie, para las 854 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
+Presenta la misma comparación del Anexo 8 a nivel de especie, para las 789 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
 
 **Anexo 10. Diversidad microbiana del proyecto PRJNA1020132**
 
