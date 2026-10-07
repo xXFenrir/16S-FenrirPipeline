@@ -49,6 +49,8 @@ Los pasos se describen tal como se aplicaron a las muestras de gulupa con el mod
 | [4. Taxonomía](#4-taxonomía) | `EMU_propio.py` y scripts de conteos | `04_taxonomia/` |
 | [5. Diversidad](#5-diversidad) | `diversidad_mod.py` | `05_diversidad/` |
 
+La comparación del pipeline con el artículo guía (Objetivo 1) se describe al final, en [Validación con el artículo guía](#validación-con-el-artículo-guía).
+
 <details>
 <summary><b>Diagrama detallado del pipeline</b></summary>
 <br>
@@ -347,6 +349,56 @@ python3 pipeline_16S/05_diversidad/diversidad_mod.py \
 - `-c` columna de los metadatos que define los grupos.
 - `-g` grupos que se comparan; deben coincidir con los valores de esa columna.
 - Opcionales: `-o` y `-p` para cambiar la carpeta de salida y el prefijo; `-m` para el Excel de metadatos (`Sistemas Agrícolas y Muestras.xlsx`), y `-b` para el CSV puente (`Mapa Barcodes Microbioma.csv`).
+
+---
+
+## Validación con el artículo guía
+
+### Para qué sirve
+
+Comprueba, paso a paso, que el pipeline reproduce los resultados de Erlandson et al. (2024) sobre las mismas muestras del BioProject PRJNA1020132 (Objetivo 1). El artículo no publicó estadísticas por etapa para 2020, solo totales, así que la comparación se hace muestra por muestra: si una muestra tiene más lecturas, otra composición o más diversidad en el artículo, debería tenerla también en este trabajo. Complementa la correlación de Pearson de `compare_taxa.py` (Anexos 7 a 9); los resultados están en el Anexo 22.
+
+### Herramientas
+
+Del artículo se usan los archivos de su repositorio ([serlandson/sterile_sentinels](https://github.com/serlandson/sterile_sentinels)): las salidas de EMU por barcode, su tabla de conteos final, los datos de cada muestra y sus resultados de PERMANOVA. Las comparaciones son:
+
+- **Correlación de Pearson** entre las lecturas por muestra en cada etapa y las lecturas asignadas por EMU en el artículo, y entre los índices de Shannon y la riqueza observada de cada muestra.
+- **Bray-Curtis** entre el perfil de una muestra en este trabajo y el de la misma muestra en el artículo, frente al de muestras distintas.
+- **Prueba de Mantel** (scikit-bio) entre las matrices de distancia de los dos análisis, con distancia de Aitchison (CLR y euclidiana) y con Bray-Curtis.
+- **PERMANOVA** por tipo de muestra (suelo y bolsa) y semana, con el mismo método del artículo: transformación CLR con pseudoconteo de 1 y distancia euclidiana, como `adonis2` de vegan.
+
+### Cómo se construyó el script
+
+`comparar_articulo.py` enlaza cada corrida del BioProject con su barcode en el artículo a través del nombre de la muestra (`Sample Name` del SraRunTable y `sample_id` de los datos de muestra del artículo). Después:
+
+1. Compara las bases de los FASTQ descargados con las del SraRunTable, y las lecturas iniciales, limpias y asignadas por EMU de cada muestra con las lecturas que asignó EMU en el artículo, que es lo único por muestra que publicaron para 2020.
+2. Calcula la disimilitud de Bray-Curtis entre los perfiles de especie de los dos análisis, emparejando los taxones por `tax_id`.
+3. Aplica a la tabla de conteos propia el mismo filtro de la tabla final del artículo (más de 4 lecturas en total y presencia en al menos 3 muestras) y con ambas calcula Shannon, riqueza observada y las pruebas de Mantel.
+4. Repite la PERMANOVA del artículo para cada tipo de muestra y semana. Se implementó igual que `adonis2`: con 8 muestras por grupo solo hay 35 formas de repartirlas, muchas permutaciones dan el mismo pseudo-F que el observado, y vegan los compara con una tolerancia para que el redondeo no cambie el valor p. La semilla es fija (42).
+
+Guarda una figura con ocho paneles, uno por paso, y un Excel con el resumen, la tabla por muestra y la tabla de PERMANOVA.
+
+### Ejecución
+
+```bash
+git clone https://github.com/serlandson/sterile_sentinels
+
+python3 pipeline_16S/06_validacion_articulo/comparar_articulo.py \
+  --sra Anexo_02_Metadata_PRJNA1020132/SraRunTable.csv \
+  --pre Anexo_03_Estadisticas_pre_limpieza/Anexo_03_Estadisticas_pre_limpieza.xlsx \
+  --post Anexo_04_Estadisticas_post_limpieza/Anexo_04_Estadisticas_post_limpieza.xlsx \
+  --conteos Anexo_10_Diversidad_PRJNA1020132/tabla_conteos_EMU.tsv \
+  --articulo sterile_sentinels \
+  -o comparacion_articulo
+```
+
+- `--sra` SraRunTable del BioProject (Anexo 2).
+- `--pre` / `--post` estadísticas antes y después de la limpieza (Anexos 3 y 4, o la salida de `stats_fastq.py`).
+- `--conteos` tabla de conteos por especie de EMU (Anexo 10).
+- `--articulo` carpeta clonada del repositorio del artículo.
+- `-o` carpeta de salida.
+
+Necesita pandas, NumPy, SciPy, scikit-bio, matplotlib y openpyxl.
 
 ---
 
