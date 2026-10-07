@@ -26,7 +26,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 | 8 | [Anexo_08_Diferencias_por_genero](Anexo_08_Diferencias_por_genero) | Medias propias vs. artículo y correlación de Pearson (género) | Obj. 1 › Diseño conceptual: Taxonomía |
 | 9 | [Anexo_09_Diferencias_por_especie](Anexo_09_Diferencias_por_especie) | Medias propias vs. artículo y correlación de Pearson (especie) | Obj. 1 › Diseño conceptual: Taxonomía |
 | 10 | [Anexo_10_Diversidad_PRJNA1020132](Anexo_10_Diversidad_PRJNA1020132) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA del conjunto de referencia | Obj. 1 › Diseño conceptual: Diversidad |
-| 11 | [Anexo_11_Comparacion_articulo_guia](Anexo_11_Comparacion_articulo_guia) | Comparación por muestra con el artículo guía en cada paso del pipeline | Obj. 1 › Validación del pipeline frente al artículo guía |
+| 11 | [Anexo_11_Comparacion_articulo_guia](Anexo_11_Comparacion_articulo_guia) | Comparación por muestra con el artículo guía en cada paso del pipeline | Obj. 1 › Diseño conceptual: Denoising y trimming; Diseño conceptual: Diversidad |
 | 12 | [Anexo_12_Genomas_bacterianos_Obj2](Anexo_12_Genomas_bacterianos_Obj2) | 192 genomas descargados para el Objetivo 2 | Obj. 2 › Preparación de datos de entrada |
 | 13 | [Anexo_13_Predicciones_DeepPBI-KG_Obj2](Anexo_13_Predicciones_DeepPBI-KG_Obj2) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 2 › Filtrado de probabilidades; Comprobación con literatura |
 | 14 | [Anexo_14_Redes_Gephi_Obj2](Anexo_14_Redes_Gephi_Obj2) | Grafos de Gephi (red completa y top 4) | Obj. 2 › Filtrado de probabilidades |
@@ -55,7 +55,7 @@ Resume las métricas de calidad obtenidas en las lecturas crudas de las 88 muest
 
 **Anexo 4. Estadísticas básicas después del proceso de limpieza**
 
-Presenta las mismas métricas del Anexo 3 calculadas sobre las lecturas que superaron el recorte de primers con Pychopper y el filtrado por longitud (1000–1700 pb) y calidad con Filtlong. Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
+Presenta las mismas métricas del Anexo 3 calculadas sobre las lecturas que superaron el recorte de primers y filtrado por calidad con Pychopper (Q ≥ 12) y por longitud con Filtlong (1.000–1.700 pb). Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
 
 **Anexo 5. Abundancia relativa de géneros del conjunto de referencia**
 
@@ -83,7 +83,7 @@ Reúne el análisis de diversidad del conjunto de referencia procesado con el pi
 
 **Anexo 11. Comparación paso a paso con el artículo guía**
 
-Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 86 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra y de PERMANOVA.
+Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 87 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra y de PERMANOVA.
 
 **Anexo 12. Genomas bacterianos descargados para el Objetivo 2**
 
