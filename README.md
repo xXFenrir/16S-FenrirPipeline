@@ -26,18 +26,18 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 | 8 | [Anexo_08_Diferencias_por_genero](Anexo_08_Diferencias_por_genero) | Medias propias vs. artículo y correlación de Pearson (género) | Obj. 1 › Diseño conceptual: Taxonomía |
 | 9 | [Anexo_09_Diferencias_por_especie](Anexo_09_Diferencias_por_especie) | Medias propias vs. artículo y correlación de Pearson (especie) | Obj. 1 › Diseño conceptual: Taxonomía |
 | 10 | [Anexo_10_Diversidad_PRJNA1020132](Anexo_10_Diversidad_PRJNA1020132) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA del conjunto de referencia | Obj. 1 › Diseño conceptual: Diversidad |
-| 11 | [Anexo_11_Genomas_bacterianos_Obj2](Anexo_11_Genomas_bacterianos_Obj2) | 192 genomas descargados para el Objetivo 2 | Obj. 2 › Preparación de datos de entrada |
-| 12 | [Anexo_12_Predicciones_DeepPBI-KG_Obj2](Anexo_12_Predicciones_DeepPBI-KG_Obj2) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 2 › Filtrado de probabilidades; Comprobación con literatura |
-| 13 | [Anexo_13_Redes_Gephi_Obj2](Anexo_13_Redes_Gephi_Obj2) | Grafos de Gephi (red completa y top 4) | Obj. 2 › Filtrado de probabilidades |
-| 14 | [Anexo_14_Comparacion_modelos_Dorado](Anexo_14_Comparacion_modelos_Dorado) | Comparación FAST/HAC/SUP global y por muestra | Obj. 3 › Basecalling y evaluación de calidad de secuencias |
-| 15 | [Anexo_15_Reportes_pycoQC_HAC_SUP](Anexo_15_Reportes_pycoQC_HAC_SUP) | Reportes interactivos de calidad pycoQC (HAC y SUP) | Obj. 3 › Basecalling y evaluación de calidad de secuencias |
-| 16 | [Anexo_16_Limpieza_gulupa_HAC_SUP](Anexo_16_Limpieza_gulupa_HAC_SUP) | Limpieza por muestra de gulupa y reportes NanoPlot | Obj. 3 › Filtrado de calidad y remoción de ruido (Denoising y Trimming) |
-| 17 | [Anexo_17_Taxonomia_EMU_gulupa](Anexo_17_Taxonomia_EMU_gulupa) | Tablas de EMU (abundancias, conteos, taxonomía, top 20) y rarefacción | Obj. 3 › Clasificación taxonómica y análisis de rarefacción |
-| 18 | [Anexo_18_Diversidad_gulupa_HAC_SUP](Anexo_18_Diversidad_gulupa_HAC_SUP) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA de gulupa | Obj. 3 › Diversidad Alfa y Beta |
-| 19 | [Anexo_19_Genomas_bacterianos_gulupa](Anexo_19_Genomas_bacterianos_gulupa) | 79 genomas descargados para gulupa (HAC) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
-| 20 | [Anexo_20_Predicciones_DeepPBI-KG_gulupa](Anexo_20_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa; Comprobación de interacciones en gulupa |
-| 21 | [Anexo_21_Redes_Gephi_gulupa](Anexo_21_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de las redes de HAC | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
-| 22 | [Anexo_22_Comparacion_articulo_guia](Anexo_22_Comparacion_articulo_guia) | Comparación por muestra con el artículo guía en cada paso del pipeline | Obj. 1 › Validación del pipeline frente al artículo guía |
+| 11 | [Anexo_11_Comparacion_articulo_guia](Anexo_11_Comparacion_articulo_guia) | Comparación por muestra con el artículo guía en cada paso del pipeline | Obj. 1 › Validación del pipeline frente al artículo guía |
+| 12 | [Anexo_12_Genomas_bacterianos_Obj2](Anexo_12_Genomas_bacterianos_Obj2) | 192 genomas descargados para el Objetivo 2 | Obj. 2 › Preparación de datos de entrada |
+| 13 | [Anexo_13_Predicciones_DeepPBI-KG_Obj2](Anexo_13_Predicciones_DeepPBI-KG_Obj2) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 2 › Filtrado de probabilidades; Comprobación con literatura |
+| 14 | [Anexo_14_Redes_Gephi_Obj2](Anexo_14_Redes_Gephi_Obj2) | Grafos de Gephi (red completa y top 4) | Obj. 2 › Filtrado de probabilidades |
+| 15 | [Anexo_15_Comparacion_modelos_Dorado](Anexo_15_Comparacion_modelos_Dorado) | Comparación FAST/HAC/SUP global y por muestra | Obj. 3 › Basecalling y evaluación de calidad de secuencias |
+| 16 | [Anexo_16_Reportes_pycoQC_HAC_SUP](Anexo_16_Reportes_pycoQC_HAC_SUP) | Reportes interactivos de calidad pycoQC (HAC y SUP) | Obj. 3 › Basecalling y evaluación de calidad de secuencias |
+| 17 | [Anexo_17_Limpieza_gulupa_HAC_SUP](Anexo_17_Limpieza_gulupa_HAC_SUP) | Limpieza por muestra de gulupa y reportes NanoPlot | Obj. 3 › Filtrado de calidad y remoción de ruido (Denoising y Trimming) |
+| 18 | [Anexo_18_Taxonomia_EMU_gulupa](Anexo_18_Taxonomia_EMU_gulupa) | Tablas de EMU (abundancias, conteos, taxonomía, top 20) y rarefacción | Obj. 3 › Clasificación taxonómica y análisis de rarefacción |
+| 19 | [Anexo_19_Diversidad_gulupa_HAC_SUP](Anexo_19_Diversidad_gulupa_HAC_SUP) | Shannon y riqueza observada, Bray-Curtis/Jaccard, PCoA y PERMANOVA de gulupa | Obj. 3 › Diversidad Alfa y Beta |
+| 20 | [Anexo_20_Genomas_bacterianos_gulupa](Anexo_20_Genomas_bacterianos_gulupa) | 79 genomas descargados para gulupa (HAC) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
+| 21 | [Anexo_21_Predicciones_DeepPBI-KG_gulupa](Anexo_21_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa; Comprobación de interacciones en gulupa |
+| 22 | [Anexo_22_Redes_Gephi_gulupa](Anexo_22_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de las redes de HAC | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
 
 ## Descripción de los anexos
 
@@ -81,58 +81,58 @@ Presenta la misma comparación del Anexo 8 a nivel de especie, para las 853 espe
 
 Reúne el análisis de diversidad del conjunto de referencia procesado con el pipeline propio: índices de Shannon y riqueza observada por muestra, prueba de Wilcoxon entre las rotaciones de cultivo CS y CSSwP, matrices de disimilitud de Bray-Curtis y Jaccard, coordenadas del PCoA y resultado de la PERMANOVA. Incluye además las tablas de abundancia y de conteos de EMU con las que se calcularon.
 
-**Anexo 11. Genomas bacterianos descargados para el Objetivo 2**
+**Anexo 11. Comparación paso a paso con el artículo guía**
+
+Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 86 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra y de PERMANOVA.
+
+**Anexo 12. Genomas bacterianos descargados para el Objetivo 2**
 
 Lista los 192 genomas bacterianos descargados de NCBI para los taxones del proyecto PRJNA1020132 con abundancia relativa promedio de al menos 0,1 %, indicando su TaxID y si corresponden a la especie o a un genoma representante del género. Incluye el histograma de abundancias con el umbral de corte empleado.
 
-**Anexo 12. Predicciones de DeepPBI-KG para el Objetivo 2**
+**Anexo 13. Predicciones de DeepPBI-KG para el Objetivo 2**
 
 Contiene la matriz completa de predicciones de DeepPBI-KG para los 674 496 pares fago-bacteria evaluados (3513 fagos y 192 bacterias), con las probabilidades de los modelos de genes clave y de genoma completo. Incluye las interacciones que superaron el umbral de 0,85, su reducción a los cuatro taxones dominantes, las cinco interacciones con mayor puntaje por taxón y las gráficas de densidad y reducción.
 
-**Anexo 13. Redes de interacción bacteria-fago del Objetivo 2**
+**Anexo 14. Redes de interacción bacteria-fago del Objetivo 2**
 
 Contiene los grafos de Gephi de las interacciones predichas para el conjunto de referencia: la red completa con umbral de 0,85 y la red reducida a los cuatro taxones bacterianos dominantes, en formato editable y como imagen.
 
-**Anexo 14. Comparación de los modelos de basecalling de Dorado**
+**Anexo 15. Comparación de los modelos de basecalling de Dorado**
 
 Resume el desempeño de los modelos FAST, HAC y SUP de Dorado en la corrida de las muestras de gulupa: lecturas totales, aprobadas (*pass*) y rechazadas (*fail*), bases, longitud media, N50 y QScore medio. Incluye el detalle por muestra y gráficas de lecturas aprobadas y de calidad, que sustentan la elección de los modelos HAC y SUP.
 
-**Anexo 15. Reportes de calidad pycoQC de los modelos HAC y SUP**
+**Anexo 16. Reportes de calidad pycoQC de los modelos HAC y SUP**
 
 Contiene los reportes interactivos de pycoQC generados a partir del resumen de secuenciación de Dorado para los modelos HAC y SUP. Muestran el resumen general de la corrida, la distribución de longitud y calidad de las lecturas, su evolución durante el tiempo de secuenciación y el número de lecturas por código de barras.
 
-**Anexo 16. Limpieza de las lecturas de gulupa con los modelos HAC y SUP**
+**Anexo 17. Limpieza de las lecturas de gulupa con los modelos HAC y SUP**
 
 Detalla, para cada una de las 73 muestras de gulupa y para ambos modelos, el número de lecturas antes de la limpieza, después de Pychopper y después de Filtlong, junto con las bases, la longitud, el N50 y el QScore antes y después del proceso. Incluye los reportes de NanoPlot de las lecturas limpias y gráficas comparativas entre HAC y SUP.
 
-**Anexo 17. Clasificación taxonómica con EMU de las muestras de gulupa**
+**Anexo 18. Clasificación taxonómica con EMU de las muestras de gulupa**
 
 Contiene los resultados de EMU para las muestras de gulupa con al menos 500 lecturas limpias (28 con HAC y 26 con SUP): abundancias relativas, conteos y taxonomía de cada taxón, y los 20 taxones más abundantes por especie, género y familia. Incluye las curvas de rarefacción y un resumen general por modelo.
 
-**Anexo 18. Diversidad microbiana del rizobioma de gulupa**
+**Anexo 19. Diversidad microbiana del rizobioma de gulupa**
 
 Presenta el análisis de diversidad de las muestras de gulupa con los modelos HAC y SUP, agrupadas por sistema de manejo (Empresarial, Campesina y Agroecológica): índices de Shannon y riqueza observada por muestra y por sistema, valores p de la prueba de Wilcoxon (Mann-Whitney U), matrices de Bray-Curtis y Jaccard, PCoA y PERMANOVA.
 
-**Anexo 19. Genomas bacterianos descargados para gulupa**
+**Anexo 20. Genomas bacterianos descargados para gulupa**
 
 Lista los 79 genomas bacterianos descargados de NCBI para los taxones de gulupa (modelo HAC) con abundancia relativa promedio de al menos 0,1 %, junto con el resultado de cada búsqueda. Incluye el registro completo de la descarga.
 
-**Anexo 20. Predicciones de DeepPBI-KG para gulupa**
+**Anexo 21. Predicciones de DeepPBI-KG para gulupa**
 
 Contiene la matriz completa de predicciones para los 277 527 pares evaluados entre los 3513 fagos de referencia y las 79 bacterias de gulupa, con las probabilidades de genes clave y de genoma completo. Incluye las interacciones que superaron el umbral de 0,85, su reducción a los cuatro taxones dominantes, hasta cinco interacciones con mayor puntaje por taxón y las gráficas de densidad y reducción.
 
-**Anexo 21. Redes de interacción bacteria-fago de gulupa**
+**Anexo 22. Redes de interacción bacteria-fago de gulupa**
 
 Contiene los grafos de Gephi de las interacciones predichas para gulupa con el modelo HAC: la red completa y la red de los cuatro taxones dominantes, en formato editable, PDF e imagen. Incluye las estadísticas de las redes construidas con HAC (nodos, aristas, densidad y grado promedio).
-
-**Anexo 22. Comparación paso a paso con el artículo guía**
-
-Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 86 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra y de PERMANOVA.
 
 ## Notas
 
 - En la tabla del Anexo 1, el guion (-) indica que la etapa no se reportó en el estudio o no aplica.
-- Las tablas *Top5_interacciones_por_taxon* (anexos 12 y 20) están ordenadas por puntaje y tienen columnas vacías de "Nivel de evidencia" y "Referencia" para completar con la verificación bibliográfica.
+- Las tablas *Top5_interacciones_por_taxon* (anexos 13 y 21) están ordenadas por puntaje y tienen columnas vacías de "Nivel de evidencia" y "Referencia" para completar con la verificación bibliográfica.
 - Los archivos .zip contienen matrices CSV de gran tamaño; se descomprimen con cualquier gestor de archivos.
 - Los archivos .gephi se abren con Gephi 0.10 o superior; los .html se abren con cualquier navegador.
-- Los datos del artículo usados en el Anexo 22 (salidas de EMU por barcode, tabla de conteos final, datos de muestra y resultados de PERMANOVA) provienen de su repositorio público, [serlandson/sterile_sentinels](https://github.com/serlandson/sterile_sentinels). La figura y las tablas se generan con `pipeline_16S/06_validacion_articulo/comparar_articulo.py` de la rama `pipeline`.
+- Los datos del artículo usados en el Anexo 11 (salidas de EMU por barcode, tabla de conteos final, datos de muestra y resultados de PERMANOVA) provienen de su repositorio público, [serlandson/sterile_sentinels](https://github.com/serlandson/sterile_sentinels). La figura y las tablas se generan con `pipeline_16S/06_validacion_articulo/comparar_articulo.py` de la rama `pipeline`.
