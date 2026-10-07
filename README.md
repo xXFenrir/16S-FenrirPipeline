@@ -33,7 +33,7 @@ Las tablas de abundancia que produce este pipeline son la entrada de la rama `al
 
 # Pasos del pipeline
 
-El pipeline se aplicó a dos conjuntos de datos: las 88 muestras públicas del BioProject PRJNA1020132 (Erlandson et al., 2024), que sirvieron para validarlo (Objetivo 1), y las muestras propias de rizobioma de gulupa (Objetivo 3).
+El pipeline se aplicó a dos conjuntos de datos: las 89 muestras públicas del BioProject PRJNA1020132 (Erlandson et al., 2024), que sirvieron para validarlo (Objetivo 1), y las muestras propias de rizobioma de gulupa (Objetivo 3).
 
 <p align="center">
   <img src="imagenes/flujo_objetivos.jpg" alt="Flujo del pipeline para los Objetivos 1 y 3" width="900">

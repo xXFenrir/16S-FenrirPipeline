@@ -25,6 +25,10 @@ def _pychopper_python() -> Optional[str]:
     try:
         with open(pc, "rb") as fh:
             first = fh.readline().decode("utf-8", errors="ignore").strip()
+            second = fh.readline().decode("utf-8", errors="ignore").strip()
+        # pip usa "#!/bin/sh" + "'''exec' <python> ..." cuando la ruta es larga
+        if second.startswith("'''exec' "):
+            return second.split()[1].strip('"')
         if first.startswith("#!"):
             return first[2:].strip().split()[0]
     except Exception:
