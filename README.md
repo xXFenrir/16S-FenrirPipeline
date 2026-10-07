@@ -30,7 +30,7 @@ El modelo, sus pesos y el panel de fagos de referencia pertenecen a sus autores.
 | [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) (Aquí) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
 | [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
 
-La entrada de esta rama es la tabla de abundancias relativas que produce el paso de taxonomía de la rama `pipeline`. Los genomas descargados, las matrices de predicción, las tablas filtradas y los grafos están en la rama `anexos` (Anexos 11 a 13 y 19 a 21).
+La entrada de esta rama es la tabla de abundancias relativas que produce el paso de taxonomía de la rama `pipeline`. Los genomas descargados, las matrices de predicción, las tablas filtradas y los grafos están en la rama `anexos` (Anexos 12 a 14 y 20 a 22).
 
 # Pasos del algoritmo
 
@@ -292,7 +292,7 @@ python3 $ALG/03_filtrado_y_redes/filtro_redes.py \
 
 ### Para qué sirve
 
-Representa las interacciones filtradas como una red en la que los nodos son fagos y bacterias, y cada arista es una interacción predicha. La red muestra qué bacterias concentran más interacciones y qué fagos podrían infectar a varias bacterias. Se construyó la red completa y una reducida a los cuatro taxones más abundantes del rizobioma (*Lactococcus lactis*, *Weissella soli*, *Weissella oryzae* y *Lactobacillus coryniformis*), cuyas interacciones con mayor puntaje se contrastan con la literatura (tablas *Top5_interacciones_por_taxon* de los Anexos 12 y 20) y se clasifican como evidencia directa, evidencia por cercanía taxonómica o sin evidencia. El resultado son los grafos de Gephi de ambas redes.
+Representa las interacciones filtradas como una red en la que los nodos son fagos y bacterias, y cada arista es una interacción predicha. La red muestra qué bacterias concentran más interacciones y qué fagos podrían infectar a varias bacterias. Se construyó la red completa y una reducida a los cuatro taxones más abundantes del rizobioma (*Lactococcus lactis*, *Weissella soli*, *Weissella oryzae* y *Lactobacillus coryniformis*), cuyas interacciones con mayor puntaje se contrastan con la literatura (tablas *Top5_interacciones_por_taxon* de los Anexos 13 y 21) y se clasifican como evidencia directa, evidencia por cercanía taxonómica o sin evidencia. El resultado son los grafos de Gephi de ambas redes.
 
 ### Herramientas
 
