@@ -148,6 +148,23 @@ def analizar(args, m, U, A):
     res["bc_misma"] = np.array([braycurtis(Ur[s], Ar[s]) for s in runs])
     res["bc_distintas"] = np.array([braycurtis(Ur[a], Ar[b]) for a in runs for b in runs if a != b])
 
+    # Pearson entre los perfiles de la misma muestra y especies compartidas. Solo cuentan las especies
+    # presentes en alguna de las dos versiones de esa muestra; si no, los ceros compartidos inflan la r
+    pearson, compartidas, solo_yo, solo_art, ab_yo, ab_art = [], [], [], [], [], []
+    for s in runs:
+        yo, ar = Ur[s] > 0, Ar[s] > 0
+        alguna = yo | ar
+        pearson.append(pearsonr(Ur[s][alguna], Ar[s][alguna])[0])
+        compartidas.append(int((yo & ar).sum()))
+        solo_yo.append(int((yo & ~ar).sum()))
+        solo_art.append(int((ar & ~yo).sum()))
+        # qué fracción de las lecturas de cada versión cae en las especies compartidas
+        ab_yo.append(Ur[s][yo & ar].sum())
+        ab_art.append(Ar[s][yo & ar].sum())
+    res["pearson_misma"] = np.array(pearson)
+    res["compartidas"], res["solo_yo"], res["solo_art"] = np.array(compartidas), np.array(solo_yo), np.array(solo_art)
+    res["ab_yo"], res["ab_art"] = np.array(ab_yo), np.array(ab_art)
+
     # tabla final del artículo y la mía con su mismo filtro (>4 lecturas y presente en >=3 muestras)
     tabla_art = pd.read_csv(args.articulo / "data" / "emu_16S_counts_2020.csv", index_col=0).loc[m.bacteria_barcode]
     tabla_art.index = runs
@@ -239,9 +256,18 @@ def figura(m, res, salida: Path):
     ax.hist(res["bc_misma"], bins=bins, density=True, color=YO, alpha=0.9, label="Misma muestra", ec="white", lw=0.5)
     ax.set_xlabel("Disimilitud de Bray-Curtis (especie)"); ax.set_ylabel("Densidad")
     ax.set_title("E. Composición", loc="left", fontweight="bold")
-    ax.legend(frameon=False, loc="center right", fontsize=8)
-    nota(ax, f"mediana misma muestra: {np.median(res['bc_misma']):.2f}\n"
-             f"mediana muestras distintas: {np.median(res['bc_distintas']):.2f}")
+    ax.legend(frameon=False, loc="center right", bbox_to_anchor=(1, 0.38), fontsize=8)
+    pct = 100 * res["compartidas"] / (res["compartidas"] + res["solo_yo"] + res["solo_art"])
+    # la nota va arriba a la derecha, donde las barras son bajas (todo son medianas por muestra)
+    ax.text(0.97, 0.97,
+            f"Bray-Curtis misma muestra: {np.median(res['bc_misma']):.2f}\n"
+            f"Bray-Curtis muestras distintas: {np.median(res['bc_distintas']):.2f}\n"
+            f"Pearson misma muestra: r = {np.median(res['pearson_misma']):.3f}\n"
+            f"especies compartidas: {np.median(res['compartidas']):.0f} ({np.median(pct):.0f} %)\n"
+            f"lecturas en ellas: {100 * np.median(res['ab_yo']):.0f} % propias,\n"
+            f"{100 * np.median(res['ab_art']):.0f} % del artículo\n(medianas por muestra)",
+            transform=ax.transAxes, ha="right", va="top", fontsize=8.5, color=TINTA,
+            bbox=dict(fc="white", ec="none", alpha=0.85))
 
     ax = axs[5]
     puntos(ax, res["sh_art"], res["sh_yo"])
@@ -311,6 +337,13 @@ def tablas(m, res, iguales, salida: Path):
          f"artículo {100 * (m.emu_art / m.lect_iniciales).mean():.1f} %"],
         ["5. Composición", "Bray-Curtis misma muestra vs muestras distintas (mediana)",
          f"{np.median(res['bc_misma']):.3f} vs {np.median(res['bc_distintas']):.3f}"],
+        ["5. Composición", "Pearson entre perfiles de la misma muestra (mediana, mín–máx)",
+         f"r = {np.median(res['pearson_misma']):.3f} ({res['pearson_misma'].min():.3f}–{res['pearson_misma'].max():.3f})"],
+        ["5. Composición", "Especies compartidas por muestra (mediana)",
+         f"{np.median(res['compartidas']):.0f} de {np.median(res['compartidas'] + res['solo_yo'] + res['solo_art']):.0f} "
+         f"({np.median(100 * res['compartidas'] / (res['compartidas'] + res['solo_yo'] + res['solo_art'])):.1f} %)"],
+        ["5. Composición", "Lecturas en especies compartidas (mediana)",
+         f"este trabajo {100 * np.median(res['ab_yo']):.1f} %; artículo {100 * np.median(res['ab_art']):.1f} %"],
         ["6. Diversidad alfa", "Shannon por muestra (Pearson)", f"r = {pearsonr(res['sh_art'], res['sh_yo'])[0]:.4f}"],
         ["6. Diversidad alfa", "Riqueza observada por muestra (Pearson)",
          f"r = {pearsonr(res['obs_art'], res['obs_yo'])[0]:.4f}"],
@@ -328,8 +361,20 @@ def tablas(m, res, iguales, salida: Path):
         "Lecturas iniciales": m.lect_iniciales, "Lecturas limpias (este trabajo)": m.lect_limpias,
         "Lecturas a EMU (este trabajo)": m.emu_yo, "Lecturas a EMU (artículo)": m.emu_art,
         "Shannon (este trabajo)": m.Run.map(res["sh_yo"]), "Shannon (artículo)": m.Run.map(res["sh_art"]),
-        "Bray-Curtis misma muestra": res["bc_misma"],
+        "Riqueza (este trabajo)": m.Run.map(res["obs_yo"]), "Riqueza (artículo)": m.Run.map(res["obs_art"]),
+        "Bray-Curtis misma muestra": res["bc_misma"], "Pearson misma muestra": res["pearson_misma"],
+        "Especies compartidas": res["compartidas"], "Especies solo en este trabajo": res["solo_yo"],
+        "Especies solo en el artículo": res["solo_art"],
+        "% lecturas en compartidas (este trabajo)": 100 * res["ab_yo"],
+        "% lecturas en compartidas (artículo)": 100 * res["ab_art"],
     })
+    # medias por tipo de muestra (bolsa o suelo)
+    cols = ["Bray-Curtis misma muestra", "Pearson misma muestra", "Especies compartidas",
+            "Shannon (este trabajo)", "Shannon (artículo)", "Riqueza (este trabajo)", "Riqueza (artículo)"]
+    tipo = por_muestra["Tipo"].map({"bag": "Bolsa", "bulk": "Suelo"})
+    medias = por_muestra[cols].groupby(tipo).agg(["mean", "std"]).round(3)
+    medias.columns = [f"{c} ({'media' if e == 'mean' else 'desv. est.'})" for c, e in medias.columns]
+    medias = medias.reset_index().rename(columns={"Tipo": "Tipo de muestra"})
     perm = P.rename(columns={"R2_publicado": "R² publicado", "p_publicado": "p publicado",
                              "R2_este_trabajo": "R² este trabajo", "p_este_trabajo": "p este trabajo",
                              "R2_tabla_articulo": "R² tabla del artículo (recalculado)",
@@ -337,6 +382,7 @@ def tablas(m, res, iguales, salida: Path):
     with pd.ExcelWriter(salida) as w:
         resumen.to_excel(w, sheet_name="Resumen", index=False)
         por_muestra.to_excel(w, sheet_name="Por_muestra", index=False)
+        medias.to_excel(w, sheet_name="Medias_por_tipo", index=False)
         perm.to_excel(w, sheet_name="PERMANOVA", index=False)
         # ancho de columnas según el contenido, para que se lea sin ajustar a mano
         for hoja in w.sheets.values():

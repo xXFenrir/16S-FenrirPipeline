@@ -25,7 +25,7 @@ Ambas herramientas responden a una misma necesidad: conocer el rizobioma de la g
 
 | Rama | Contenido |
 |---|---|
-| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) (Aquí) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
+| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/pipeline) (Aquí) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
 | [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
 | [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
 
@@ -363,7 +363,8 @@ Comprueba, paso a paso, que el pipeline reproduce los resultados de Erlandson et
 Del artículo se usan los archivos de su repositorio ([serlandson/sterile_sentinels](https://github.com/serlandson/sterile_sentinels)): las salidas de EMU por barcode, su tabla de conteos final, los datos de cada muestra y sus resultados de PERMANOVA. Las comparaciones son:
 
 - **Correlación de Pearson** entre las lecturas por muestra en cada etapa y las lecturas asignadas por EMU en el artículo, y entre los índices de Shannon y la riqueza observada de cada muestra.
-- **Bray-Curtis** entre el perfil de una muestra en este trabajo y el de la misma muestra en el artículo, frente al de muestras distintas.
+- **Bray-Curtis** entre el perfil de una muestra en este trabajo y el de la misma muestra en el artículo, frente al de muestras distintas, y **correlación de Pearson** entre esos dos perfiles.
+- **Especies compartidas** por muestra, junto con la fracción de las lecturas de cada análisis que cae en ellas.
 - **Prueba de Mantel** (scikit-bio) entre las matrices de distancia de los dos análisis, con distancia de Aitchison (CLR y euclidiana) y con Bray-Curtis.
 - **PERMANOVA** por tipo de muestra (suelo y bolsa) y semana, con el mismo método del artículo: transformación CLR con pseudoconteo de 1 y distancia euclidiana, como `adonis2` de vegan.
 
@@ -372,11 +373,11 @@ Del artículo se usan los archivos de su repositorio ([serlandson/sterile_sentin
 `comparar_articulo.py` enlaza cada corrida del BioProject con su barcode en el artículo a través del nombre de la muestra (`Sample Name` del SraRunTable y `sample_id` de los datos de muestra del artículo). Recibe a la vez el SraRunTable.csv y el Excel del Anexo 2, porque a cada uno le falta una corrida que el otro sí tiene (S1A2 y S1A8). Después:
 
 1. Compara las bases de los FASTQ descargados con las del SraRunTable, y las lecturas iniciales, limpias y asignadas por EMU de cada muestra con las lecturas que asignó EMU en el artículo, que es lo único por muestra que publicaron para 2020.
-2. Calcula la disimilitud de Bray-Curtis entre los perfiles de especie de los dos análisis, emparejando los taxones por `tax_id`.
+2. Calcula la disimilitud de Bray-Curtis y la correlación de Pearson entre los perfiles de especie de los dos análisis, emparejando los taxones por `tax_id`, y cuenta las especies compartidas y las que aparecen solo en uno de ellos. Ambos perfiles se usan sin filtrar, y para Pearson solo cuentan las especies presentes en alguna de las dos versiones de la muestra, porque las ausentes en ambas inflarían la correlación.
 3. Aplica a la tabla de conteos propia el mismo filtro de la tabla final del artículo (más de 4 lecturas en total y presencia en al menos 3 muestras) y con ambas calcula Shannon, riqueza observada y las pruebas de Mantel.
 4. Repite la PERMANOVA del artículo para cada tipo de muestra y semana. Se implementó igual que `adonis2`: con 8 muestras por grupo solo hay 35 formas de repartirlas, muchas permutaciones dan el mismo pseudo-F que el observado, y vegan los compara con una tolerancia para que el redondeo no cambie el valor p. La semilla es fija (42).
 
-Guarda una figura con ocho paneles, uno por paso, y un Excel con el resumen, la tabla por muestra y la tabla de PERMANOVA.
+Guarda una figura con ocho paneles, uno por paso, y un Excel con el resumen, la tabla por muestra, las medias por tipo de muestra (bolsa y suelo) y la tabla de PERMANOVA.
 
 ### Ejecución
 
