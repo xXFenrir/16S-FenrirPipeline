@@ -37,6 +37,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 | 19 | [Anexo_19_Genomas_bacterianos_gulupa](Anexo_19_Genomas_bacterianos_gulupa) | 79 genomas descargados para gulupa (HAC) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
 | 20 | [Anexo_20_Predicciones_DeepPBI-KG_gulupa](Anexo_20_Predicciones_DeepPBI-KG_gulupa) | Matriz completa de predicciones y tablas filtradas (umbral 0.85) | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa; Comprobación de interacciones en gulupa |
 | 21 | [Anexo_21_Redes_Gephi_gulupa](Anexo_21_Redes_Gephi_gulupa) | Grafos de Gephi y estadísticas de las redes de HAC | Obj. 3 › Interacciones bacteria-fago en muestras de gulupa |
+| 22 | [Anexo_22_Comparacion_articulo_guia](Anexo_22_Comparacion_articulo_guia) | Comparación por muestra con el artículo guía en cada paso del pipeline | Obj. 1 › Validación del pipeline frente al artículo guía |
 
 ## Descripción de los anexos
 
@@ -124,9 +125,14 @@ Contiene la matriz completa de predicciones para los 277 527 pares evaluados ent
 
 Contiene los grafos de Gephi de las interacciones predichas para gulupa con el modelo HAC: la red completa y la red de los cuatro taxones dominantes, en formato editable, PDF e imagen. Incluye las estadísticas de las redes construidas con HAC (nodos, aristas, densidad y grado promedio).
 
+**Anexo 22. Comparación paso a paso con el artículo guía**
+
+Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 86 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra y de PERMANOVA.
+
 ## Notas
 
 - En la tabla del Anexo 1, el guion (-) indica que la etapa no se reportó en el estudio o no aplica.
 - Las tablas *Top5_interacciones_por_taxon* (anexos 12 y 20) están ordenadas por puntaje y tienen columnas vacías de "Nivel de evidencia" y "Referencia" para completar con la verificación bibliográfica.
 - Los archivos .zip contienen matrices CSV de gran tamaño; se descomprimen con cualquier gestor de archivos.
 - Los archivos .gephi se abren con Gephi 0.10 o superior; los .html se abren con cualquier navegador.
+- Los datos del artículo usados en el Anexo 22 (salidas de EMU por barcode, tabla de conteos final, datos de muestra y resultados de PERMANOVA) provienen de su repositorio público, [serlandson/sterile_sentinels](https://github.com/serlandson/sterile_sentinels). La figura y las tablas se generan con `pipeline_16S/06_validacion_articulo/comparar_articulo.py` de la rama `pipeline`.
