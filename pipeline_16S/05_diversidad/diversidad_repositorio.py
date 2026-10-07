@@ -141,7 +141,7 @@ def main():
         sns.heatmap(matrix, cmap='viridis', xticklabels=True, yticklabels=True, ax=ax,
                     cbar_kws={'label': f'Distancia de {name}'})
         
-        # letra pequeña, son 89 muestras
+        # letra pequeña, son 88 muestras
         ax.tick_params(axis='both', which='major', labelsize=5.5)
         
         plt.title(f'Matriz de Distancia - {name}', fontsize=14, pad=15)
