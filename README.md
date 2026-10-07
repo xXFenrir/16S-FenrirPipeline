@@ -222,6 +222,15 @@ python3 pipeline_16S/03_limpieza/dentrim_bam.py \
 - `-t` hilos de CPU para Pychopper.
 - `-v` imprime cada comando que ejecuta.
 
+`figuras_limpieza.py` se usó en la validación del Objetivo 1 para las Figuras 10 y 11 de la tesis: compara, para cada muestra de PRJNA1020132, las lecturas y el QScore antes y después de la limpieza a partir de las estadísticas de los Anexos 3 y 4. La distribución del QScore por lectura (Figura 11A) se calcula sobre una submuestra de hasta 120.000 lecturas por grupo, así que además necesita las carpetas de FASTQ (`--fastq-antes` y `--fastq-despues`); sin ellas, el script solo genera la Figura 10 y el panel B de la Figura 11.
+
+```bash
+python3 pipeline_16S/03_limpieza/figuras_limpieza.py \
+  --pre Anexo_03_Estadisticas_pre_limpieza/Anexo_03_Estadisticas_pre_limpieza.xlsx \
+  --post Anexo_04_Estadisticas_post_limpieza/Anexo_04_Estadisticas_post_limpieza.xlsx \
+  --fastq-antes Muestras_16S --fastq-despues Limpieza -o figuras_limpieza
+```
+
 ---
 
 ## 4. Taxonomía
