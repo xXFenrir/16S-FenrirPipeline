@@ -26,7 +26,7 @@ El modelo, sus pesos y el panel de fagos de referencia pertenecen a sus autores.
 
 | Rama | Contenido |
 |---|---|
-| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/main) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
+| [`pipeline`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/pipeline) | Pipeline 16S ONT: basecalling, estadísticas, limpieza, taxonomía y diversidad (Objetivos 1 y 3) |
 | [`algoritmo`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/algoritmo) (Aquí) | Predicción de interacciones bacteria-fago con DeepPBI-KG (Objetivos 2 y 3) |
 | [`anexos`](https://github.com/xXFenrir/16S-FenrirPipeline/tree/anexos) | Anexos del documento: tablas de resultados, figuras, matrices de predicción y grafos |
 
