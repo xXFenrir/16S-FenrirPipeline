@@ -125,13 +125,18 @@ def qscores_por_lectura(ruta: Path, n: int, semilla: int) -> np.ndarray:
 
 
 def buscar_fastq(carpeta: Path, runs) -> dict:
-    archivos = {}
-    for f in sorted(carpeta.rglob("*")):
+    # la salida de la limpieza deja intermedios por muestra (__oriented_tmp, _qc_fail, ...),
+    # así que se prefiere el *_clean / *_limpio y si no hay, el de nombre más corto (el crudo)
+    candidatos = {}
+    for f in carpeta.rglob("*"):
         if re.search(r"\.(fastq|fq)(\.gz)?$", f.name):
             m = re.search(r"(SRR\d+)", f.name)
-            if m and m.group(1) in runs and m.group(1) not in archivos:
-                archivos[m.group(1)] = f
-    return archivos
+            if m and m.group(1) in runs:
+                candidatos.setdefault(m.group(1), []).append(f)
+    def prioridad(f):
+        limpio = re.search(r"_(clean|limpio)\.(fastq|fq)(\.gz)?$", f.name)
+        return (0 if limpio else 1, len(f.name), f.name)
+    return {run: min(candidatos[run], key=prioridad) for run in sorted(candidatos)}
 
 
 def figura_11(pre, post, salida: Path, fastq_antes=None, fastq_despues=None, total=120000):
