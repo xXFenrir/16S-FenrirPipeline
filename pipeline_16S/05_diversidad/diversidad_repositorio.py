@@ -27,9 +27,9 @@ def main():
         help="Ruta al archivo de la tabla de abundancias relativas."
     )
     parser.add_argument(
-        '-m', '--metadata',
-        default='/home/fenrir/Documentos/Tesis/Muestras_16S/SraRunTable.csv',
-        help="SraRunTable del BioProject (columnas 'Run' y 'crop_rotation')."
+        '-m', '--metadata', nargs='+',
+        default=['/home/fenrir/Documentos/Tesis/Muestras_16S/SraRunTable.csv'],
+        help="Metadatos del BioProject con 'Run' y 'crop_rotation' (csv o xlsx); si se pasan varios se unen."
     )
     parser.add_argument(
         '-o', '--output_dir', 
@@ -48,10 +48,23 @@ def main():
     counts = abundance.copy()
     srr_samples = list(counts.index)
 
-    print(f"Cargando metadatos base desde: {args.metadata}")
-    df_meta = pd.read_csv(args.metadata)
+    # el SraRunTable.csv y el excel del Anexo 2 no traen las mismas corridas
+    # (al csv le falta S1A2 y al excel S1A8), así que se unen los que se pasen
+    tablas_meta = []
+    for ruta in args.metadata:
+        print(f"Cargando metadatos base desde: {ruta}")
+        if str(ruta).lower().endswith('.xlsx'):
+            crudo = pd.read_excel(ruta, header=None)
+            fila = next(i for i, r in crudo.iterrows() if r.astype(str).str.strip().eq('Run').any())
+            tabla = crudo.iloc[fila + 1:].copy()
+            tabla.columns = crudo.iloc[fila].astype(str).str.strip()
+        else:
+            tabla = pd.read_csv(ruta)
+        tablas_meta.append(tabla[['Run', 'crop_rotation']])
+    df_meta = pd.concat(tablas_meta).dropna(subset=['Run'])
     df_meta['Run'] = df_meta['Run'].astype(str).str.strip()
     df_meta['crop_rotation'] = df_meta['crop_rotation'].astype(str).str.strip()
+    df_meta = df_meta.drop_duplicates('Run')
     run_a_rotacion = dict(zip(df_meta['Run'], df_meta['crop_rotation']))
 
     # el grupo se asigna por SRR y no por el orden de las columnas
