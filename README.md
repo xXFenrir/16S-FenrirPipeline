@@ -369,7 +369,7 @@ Del artículo se usan los archivos de su repositorio ([serlandson/sterile_sentin
 
 ### Cómo se construyó el script
 
-`comparar_articulo.py` enlaza cada corrida del BioProject con su barcode en el artículo a través del nombre de la muestra (`Sample Name` del SraRunTable y `sample_id` de los datos de muestra del artículo). Después:
+`comparar_articulo.py` enlaza cada corrida del BioProject con su barcode en el artículo a través del nombre de la muestra (`Sample Name` del SraRunTable y `sample_id` de los datos de muestra del artículo). Recibe a la vez el SraRunTable.csv y el Excel del Anexo 2, porque a cada uno le falta una corrida que el otro sí tiene (S1A2 y S1A8). Después:
 
 1. Compara las bases de los FASTQ descargados con las del SraRunTable, y las lecturas iniciales, limpias y asignadas por EMU de cada muestra con las lecturas que asignó EMU en el artículo, que es lo único por muestra que publicaron para 2020.
 2. Calcula la disimilitud de Bray-Curtis entre los perfiles de especie de los dos análisis, emparejando los taxones por `tax_id`.
@@ -384,7 +384,7 @@ Guarda una figura con ocho paneles, uno por paso, y un Excel con el resumen, la 
 git clone https://github.com/serlandson/sterile_sentinels
 
 python3 pipeline_16S/06_validacion_articulo/comparar_articulo.py \
-  --sra Anexo_02_Metadata_PRJNA1020132/SraRunTable.csv \
+  --sra Anexo_02_Metadata_PRJNA1020132/SraRunTable.csv Anexo_02_Metadata_PRJNA1020132/Anexo_02_Metadata_PRJNA1020132.xlsx \
   --pre Anexo_03_Estadisticas_pre_limpieza/Anexo_03_Estadisticas_pre_limpieza.xlsx \
   --post Anexo_04_Estadisticas_post_limpieza/Anexo_04_Estadisticas_post_limpieza.xlsx \
   --conteos Anexo_10_Diversidad_PRJNA1020132/tabla_conteos_EMU.tsv \
@@ -392,7 +392,7 @@ python3 pipeline_16S/06_validacion_articulo/comparar_articulo.py \
   -o comparacion_articulo
 ```
 
-- `--sra` SraRunTable del BioProject (Anexo 2).
+- `--sra` metadatos del BioProject (Anexo 2): el SraRunTable.csv, el Excel o ambos.
 - `--pre` / `--post` estadísticas antes y después de la limpieza (Anexos 3 y 4, o la salida de `stats_fastq.py`).
 - `--conteos` tabla de conteos por especie de EMU (Anexo 10).
 - `--articulo` carpeta clonada del repositorio del artículo.

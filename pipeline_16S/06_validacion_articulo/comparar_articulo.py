@@ -44,6 +44,25 @@ def leer_estadisticas(ruta: Path) -> pd.DataFrame:
     return df[["Run", "lecturas", "bases"]]
 
 
+def leer_metadatos(rutas) -> pd.DataFrame:
+    # el SraRunTable.csv y el excel del Anexo 2 no traen exactamente las mismas corridas
+    # (al csv le falta S1A2 y al excel S1A8), así que se unen los que se pasen
+    tablas = []
+    for ruta in rutas:
+        if ruta.suffix.lower() == ".xlsx":
+            crudo = pd.read_excel(ruta, header=None)
+            fila = next(i for i, r in crudo.iterrows() if r.astype(str).str.strip().eq("Run").any())
+            df = crudo.iloc[fila + 1:].copy()
+            df.columns = crudo.iloc[fila].astype(str).str.strip()
+        else:
+            df = pd.read_csv(ruta)
+        df = df[df["Run"].astype(str).str.startswith("SRR")]
+        tablas.append(df[["Run", "Sample Name", "Bases"]])
+    meta = pd.concat(tablas).drop_duplicates("Run")
+    meta["Bases"] = pd.to_numeric(meta["Bases"])
+    return meta.reset_index(drop=True)
+
+
 def shannon(tabla: pd.DataFrame) -> pd.Series:
     p = tabla.div(tabla.sum(axis=1), axis=0)
     return -(p * np.log(p.where(p > 0, 1))).sum(axis=1)
@@ -89,7 +108,7 @@ def permanova_vegan(dm: DistanceMatrix, grupos, permutaciones: int = 999, semill
 
 def cargar_datos(args):
     art = args.articulo / "data"
-    sra = pd.read_csv(args.sra)
+    sra = leer_metadatos(args.sra)
     sra["sample_id"] = sra["Sample Name"].str.replace("_bac", "", regex=False)
     muestras_art = pd.read_csv(art / "16S_sample_data_2020.csv")
     m = sra.merge(muestras_art[["sample_id", "bacteria_barcode", "type", "time", "rotation"]], on="sample_id", how="inner")
@@ -329,7 +348,8 @@ def tablas(m, res, iguales, salida: Path):
 
 def main():
     ap = argparse.ArgumentParser(description="Comparación paso a paso con el artículo guía (PRJNA1020132).")
-    ap.add_argument("--sra", type=Path, required=True, help="SraRunTable.csv del BioProject (Anexo 2).")
+    ap.add_argument("--sra", type=Path, nargs="+", required=True,
+                    help="Metadatos del BioProject (Anexo 2): SraRunTable.csv y/o el excel; si se pasan los dos se unen.")
     ap.add_argument("--pre", type=Path, required=True, help="Estadísticas antes de la limpieza (Anexo 3 o salida de stats_fastq.py).")
     ap.add_argument("--post", type=Path, required=True, help="Estadísticas después de la limpieza (Anexo 4 o salida de stats_fastq.py).")
     ap.add_argument("--conteos", type=Path, required=True, help="Tabla de conteos de EMU por especie (tabla_conteos.tsv).")
