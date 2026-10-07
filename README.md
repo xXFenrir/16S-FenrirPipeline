@@ -377,7 +377,7 @@ Del artículo se usan los archivos de su repositorio ([serlandson/sterile_sentin
 3. Aplica a la tabla de conteos propia el mismo filtro de la tabla final del artículo (más de 4 lecturas en total y presencia en al menos 3 muestras) y con ambas calcula Shannon, riqueza observada y las pruebas de Mantel.
 4. Repite la PERMANOVA del artículo para cada tipo de muestra y semana. Se implementó igual que `adonis2`: con 8 muestras por grupo solo hay 35 formas de repartirlas, muchas permutaciones dan el mismo pseudo-F que el observado, y vegan los compara con una tolerancia para que el redondeo no cambie el valor p. La semilla es fija (42).
 
-Guarda una figura con ocho paneles, uno por paso, y un Excel con el resumen, la tabla por muestra, las medias por tipo de muestra (bolsa y suelo) y la tabla de PERMANOVA.
+Guarda una figura con ocho paneles, uno por paso, en 2 columnas por 4 filas y al ancho útil de una hoja carta (16,5 cm), y un Excel con el resumen, la tabla por muestra, las medias por tipo de muestra (bolsa y suelo) y la tabla de PERMANOVA.
 
 ### Ejecución
 

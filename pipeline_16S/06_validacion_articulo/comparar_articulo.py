@@ -197,35 +197,43 @@ def analizar(args, m, U, A):
 
 
 def figura(m, res, salida: Path):
-    plt.rcParams.update({"font.size": 9, "axes.edgecolor": TINTA2, "axes.labelcolor": TINTA,
+    # 2 columnas x 4 filas al ancho útil de una hoja carta (16,5 cm), para que en el documento
+    # no haya que reducirla; el título y las explicaciones van en la leyenda de la figura
+    plt.rcParams.update({"font.size": 7, "axes.titlesize": 8, "axes.labelsize": 7,
+                         "xtick.labelsize": 6.5, "ytick.labelsize": 6.5,
+                         "axes.edgecolor": TINTA2, "axes.labelcolor": TINTA,
                          "xtick.color": TINTA2, "ytick.color": TINTA2, "axes.spines.top": False,
                          "axes.spines.right": False, "axes.grid": True, "grid.color": "#e6e5e0",
-                         "grid.linewidth": 0.6, "axes.axisbelow": True})
+                         "grid.linewidth": 0.5, "axes.axisbelow": True, "axes.linewidth": 0.6})
 
     def diagonal(ax, lo, hi):
-        ax.plot([lo, hi], [lo, hi], ls="--", lw=1, color=GRIS, zorder=1)
+        ax.plot([lo, hi], [lo, hi], ls="--", lw=0.8, color=GRIS, zorder=1)
         ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
 
-    def nota(ax, texto, abajo=False):
-        x, y, ha, va = (0.97, 0.03, "right", "bottom") if abajo else (0.03, 0.97, "left", "top")
-        ax.text(x, y, texto, transform=ax.transAxes, ha=ha, va=va, fontsize=8.5, color=TINTA,
-                bbox=dict(fc="white", ec="none", alpha=0.85))
+    def nota(ax, texto, donde="arriba_izq"):
+        x, y, ha, va = {"arriba_izq": (0.03, 0.97, "left", "top"), "arriba_der": (0.97, 0.97, "right", "top"),
+                        "abajo_der": (0.97, 0.03, "right", "bottom")}[donde]
+        ax.text(x, y, texto, transform=ax.transAxes, ha=ha, va=va, fontsize=6.5, color=TINTA,
+                bbox=dict(fc="white", ec="none", alpha=0.85, pad=1.5))
 
     def puntos(ax, x, y):
-        ax.scatter(x, y, s=22, color=YO, ec="white", lw=0.6, zorder=3)
+        ax.scatter(x, y, s=9, color=YO, ec="white", lw=0.3, zorder=3)
 
-    fig, axs = plt.subplots(2, 4, figsize=(17.5, 9))
+    def titulo(ax, texto):
+        ax.set_title(texto, loc="left", fontweight="bold", pad=4)
+
+    fig, axs = plt.subplots(4, 2, figsize=(6.5, 7.6))
     axs = axs.ravel()
 
     ax = axs[0]
     puntos(ax, m.Bases / 1e6, m.bases_iniciales / 1e6)
     diagonal(ax, 15, 65)
-    ax.set_xlabel("Bases según el BioProject (Mb)"); ax.set_ylabel("Bases en los FASTQ descargados (Mb)")
-    ax.set_title("A. Datos iniciales", loc="left", fontweight="bold")
+    ax.set_xlabel("Bases según el BioProject (Mb)"); ax.set_ylabel("Bases descargadas (Mb)")
+    titulo(ax, "A. Datos iniciales")
     nota(ax, f"{int((m.Bases == m.bases_iniciales).sum())} de {len(m)} muestras idénticas")
 
     # B, C y D contra las lecturas asignadas por EMU del artículo, que es lo único por muestra que publicaron
-    def etapa(ax, col, titulo, ylab, extra, misma_etapa):
+    def etapa(ax, col, texto_titulo, ylab, extra, misma_etapa):
         x, y = m.emu_art / 1e3, m[col] / 1e3
         puntos(ax, x, y)
         hi = max(x.max(), y.max()) * 1.08
@@ -234,40 +242,38 @@ def figura(m, res, salida: Path):
             diagonal(ax, 0, hi)
         else:
             k = (x * y).sum() / (x * x).sum()
-            ax.plot([0, hi], [0, k * hi], color=GRIS, lw=1.2, zorder=1)
+            ax.plot([0, hi], [0, k * hi], color=GRIS, lw=0.9, zorder=1)
             ax.set_xlim(0, hi); ax.set_ylim(0, hi)
-            extra = f"pendiente = {k:.2f} (línea gris, ajuste por el origen)\n" + extra
+            extra = f"pendiente = {k:.2f}\n" + extra
         ax.set_xlabel("Artículo: lecturas asignadas por EMU (miles)"); ax.set_ylabel(ylab)
-        ax.set_title(titulo, loc="left", fontweight="bold")
+        titulo(ax, texto_titulo)
         # si la nube queda por encima de la diagonal, la nota va abajo para no tapar puntos
-        nota(ax, f"r = {pearsonr(m.emu_art, m[col])[0]:.3f}\n" + extra, abajo=k > 1)
+        nota(ax, (f"r = {pearsonr(m.emu_art, m[col])[0]:.3f}\n" + extra).strip(),
+             "abajo_der" if k > 1 else "arriba_izq")
 
     ret = m.lect_limpias / m.lect_iniciales
-    etapa(axs[1], "lect_iniciales", "B. Pre-limpieza", "Este trabajo: lecturas iniciales (miles)", "", False)
-    etapa(axs[2], "lect_limpias", "C. Post-limpieza", "Este trabajo: lecturas limpias (miles)",
+    etapa(axs[1], "lect_iniciales", "B. Pre-limpieza", "Lecturas iniciales (miles)", "", False)
+    etapa(axs[2], "lect_limpias", "C. Post-limpieza", "Lecturas limpias (miles)",
           f"retención: {100 * ret.mean():.0f} % ({100 * ret.min():.0f}–{100 * ret.max():.0f} %)", False)
-    etapa(axs[3], "emu_yo", "D. Lecturas asignadas por EMU", "Este trabajo: lecturas asignadas (miles)",
-          f"de las lecturas iniciales: este trabajo {100 * (m.emu_yo / m.lect_iniciales).mean():.0f} %,\n"
-          f"artículo {100 * (m.emu_art / m.lect_iniciales).mean():.0f} %", True)
+    etapa(axs[3], "emu_yo", "D. Lecturas asignadas por EMU", "Lecturas asignadas (miles)",
+          f"asignadas/iniciales: {100 * (m.emu_yo / m.lect_iniciales).mean():.0f} %\n"
+          f"(artículo: {100 * (m.emu_art / m.lect_iniciales).mean():.0f} %)", True)
 
     ax = axs[4]
     bins = np.linspace(0, 1, 41)
-    ax.hist(res["bc_distintas"], bins=bins, density=True, color=GRIS, alpha=0.55, label="Muestras distintas", ec="white", lw=0.5)
-    ax.hist(res["bc_misma"], bins=bins, density=True, color=YO, alpha=0.9, label="Misma muestra", ec="white", lw=0.5)
+    ax.hist(res["bc_distintas"], bins=bins, density=True, color=GRIS, alpha=0.55, label="Muestras distintas", ec="white", lw=0.3)
+    ax.hist(res["bc_misma"], bins=bins, density=True, color=YO, alpha=0.9, label="Misma muestra", ec="white", lw=0.3)
     ax.set_xlabel("Disimilitud de Bray-Curtis (especie)"); ax.set_ylabel("Densidad")
-    ax.set_title("E. Composición", loc="left", fontweight="bold")
-    ax.legend(frameon=False, loc="center right", bbox_to_anchor=(1, 0.38), fontsize=8)
+    titulo(ax, "E. Composición")
+    ax.legend(frameon=False, loc="center right", bbox_to_anchor=(1, 0.3), fontsize=6.5, handlelength=1.2)
     pct = 100 * res["compartidas"] / (res["compartidas"] + res["solo_yo"] + res["solo_art"])
     # la nota va arriba a la derecha, donde las barras son bajas (todo son medianas por muestra)
-    ax.text(0.97, 0.97,
-            f"Bray-Curtis misma muestra: {np.median(res['bc_misma']):.2f}\n"
-            f"Bray-Curtis muestras distintas: {np.median(res['bc_distintas']):.2f}\n"
-            f"Pearson misma muestra: r = {np.median(res['pearson_misma']):.3f}\n"
-            f"especies compartidas: {np.median(res['compartidas']):.0f} ({np.median(pct):.0f} %)\n"
-            f"lecturas en ellas: {100 * np.median(res['ab_yo']):.0f} % propias,\n"
-            f"{100 * np.median(res['ab_art']):.0f} % del artículo\n(medianas por muestra)",
-            transform=ax.transAxes, ha="right", va="top", fontsize=8.5, color=TINTA,
-            bbox=dict(fc="white", ec="none", alpha=0.85))
+    nota(ax, f"Bray-Curtis misma muestra: {np.median(res['bc_misma']):.2f}\n"
+             f"Bray-Curtis muestras distintas: {np.median(res['bc_distintas']):.2f}\n"
+             f"Pearson misma muestra: r = {np.median(res['pearson_misma']):.3f}\n"
+             f"especies compartidas: {np.median(res['compartidas']):.0f} ({np.median(pct):.0f} %)\n"
+             f"lecturas en ellas: {100 * np.median(res['ab_yo']):.0f} % / {100 * np.median(res['ab_art']):.0f} %",
+         "arriba_der")
 
     ax = axs[5]
     puntos(ax, res["sh_art"], res["sh_yo"])
@@ -275,16 +281,16 @@ def figura(m, res, salida: Path):
     hi = max(res["sh_art"].max(), res["sh_yo"].max()) + 0.1
     diagonal(ax, lo, hi)
     ax.set_xlabel("Shannon, artículo"); ax.set_ylabel("Shannon, este trabajo")
-    ax.set_title("F. Diversidad alfa por muestra", loc="left", fontweight="bold")
-    nota(ax, f"r = {pearsonr(res['sh_art'], res['sh_yo'])[0]:.3f}\n"
+    titulo(ax, "F. Diversidad alfa")
+    nota(ax, f"Shannon: r = {pearsonr(res['sh_art'], res['sh_yo'])[0]:.3f}\n"
              f"riqueza observada: r = {pearsonr(res['obs_art'], res['obs_yo'])[0]:.3f}")
 
     ax = axs[6]
     da, du = res["ait_art"].condensed_form(), res["ait_yo"].condensed_form()
-    ax.hexbin(da, du, gridsize=45, cmap="Blues", mincnt=1, linewidths=0)
+    ax.hexbin(da, du, gridsize=35, cmap="Blues", mincnt=1, linewidths=0)
     diagonal(ax, min(da.min(), du.min()), max(da.max(), du.max()))
-    ax.set_xlabel("Distancia de Aitchison, artículo"); ax.set_ylabel("Distancia de Aitchison, este trabajo")
-    ax.set_title("G. Diversidad beta (pares de muestras)", loc="left", fontweight="bold")
+    ax.set_xlabel("Aitchison, artículo"); ax.set_ylabel("Aitchison, este trabajo")
+    titulo(ax, "G. Diversidad beta (pares de muestras)")
     r_ait, p_ait, _ = res["mantel_ait"]
     nota(ax, f"Mantel r = {r_ait:.3f} (p = {p_ait:.3f})\nBray-Curtis: Mantel r = {res['mantel_bc'][0]:.3f}")
 
@@ -293,26 +299,24 @@ def figura(m, res, salida: Path):
     P["etiqueta"] = P.Tipo.map({"bulk": "Suelo", "bag": "Bolsa"}) + " s" + P.Semana.astype(str)
     yy = np.arange(len(P))[::-1]
     for i, (_, r) in enumerate(P.iterrows()):
-        ax.plot([r.R2_publicado, r.R2_este_trabajo], [yy[i]] * 2, color="#d4d3cd", lw=1.5, zorder=1)
+        ax.plot([r.R2_publicado, r.R2_este_trabajo], [yy[i]] * 2, color="#d4d3cd", lw=1, zorder=1)
     for col, c, mk in (("publicado", ART, "o"), ("este_trabajo", YO, "D")):
         sig = (P[f"p_{col}"] < 0.05).values
-        ax.scatter(P[f"R2_{col}"][~sig], yy[~sig], s=40, facecolor="white", edgecolor=c, lw=1.6, marker=mk, zorder=3)
-        ax.scatter(P[f"R2_{col}"][sig], yy[sig], s=40, color=c, marker=mk, zorder=3)
-    ax.set_yticks(yy); ax.set_yticklabels(P.etiqueta); ax.grid(axis="y", visible=False)
-    ax.set_ylim(-0.7, len(P) + 0.6)
+        ax.scatter(P[f"R2_{col}"][~sig], yy[~sig], s=16, facecolor="white", edgecolor=c, lw=1, marker=mk, zorder=3)
+        ax.scatter(P[f"R2_{col}"][sig], yy[sig], s=16, color=c, marker=mk, zorder=3)
+    ax.set_yticks(yy); ax.set_yticklabels(P.etiqueta, fontsize=6); ax.grid(axis="y", visible=False)
+    ax.set_ylim(-0.7, len(P) - 0.3)
     ax.set_xlabel("R² del sistema de rotación (PERMANOVA)")
-    ax.set_title("H. Efecto de la rotación (PERMANOVA)", loc="left", fontweight="bold")
-    leyenda = [Line2D([], [], marker="o", ls="", color=ART, label="Publicado (artículo)"),
-               Line2D([], [], marker="D", ls="", color=YO, label="Este trabajo"),
-               Line2D([], [], marker="o", ls="", mfc="white", mec=TINTA2, label="relleno: p < 0.05; vacío: p ≥ 0.05")]
-    ax.legend(handles=leyenda, frameon=False, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.45, -0.13), ncol=2)
+    titulo(ax, "H. Efecto de la rotación")
     iguales = ((P.p_publicado < 0.05) == (P.p_este_trabajo < 0.05)).sum()
-    ax.text(0.97, 0.99, f"misma conclusión (α = 0.05)\nen {iguales} de {len(P)} subconjuntos", transform=ax.transAxes,
-            ha="right", va="top", fontsize=8.5, color=TINTA)
+    nota(ax, f"misma conclusión en\n{iguales} de {len(P)} subconjuntos", "arriba_der")
+    leyenda = [Line2D([], [], marker="o", ls="", color=ART, markersize=4, label="Publicado"),
+               Line2D([], [], marker="D", ls="", color=YO, markersize=4, label="Este trabajo"),
+               Line2D([], [], marker="o", ls="", mfc="white", mec=TINTA2, markersize=4, label="vacío: p ≥ 0.05")]
+    ax.legend(handles=leyenda, frameon=False, fontsize=6, loc="upper center", bbox_to_anchor=(0.42, -0.3),
+              ncol=3, handletextpad=0.3, columnspacing=0.8)
 
-    fig.suptitle(f"Comparación paso a paso con el artículo guía (PRJNA1020132, {len(m)} muestras)",
-                 x=0.01, ha="left", fontsize=12, fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.tight_layout(h_pad=1.0, w_pad=1.5)
     fig.savefig(salida, dpi=300)
     plt.close(fig)
     return iguales
