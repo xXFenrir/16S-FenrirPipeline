@@ -262,7 +262,7 @@ La etapa se divide en cuatro scripts que se ejecutan en orden:
 3. `agrupar_counts_sistema.py` asigna cada muestra a su sistema agrícola (barcode → ID de finca → Sistema) y agrega a la tabla de conteos el total por taxón y en cuántas muestras de cada sistema aparece.
 4. `rarefaccion.py` submuestrea al azar, sin reemplazo, 30 profundidades por muestra con un paso proporcional a su propia profundidad, cuenta las especies observadas y promedia 10 repeticiones por punto. Traza todas las curvas en una sola figura, identificadas por finca y sistema. Si una curva se aplana, secuenciar más no habría agregado muchas especies nuevas.
 
-`compare_taxa.py` se usó en la validación del Objetivo 1: compara las abundancias relativas medias por familia, género y especie con las del artículo guía y calcula la correlación de Pearson entre ambas (Anexos 7 a 9).
+`compare_taxa.py` se usó en la validación del Objetivo 1: compara las abundancias relativas medias por familia, género y especie con las del artículo guía y calcula la correlación de Pearson entre ambas (Anexos 7 a 9). Del artículo se toman los archivos de EMU por barcode de su repositorio, pero solo de sus 88 muestras (`--article-samples 16S_sample_data_2020.csv`), porque esa carpeta también trae los controles.
 
 ### Ejecución
 

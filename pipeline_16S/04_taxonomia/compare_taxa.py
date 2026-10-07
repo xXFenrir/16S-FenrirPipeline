@@ -6,6 +6,10 @@
 #   python compare_taxa.py --my-results-dir EMU_out \
 #     --article-counts emu_16S_counts_2020.csv --article-taxonomy emu_16S_taxonomy_2020.csv \
 #     --rank family genus species
+# Con los TSV por barcode del artículo hay que pasar --article-samples, porque esa carpeta
+# también trae los controles (barcode01, 24, 36, 48, 60 y 72) y no deben entrar en el promedio:
+#   --article-relabund-glob "bacteria raw data 2020/barcode*.t_rel-abundance.tsv" \
+#   --article-samples 16S_sample_data_2020.csv
 # Para PNG hace falta kaleido, si no solo guarda los HTML.
 
 from __future__ import annotations
@@ -251,6 +255,14 @@ def load_my(
         "o --my-relabund-glob."
     )
 
+# barcodes de las muestras reales del artículo: columna bacteria_barcode de su
+# 16S_sample_data_2020.csv, o un barcode por línea
+def leer_muestras_articulo(path: Path) -> set:
+    df = pd.read_csv(path)
+    if "bacteria_barcode" in df.columns:
+        return set(df["bacteria_barcode"].astype(str).str.strip())
+    return set(pd.read_csv(path, header=None)[0].astype(str).str.strip())
+
 def load_article(
     rank: str,
     article_counts: Optional[Path],
@@ -423,6 +435,8 @@ def build_parser():
                    help="Taxonomía del artículo (CSV/TSV).")
     p.add_argument("--article-relabund-glob", type=str, default=None,
                    help="Glob a *_rel-abundance.tsv del artículo.")
+    p.add_argument("--article-samples", type=Path, default=None,
+                   help="Solo estos barcodes del artículo (16S_sample_data_2020.csv o un barcode por línea); deja por fuera los controles.")
 
     p.add_argument("--rank", type=str, nargs="+", default=["genus"], choices=TAX_RANKS,
                    help="Uno o varios niveles taxonómicos (p. ej. family genus species).")
@@ -457,6 +471,14 @@ def main():
             article_taxonomy=args.article_taxonomy,
             article_relabund_glob=args.article_relabund_glob,
         )
+        if args.article_samples:
+            muestras = leer_muestras_articulo(args.article_samples)
+            faltan = sorted(muestras - set(art.columns))
+            if faltan:
+                eprint(f"[!] {len(faltan)} barcodes de --article-samples no están en el artículo: {faltan}")
+            art = art[[c for c in art.columns if c in muestras]]
+            # se quitan los taxones que solo aparecían en los controles
+            art = art.loc[art.sum(axis=1) > 0]
         eprint(f"[OK] Artículo: tabla {rank} x {art.shape[1]} muestras (relativas).")
 
         mine.to_csv(outdir / f"mine_{rank}_rel.tsv", sep="\t")
