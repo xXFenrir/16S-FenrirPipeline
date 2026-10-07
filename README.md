@@ -55,7 +55,7 @@ Resume las métricas de calidad obtenidas en las lecturas crudas de las 88 muest
 
 **Anexo 4. Estadísticas básicas después del proceso de limpieza**
 
-Presenta las mismas métricas del Anexo 3 calculadas sobre las lecturas que superaron el recorte de primers y filtrado por calidad con Pychopper (Q ≥ 9) y por longitud con Filtlong (1.000–1.700 pb). Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
+Presenta las mismas métricas del Anexo 3 calculadas sobre las lecturas que superaron el recorte de primers y filtrado por calidad con Pychopper (Q ≥ 12) y por longitud con Filtlong (1.000–1.700 pb). Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
 
 **Anexo 5. Abundancia relativa de géneros del conjunto de referencia**
 
