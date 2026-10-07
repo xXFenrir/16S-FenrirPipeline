@@ -55,7 +55,7 @@ Resume las métricas de calidad obtenidas en las lecturas crudas de las 88 muest
 
 **Anexo 4. Estadísticas básicas después del proceso de limpieza**
 
-Presenta las mismas métricas del Anexo 3 calculadas sobre las lecturas que superaron el recorte de primers y filtrado por calidad con Pychopper (Q ≥ 12) y por longitud con Filtlong (1.000–1.700 pb). Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
+Presenta las mismas métricas del Anexo 3 calculadas sobre las lecturas que superaron el recorte de primers y filtrado por calidad con Pychopper (Q ≥ 9) y por longitud con Filtlong (1.000–1.700 pb). Incluye, para cada muestra, el porcentaje de lecturas y bases retenidas y removidas, lo que permite valorar el efecto de la limpieza.
 
 **Anexo 5. Abundancia relativa de géneros del conjunto de referencia**
 
@@ -71,11 +71,11 @@ Compara la abundancia relativa media de las 125 familias presentes en ambos aná
 
 **Anexo 8. Diferencia de abundancias relativas por género**
 
-Compara la abundancia relativa media de los 329 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio.
+Compara la abundancia relativa media de los 328 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio.
 
 **Anexo 9. Diferencia de abundancias relativas por especie**
 
-Presenta la misma comparación del Anexo 8 a nivel de especie, para las 789 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
+Presenta la misma comparación del Anexo 8 a nivel de especie, para las 788 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
 
 **Anexo 10. Diversidad microbiana del proyecto PRJNA1020132**
 
@@ -135,4 +135,5 @@ Contiene los grafos de Gephi de las interacciones predichas para gulupa con el m
 - Las tablas *Top5_interacciones_por_taxon* (anexos 13 y 21) están ordenadas por puntaje y tienen columnas vacías de "Nivel de evidencia" y "Referencia" para completar con la verificación bibliográfica.
 - Los archivos .zip contienen matrices CSV de gran tamaño; se descomprimen con cualquier gestor de archivos.
 - Los archivos .gephi se abren con Gephi 0.10 o superior; los .html se abren con cualquier navegador.
+- En los Anexos 7 a 9, del artículo se usan solo sus 88 muestras; sus controles (barcode01, 24, 36, 48, 60 y 72) se excluyen, como en el propio artículo.
 - Los datos del artículo usados en el Anexo 11 (salidas de EMU por barcode, tabla de conteos final, datos de muestra y resultados de PERMANOVA) provienen de su repositorio público, [serlandson/sterile_sentinels](https://github.com/serlandson/sterile_sentinels). La figura y las tablas se generan con `pipeline_16S/06_validacion_articulo/comparar_articulo.py` de la rama `pipeline`.
