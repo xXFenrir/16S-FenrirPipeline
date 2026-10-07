@@ -18,7 +18,7 @@ Los anexos reúnen los resultados y la información que no pudieron incluirse en
 |---|---|---|---|
 | 1 | [Anexo_01_Herramientas_pipelines_referencia](Anexo_01_Herramientas_pipelines_referencia) | Herramientas por etapa en seis pipelines 16S de referencia | Obj. 1 › Caracterización de herramientas bioinformáticas |
 | 2 | [Anexo_02_Metadata_PRJNA1020132](Anexo_02_Metadata_PRJNA1020132) | Metadata del BioProject, SraRunTable y datos de muestra del artículo | Obj. 1 › Selección de repositorios; Diseño conceptual: Reporte de estadísticas básicas |
-| 3 | [Anexo_03_Estadisticas_pre_limpieza](Anexo_03_Estadisticas_pre_limpieza) | Estadísticas básicas de las 88 muestras crudas | Obj. 1 › Diseño conceptual: Reporte de estadísticas básicas; Diseño conceptual: Denoising y trimming |
+| 3 | [Anexo_03_Estadisticas_pre_limpieza](Anexo_03_Estadisticas_pre_limpieza) | Estadísticas básicas de las 89 muestras crudas | Obj. 1 › Diseño conceptual: Reporte de estadísticas básicas; Diseño conceptual: Denoising y trimming |
 | 4 | [Anexo_04_Estadisticas_post_limpieza](Anexo_04_Estadisticas_post_limpieza) | Estadísticas tras Filtlong + Pychopper y retención por muestra | Obj. 1 › Diseño conceptual: Denoising y trimming |
 | 5 | [Anexo_05_Abundancia_generos_referencia](Anexo_05_Abundancia_generos_referencia) | Abundancias relativas por género del artículo | Obj. 1 › Diseño conceptual: Taxonomía |
 | 6 | [Anexo_06_Abundancia_especies_referencia](Anexo_06_Abundancia_especies_referencia) | Abundancias relativas por especie del artículo | Obj. 1 › Diseño conceptual: Taxonomía |
@@ -51,7 +51,7 @@ Contiene la información contextual y experimental del proyecto de referencia em
 
 **Anexo 3. Estadísticas básicas antes del proceso de limpieza**
 
-Resume las métricas de calidad obtenidas en las lecturas crudas de las 88 muestras del proyecto PRJNA1020132, previas al filtrado, como número total de lecturas, longitud promedio, contenido GC, N50 y Q-scores. Permite evaluar la calidad inicial de las secuencias obtenidas mediante tecnología *Oxford Nanopore Technologies*.
+Resume las métricas de calidad obtenidas en las lecturas crudas de las 89 muestras del proyecto PRJNA1020132, previas al filtrado, como número total de lecturas, longitud promedio, contenido GC, N50 y Q-scores. Permite evaluar la calidad inicial de las secuencias obtenidas mediante tecnología *Oxford Nanopore Technologies*.
 
 **Anexo 4. Estadísticas básicas después del proceso de limpieza**
 
@@ -75,7 +75,7 @@ Compara la abundancia relativa media de los 344 géneros presentes en ambos aná
 
 **Anexo 9. Diferencia de abundancias relativas por especie**
 
-Presenta la misma comparación del Anexo 8 a nivel de especie, para las 853 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
+Presenta la misma comparación del Anexo 8 a nivel de especie, para las 854 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
 
 **Anexo 10. Diversidad microbiana del proyecto PRJNA1020132**
 
@@ -83,7 +83,7 @@ Reúne el análisis de diversidad del conjunto de referencia procesado con el pi
 
 **Anexo 11. Comparación paso a paso con el artículo guía**
 
-Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 87 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis, la correlación de Pearson y las especies compartidas entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra, de medias por tipo de muestra y de PERMANOVA.
+Compara, muestra por muestra, los resultados del pipeline propio con los de Erlandson et al. (2024) para las 88 muestras del proyecto PRJNA1020132 con datos en ambos análisis. Contrasta las bases de los archivos descargados con las del BioProject; las lecturas antes y después de la limpieza y las asignadas por EMU con las lecturas asignadas en el artículo; la disimilitud de Bray-Curtis, la correlación de Pearson y las especies compartidas entre los perfiles de una misma muestra en ambos análisis; los índices de Shannon y la riqueza observada; la prueba de Mantel entre las matrices de distancia, y la PERMANOVA por tipo de muestra y semana con el mismo método del artículo. Como el artículo no publicó estadísticas por etapa para 2020, las lecturas de cada paso se comparan con las que asignó EMU en el artículo. Incluye la figura con los ocho pasos de la comparación y las tablas de resumen, por muestra, de medias por tipo de muestra y de PERMANOVA.
 
 **Anexo 12. Genomas bacterianos descargados para el Objetivo 2**
 
