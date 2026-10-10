@@ -196,7 +196,7 @@ def analizar(args, m, U, A):
     return res
 
 
-def figura(m, res, salida: Path):
+def figura(m, res, salida: Path, carpeta_paneles: Path = None):
     # 2 columnas x 4 filas al ancho útil de una hoja carta (16,5 cm), para que en el documento
     # no haya que reducirla; el título y las explicaciones van en la leyenda de la figura
     plt.rcParams.update({"font.size": 7, "axes.titlesize": 8, "axes.labelsize": 7,
@@ -222,17 +222,14 @@ def figura(m, res, salida: Path):
     def titulo(ax, texto):
         ax.set_title(texto, loc="left", fontweight="bold", pad=4)
 
-    fig, axs = plt.subplots(4, 2, figsize=(6.5, 7.6))
-    axs = axs.ravel()
+    def panel_datos(ax, t):
+        puntos(ax, m.Bases / 1e6, m.bases_iniciales / 1e6)
+        diagonal(ax, 15, 65)
+        ax.set_xlabel("Bases según el BioProject (Mb)"); ax.set_ylabel("Bases descargadas (Mb)")
+        titulo(ax, t)
+        nota(ax, f"{int((m.Bases == m.bases_iniciales).sum())} de {len(m)} muestras idénticas")
 
-    ax = axs[0]
-    puntos(ax, m.Bases / 1e6, m.bases_iniciales / 1e6)
-    diagonal(ax, 15, 65)
-    ax.set_xlabel("Bases según el BioProject (Mb)"); ax.set_ylabel("Bases descargadas (Mb)")
-    titulo(ax, "A. Datos iniciales")
-    nota(ax, f"{int((m.Bases == m.bases_iniciales).sum())} de {len(m)} muestras idénticas")
-
-    # B, C y D contra las lecturas asignadas por EMU del artículo, que es lo único por muestra que publicaron
+    # pre, post y EMU contra las lecturas asignadas por EMU del artículo, que es lo único por muestra que publicaron
     def etapa(ax, col, texto_titulo, ylab, extra, misma_etapa):
         x, y = m.emu_art / 1e3, m[col] / 1e3
         puntos(ax, x, y)
@@ -252,73 +249,104 @@ def figura(m, res, salida: Path):
              "abajo_der" if k > 1 else "arriba_izq")
 
     ret = m.lect_limpias / m.lect_iniciales
-    etapa(axs[1], "lect_iniciales", "B. Pre-limpieza", "Lecturas iniciales (miles)", "", False)
-    etapa(axs[2], "lect_limpias", "C. Post-limpieza", "Lecturas limpias (miles)",
-          f"retención: {100 * ret.mean():.0f} % ({100 * ret.min():.0f}–{100 * ret.max():.0f} %)", False)
-    etapa(axs[3], "emu_yo", "D. Lecturas asignadas por EMU", "Lecturas asignadas (miles)",
-          f"asignadas/iniciales: {100 * (m.emu_yo / m.lect_iniciales).mean():.0f} %\n"
-          f"(artículo: {100 * (m.emu_art / m.lect_iniciales).mean():.0f} %)", True)
 
-    ax = axs[4]
-    bins = np.linspace(0, 1, 41)
-    ax.hist(res["bc_distintas"], bins=bins, density=True, color=GRIS, alpha=0.55, label="Muestras distintas", ec="white", lw=0.3)
-    ax.hist(res["bc_misma"], bins=bins, density=True, color=YO, alpha=0.9, label="Misma muestra", ec="white", lw=0.3)
-    ax.set_xlabel("Disimilitud de Bray-Curtis (especie)"); ax.set_ylabel("Densidad")
-    titulo(ax, "E. Composición")
-    ax.legend(frameon=False, loc="center right", bbox_to_anchor=(1, 0.3), fontsize=6.5, handlelength=1.2)
-    pct = 100 * res["compartidas"] / (res["compartidas"] + res["solo_yo"] + res["solo_art"])
-    # la nota va arriba a la derecha, donde las barras son bajas (todo son medianas por muestra)
-    nota(ax, f"Bray-Curtis misma muestra: {np.median(res['bc_misma']):.2f}\n"
-             f"Bray-Curtis muestras distintas: {np.median(res['bc_distintas']):.2f}\n"
-             f"Pearson misma muestra: r = {np.median(res['pearson_misma']):.3f}\n"
-             f"especies compartidas: {np.median(res['compartidas']):.0f} ({np.median(pct):.0f} %)\n"
-             f"lecturas en ellas: {100 * np.median(res['ab_yo']):.0f} % / {100 * np.median(res['ab_art']):.0f} %",
-         "arriba_der")
+    def panel_pre(ax, t):
+        etapa(ax, "lect_iniciales", t, "Lecturas iniciales (miles)", "", False)
 
-    ax = axs[5]
-    puntos(ax, res["sh_art"], res["sh_yo"])
-    lo = min(res["sh_art"].min(), res["sh_yo"].min()) - 0.1
-    hi = max(res["sh_art"].max(), res["sh_yo"].max()) + 0.1
-    diagonal(ax, lo, hi)
-    ax.set_xlabel("Shannon, artículo"); ax.set_ylabel("Shannon, este trabajo")
-    titulo(ax, "F. Diversidad alfa")
-    nota(ax, f"Shannon: r = {pearsonr(res['sh_art'], res['sh_yo'])[0]:.3f}\n"
-             f"riqueza observada: r = {pearsonr(res['obs_art'], res['obs_yo'])[0]:.3f}")
+    def panel_post(ax, t):
+        etapa(ax, "lect_limpias", t, "Lecturas limpias (miles)",
+              f"retención: {100 * ret.mean():.0f} % ({100 * ret.min():.0f}–{100 * ret.max():.0f} %)", False)
 
-    ax = axs[6]
-    da, du = res["ait_art"].condensed_form(), res["ait_yo"].condensed_form()
-    ax.hexbin(da, du, gridsize=35, cmap="Blues", mincnt=1, linewidths=0)
-    diagonal(ax, min(da.min(), du.min()), max(da.max(), du.max()))
-    ax.set_xlabel("Aitchison, artículo"); ax.set_ylabel("Aitchison, este trabajo")
-    titulo(ax, "G. Diversidad beta (pares de muestras)")
-    r_ait, p_ait, _ = res["mantel_ait"]
-    nota(ax, f"Mantel r = {r_ait:.3f} (p = {p_ait:.3f})\nBray-Curtis: Mantel r = {res['mantel_bc'][0]:.3f}")
+    def panel_emu(ax, t):
+        etapa(ax, "emu_yo", t, "Lecturas asignadas (miles)",
+              f"asignadas/iniciales: {100 * (m.emu_yo / m.lect_iniciales).mean():.0f} %\n"
+              f"(artículo: {100 * (m.emu_art / m.lect_iniciales).mean():.0f} %)", True)
 
-    ax = axs[7]
+    def panel_composicion(ax, t):
+        bins = np.linspace(0, 1, 41)
+        ax.hist(res["bc_distintas"], bins=bins, density=True, color=GRIS, alpha=0.55, label="Muestras distintas", ec="white", lw=0.3)
+        ax.hist(res["bc_misma"], bins=bins, density=True, color=YO, alpha=0.9, label="Misma muestra", ec="white", lw=0.3)
+        ax.set_xlabel("Disimilitud de Bray-Curtis (especie)"); ax.set_ylabel("Densidad")
+        titulo(ax, t)
+        ax.legend(frameon=False, loc="center right", bbox_to_anchor=(1, 0.3), fontsize=6.5, handlelength=1.2)
+        pct = 100 * res["compartidas"] / (res["compartidas"] + res["solo_yo"] + res["solo_art"])
+        # la nota va arriba a la derecha, donde las barras son bajas (todo son medianas por muestra)
+        nota(ax, f"Bray-Curtis misma muestra: {np.median(res['bc_misma']):.2f}\n"
+                 f"Bray-Curtis muestras distintas: {np.median(res['bc_distintas']):.2f}\n"
+                 f"Pearson misma muestra: r = {np.median(res['pearson_misma']):.3f}\n"
+                 f"especies compartidas: {np.median(res['compartidas']):.0f} ({np.median(pct):.0f} %)\n"
+                 f"lecturas en ellas: {100 * np.median(res['ab_yo']):.0f} % / {100 * np.median(res['ab_art']):.0f} %",
+             "arriba_der")
+
+    def panel_alfa(ax, t):
+        puntos(ax, res["sh_art"], res["sh_yo"])
+        lo = min(res["sh_art"].min(), res["sh_yo"].min()) - 0.1
+        hi = max(res["sh_art"].max(), res["sh_yo"].max()) + 0.1
+        diagonal(ax, lo, hi)
+        ax.set_xlabel("Shannon, artículo"); ax.set_ylabel("Shannon, este trabajo")
+        titulo(ax, t)
+        nota(ax, f"Shannon: r = {pearsonr(res['sh_art'], res['sh_yo'])[0]:.3f}\n"
+                 f"riqueza observada: r = {pearsonr(res['obs_art'], res['obs_yo'])[0]:.3f}")
+
+    def panel_beta(ax, t):
+        da, du = res["ait_art"].condensed_form(), res["ait_yo"].condensed_form()
+        ax.hexbin(da, du, gridsize=35, cmap="Blues", mincnt=1, linewidths=0)
+        diagonal(ax, min(da.min(), du.min()), max(da.max(), du.max()))
+        ax.set_xlabel("Aitchison, artículo"); ax.set_ylabel("Aitchison, este trabajo")
+        titulo(ax, t)
+        r_ait, p_ait, _ = res["mantel_ait"]
+        nota(ax, f"Mantel r = {r_ait:.3f} (p = {p_ait:.3f})\nBray-Curtis: Mantel r = {res['mantel_bc'][0]:.3f}")
+
     P = res["permanova"].copy()
-    P["etiqueta"] = P.Tipo.map({"bulk": "Suelo", "bag": "Bolsa"}) + " s" + P.Semana.astype(str)
-    yy = np.arange(len(P))[::-1]
-    for i, (_, r) in enumerate(P.iterrows()):
-        ax.plot([r.R2_publicado, r.R2_este_trabajo], [yy[i]] * 2, color="#d4d3cd", lw=1, zorder=1)
-    for col, c, mk in (("publicado", ART, "o"), ("este_trabajo", YO, "D")):
-        sig = (P[f"p_{col}"] < 0.05).values
-        ax.scatter(P[f"R2_{col}"][~sig], yy[~sig], s=16, facecolor="white", edgecolor=c, lw=1, marker=mk, zorder=3)
-        ax.scatter(P[f"R2_{col}"][sig], yy[sig], s=16, color=c, marker=mk, zorder=3)
-    ax.set_yticks(yy); ax.set_yticklabels(P.etiqueta, fontsize=6); ax.grid(axis="y", visible=False)
-    ax.set_ylim(-0.7, len(P) - 0.3)
-    ax.set_xlabel("R² del sistema de rotación (PERMANOVA)")
-    titulo(ax, "H. Efecto de la rotación")
     iguales = ((P.p_publicado < 0.05) == (P.p_este_trabajo < 0.05)).sum()
-    nota(ax, f"misma conclusión en\n{iguales} de {len(P)} subconjuntos", "arriba_der")
-    leyenda = [Line2D([], [], marker="o", ls="", color=ART, markersize=4, label="Publicado"),
-               Line2D([], [], marker="D", ls="", color=YO, markersize=4, label="Este trabajo"),
-               Line2D([], [], marker="o", ls="", mfc="white", mec=TINTA2, markersize=4, label="vacío: p ≥ 0.05")]
-    ax.legend(handles=leyenda, frameon=False, fontsize=6, loc="upper center", bbox_to_anchor=(0.42, -0.3),
-              ncol=3, handletextpad=0.3, columnspacing=0.8)
 
+    def panel_permanova(ax, t):
+        P["etiqueta"] = P.Tipo.map({"bulk": "Suelo", "bag": "Bolsa"}) + " s" + P.Semana.astype(str)
+        yy = np.arange(len(P))[::-1]
+        for i, (_, r) in enumerate(P.iterrows()):
+            ax.plot([r.R2_publicado, r.R2_este_trabajo], [yy[i]] * 2, color="#d4d3cd", lw=1, zorder=1)
+        for col, c, mk in (("publicado", ART, "o"), ("este_trabajo", YO, "D")):
+            sig = (P[f"p_{col}"] < 0.05).values
+            ax.scatter(P[f"R2_{col}"][~sig], yy[~sig], s=16, facecolor="white", edgecolor=c, lw=1, marker=mk, zorder=3)
+            ax.scatter(P[f"R2_{col}"][sig], yy[sig], s=16, color=c, marker=mk, zorder=3)
+        ax.set_yticks(yy); ax.set_yticklabels(P.etiqueta, fontsize=6); ax.grid(axis="y", visible=False)
+        ax.set_ylim(-0.7, len(P) - 0.3)
+        ax.set_xlabel("R² del sistema de rotación (PERMANOVA)")
+        titulo(ax, t)
+        nota(ax, f"misma conclusión en\n{iguales} de {len(P)} subconjuntos", "arriba_der")
+        leyenda = [Line2D([], [], marker="o", ls="", color=ART, markersize=4, label="Publicado"),
+                   Line2D([], [], marker="D", ls="", color=YO, markersize=4, label="Este trabajo"),
+                   Line2D([], [], marker="o", ls="", mfc="white", mec=TINTA2, markersize=4, label="vacío: p ≥ 0.05")]
+        ax.legend(handles=leyenda, frameon=False, fontsize=6, loc="upper center", bbox_to_anchor=(0.42, -0.3),
+                  ncol=3, handletextpad=0.3, columnspacing=0.8)
+
+    paneles = [(panel_datos, "Datos iniciales"), (panel_pre, "Pre-limpieza"), (panel_post, "Post-limpieza"),
+               (panel_emu, "Lecturas asignadas por EMU"), (panel_composicion, "Composición"),
+               (panel_alfa, "Diversidad alfa"), (panel_beta, "Diversidad beta (pares de muestras)"),
+               (panel_permanova, "Efecto de la rotación")]
+
+    fig, axs = plt.subplots(4, 2, figsize=(6.5, 7.6))
+    for ax, letra, (dibujar, t) in zip(axs.ravel(), "ABCDEFGH", paneles):
+        dibujar(ax, f"{letra}. {t}")
     fig.tight_layout(h_pad=1.0, w_pad=1.5)
     fig.savefig(salida, dpi=300)
     plt.close(fig)
+
+    # en la tesis los paneles van por separado: A, B+C (como A y B), D, E, F, G y H
+    if carpeta_paneles:
+        carpeta_paneles.mkdir(parents=True, exist_ok=True)
+        grupos = [("A_datos_iniciales", [0]), ("BC_pre_y_post_limpieza", [1, 2]), ("D_lecturas_EMU", [3]),
+                  ("E_composicion", [4]), ("F_diversidad_alfa", [5]), ("G_diversidad_beta", [6]),
+                  ("H_permanova", [7])]
+        for nombre, idx in grupos:
+            fig, axs = plt.subplots(1, len(idx), figsize=(3.4 * len(idx), 2.8), squeeze=False)
+            for j, (ax, i) in enumerate(zip(axs[0], idx)):
+                dibujar, t = paneles[i]
+                # un panel solo va sin letra; si son dos, se rotulan A y B
+                dibujar(ax, f"{'AB'[j]}. {t}" if len(idx) > 1 else t)
+            fig.tight_layout(w_pad=1.5)
+            fig.savefig(carpeta_paneles / f"panel_{nombre}.png", dpi=300, bbox_inches="tight", pad_inches=0.04)
+            plt.close(fig)
     return iguales
 
 
@@ -414,7 +442,7 @@ def main():
     m, U, A = cargar_datos(args)
     print(f"[OK] Muestras con datos en los dos análisis: {len(m)}")
     res = analizar(args, m, U, A)
-    iguales = figura(m, res, args.outdir / "comparacion_articulo_pasos.png")
+    iguales = figura(m, res, args.outdir / "comparacion_articulo_pasos.png", args.outdir / "paneles")
     resumen = tablas(m, res, iguales, args.outdir / "comparacion_articulo_pasos.xlsx")
     print(resumen.to_string(index=False))
     print(f"\n[OK] Resultados en: {args.outdir}")
