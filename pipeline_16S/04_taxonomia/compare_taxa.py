@@ -448,23 +448,28 @@ def _nombre_cursiva(nombre: str) -> str:
 def plot_scatter_paneles(medias: Dict[str, pd.DataFrame], rs: Dict[str, float], outdir: Path,
                          pseudocount: float = 1e-6):
     ranks = list(medias)
-    # paneles en columna (A arriba, C abajo)
-    fig = make_subplots(rows=len(ranks), cols=1, vertical_spacing=0.07,
+    # A y B en la primera fila, C centrado en la segunda (cada panel ocupa dos de cuatro columnas)
+    pos = [(1, 1), (1, 3), (2, 2)][:len(ranks)]
+    specs = [[None] * 4 for _ in range(2)]
+    for f, c in pos:
+        specs[f - 1][c - 1] = {"colspan": 2}
+    fig = make_subplots(rows=2, cols=4, specs=specs, horizontal_spacing=0.11, vertical_spacing=0.13,
                         subplot_titles=[RANK_ES[r] for r in ranks])
     for i, rank in enumerate(ranks, start=1):
+        fila, col = pos[i - 1]
         mm = medias[rank]
         x = (mm["mine_mean"].clip(lower=0) + pseudocount) * 100
         y = (mm["art_mean"].clip(lower=0) + pseudocount) * 100
         fig.add_trace(go.Scatter(x=x, y=y, mode="markers", text=mm.index, showlegend=False,
                                  marker=dict(size=9, color=COLORES[ETQ_MIO], opacity=0.7,
-                                             line=dict(width=0.5, color="white"))), row=i, col=1)
+                                             line=dict(width=0.5, color="white"))), row=fila, col=col)
         minv, maxv = float(min(x.min(), y.min())), float(max(x.max(), y.max()))
         fig.add_trace(go.Scatter(x=[minv, maxv], y=[minv, maxv], mode="lines", showlegend=(i == 1),
                                  name="Concordancia perfecta (y = x)",
-                                 line=dict(dash="dash", color="gray", width=2.5)), row=i, col=1)
-        fig.update_xaxes(type="log", dtick=1, exponentformat="none", row=i, col=1,
+                                 line=dict(dash="dash", color="gray", width=2.5)), row=fila, col=col)
+        fig.update_xaxes(type="log", dtick=1, exponentformat="none", row=fila, col=col,
                          title_text=f"{ETQ_MIO} (%)")
-        fig.update_yaxes(type="log", dtick=1, exponentformat="none", row=i, col=1,
+        fig.update_yaxes(type="log", dtick=1, exponentformat="none", row=fila, col=col,
                          title_text=f"{ETQ_ART} (%)")
         fig.add_annotation(xref=f"x{'' if i == 1 else i} domain", yref=f"y{'' if i == 1 else i} domain",
                            x=0.97, y=0.03, xanchor="right", yanchor="bottom", showarrow=False,
@@ -475,10 +480,10 @@ def plot_scatter_paneles(medias: Dict[str, pd.DataFrame], rs: Dict[str, float], 
     _ejes_claros(fig)
     fig.update_xaxes(tickfont=dict(size=24), title_font=dict(size=26))
     fig.update_yaxes(tickfont=dict(size=24), title_font=dict(size=26))
-    _letras_paneles(fig, len(ranks), dx=-0.11, dy=0.015)
-    fig.update_layout(template="plotly_white", font=FUENTE, width=900, height=2400,
+    _letras_paneles(fig, len(ranks), dx=-0.06, dy=0.025)
+    fig.update_layout(template="plotly_white", font=FUENTE, width=1700, height=1650,
                       margin=dict(l=150, r=30, t=90, b=170),
-                      legend=dict(orientation="h", yanchor="top", y=-0.06, xanchor="center", x=0.5,
+                      legend=dict(orientation="h", yanchor="top", y=-0.08, xanchor="center", x=0.5,
                                   font=dict(size=24)))
     nombre = "compare_scatter_familia_genero_especie"
     fig.write_html(str(outdir / f"{nombre}.html"))
