@@ -67,15 +67,15 @@ Contiene las abundancias relativas por especie reportadas por Erlandson et al. (
 
 **Anexo 7. Diferencia de abundancias relativas por familia**
 
-Compara la abundancia relativa media de las 125 familias presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la correlación de Pearson entre ambas series. Incluye las abundancias por familia de cada muestra, tanto propias como del artículo.
+Compara la abundancia relativa media de las 125 familias presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la correlación de Pearson entre ambas series. Incluye las abundancias por familia de cada muestra, tanto propias como del artículo. Contiene además las dos figuras de la comparación para los tres niveles taxonómicos (A, familia; B, género; C, especie): la dispersión de las abundancias medias de este estudio frente a las del artículo y las barras pareadas de los 10 taxones más abundantes en cada nivel.
 
 **Anexo 8. Diferencia de abundancias relativas por género**
 
-Compara la abundancia relativa media de los 328 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio.
+Compara la abundancia relativa media de los 328 géneros presentes en ambos análisis, obtenida con el pipeline propio y reportada en el artículo, junto con la diferencia entre ellas. Incluye la correlación de Pearson entre ambas series y las abundancias por género de cada muestra procesada en este estudio. Sus figuras están en el Anexo 7.
 
 **Anexo 9. Diferencia de abundancias relativas por especie**
 
-Presenta la misma comparación del Anexo 8 a nivel de especie, para las 788 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra.
+Presenta la misma comparación del Anexo 8 a nivel de especie, para las 788 especies detectadas tanto en este estudio como en el artículo de referencia. Incluye la correlación de Pearson y las abundancias por especie de cada muestra. Sus figuras están en el Anexo 7.
 
 **Anexo 10. Diversidad microbiana del proyecto PRJNA1020132**
 
