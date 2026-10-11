@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 _HAS_KALEIDO = False
 try:
@@ -416,6 +417,112 @@ def plot_top_bars(mine: pd.DataFrame, art: pd.DataFrame, outdir: Path, rank: str
     _save_fig(fig, outdir / f"compare_{rank}_top{topn}_bars.html", outdir / f"compare_{rank}_top{topn}_bars.png")
 
 
+# figuras con los tres rangos juntos (paneles A, B, C) para los anexos
+LETRAS = "ABC"
+FUENTE = dict(family="Arial", size=22, color="black")
+
+def _ejes_claros(fig: go.Figure):
+    fig.update_xaxes(showline=True, linewidth=1.5, linecolor="black", mirror=True, ticks="outside",
+                     tickfont=dict(size=20), title_font=dict(size=22))
+    fig.update_yaxes(showline=True, linewidth=1.5, linecolor="black", mirror=True, ticks="outside",
+                     tickfont=dict(size=20), title_font=dict(size=22))
+
+def _letras_paneles(fig: go.Figure, n: int, dx: float = -0.04, dy: float = 0.03):
+    for i in range(n):
+        ax = fig.layout[f"xaxis{'' if i == 0 else i + 1}"]
+        ay = fig.layout[f"yaxis{'' if i == 0 else i + 1}"]
+        fig.add_annotation(xref="paper", yref="paper", x=ax.domain[0] + dx, y=ay.domain[1] + dy,
+                           text=f"<b>{LETRAS[i]}</b>", showarrow=False, font=dict(size=34, color="black"),
+                           xanchor="right", yanchor="bottom")
+
+# cursiva para el nombre científico; "Candidatus" y lo que va desde "sp." quedan en redonda
+def _nombre_cursiva(nombre: str) -> str:
+    partes, salida = str(nombre).split(), []
+    for i, w in enumerate(partes):
+        if w in ("sp.", "spp."):
+            salida.append(" ".join(partes[i:]))
+            break
+        salida.append(w if w == "Candidatus" else f"<i>{w}</i>")
+    return " ".join(salida)
+
+def plot_scatter_paneles(medias: Dict[str, pd.DataFrame], rs: Dict[str, float], outdir: Path,
+                         pseudocount: float = 1e-6):
+    ranks = list(medias)
+    fig = make_subplots(rows=1, cols=len(ranks), horizontal_spacing=0.08,
+                        subplot_titles=[RANK_ES[r] for r in ranks])
+    for i, rank in enumerate(ranks, start=1):
+        mm = medias[rank]
+        x = (mm["mine_mean"].clip(lower=0) + pseudocount) * 100
+        y = (mm["art_mean"].clip(lower=0) + pseudocount) * 100
+        fig.add_trace(go.Scatter(x=x, y=y, mode="markers", text=mm.index, showlegend=False,
+                                 marker=dict(size=9, color=COLORES[ETQ_MIO], opacity=0.7,
+                                             line=dict(width=0.5, color="white"))), row=1, col=i)
+        minv, maxv = float(min(x.min(), y.min())), float(max(x.max(), y.max()))
+        fig.add_trace(go.Scatter(x=[minv, maxv], y=[minv, maxv], mode="lines", showlegend=(i == 1),
+                                 name="Concordancia perfecta (y = x)",
+                                 line=dict(dash="dash", color="gray", width=2.5)), row=1, col=i)
+        fig.update_xaxes(type="log", dtick=1, exponentformat="none", row=1, col=i,
+                         title_text=f"{ETQ_MIO} (%)")
+        fig.update_yaxes(type="log", dtick=1, exponentformat="none", row=1, col=i,
+                         title_text=f"{ETQ_ART} (%)" if i == 1 else None)
+        fig.add_annotation(xref=f"x{'' if i == 1 else i} domain", yref=f"y{'' if i == 1 else i} domain",
+                           x=0.97, y=0.03, xanchor="right", yanchor="bottom", showarrow=False,
+                           text=f"r = {rs[rank]:.3f}<br>n = {len(mm)}", align="right",
+                           font=dict(size=26, color="black"), bgcolor="rgba(255,255,255,0.8)")
+    for r in ranks:
+        fig.update_annotations(selector=dict(text=RANK_ES[r]), font=dict(size=30, color="black"))
+    _ejes_claros(fig)
+    fig.update_xaxes(tickfont=dict(size=24), title_font=dict(size=26))
+    fig.update_yaxes(tickfont=dict(size=24), title_font=dict(size=26))
+    _letras_paneles(fig, len(ranks), dx=-0.045, dy=0.05)
+    fig.update_layout(template="plotly_white", font=FUENTE, width=1800, height=720,
+                      margin=dict(l=120, r=25, t=110, b=160),
+                      legend=dict(orientation="h", yanchor="top", y=-0.24, xanchor="center", x=0.5,
+                                  font=dict(size=24)))
+    nombre = "compare_scatter_familia_genero_especie"
+    fig.write_html(str(outdir / f"{nombre}.html"))
+    if _HAS_KALEIDO:
+        fig.write_image(str(outdir / f"{nombre}.png"), scale=2)
+
+def plot_barras_paneles(datos: Dict[str, Tuple[pd.DataFrame, pd.DataFrame]], outdir: Path, topn: int = 10):
+    ranks = list(datos)
+    fig = make_subplots(rows=len(ranks), cols=1, vertical_spacing=0.07,
+                        subplot_titles=[RANK_ES[r] for r in ranks])
+    for i, rank in enumerate(ranks, start=1):
+        mine, art = datos[rank]
+        mmean, amean = mine.mean(axis=1), art.mean(axis=1)
+        taxa_union = mmean.index.union(amean.index)
+        comb = pd.DataFrame({ETQ_MIO: mmean.reindex(taxa_union).fillna(0.0),
+                             ETQ_ART: amean.reindex(taxa_union).fillna(0.0)}) * 100
+        top = comb.loc[comb.sum(axis=1).sort_values(ascending=False).index[:topn]]
+        # de mayor a menor, de arriba hacia abajo
+        top = top.iloc[::-1]
+        etiquetas = [_nombre_cursiva(t) for t in top.index]
+        # en barras horizontales agrupadas la primera traza queda abajo
+        for conj in (ETQ_ART, ETQ_MIO):
+            fig.add_trace(go.Bar(y=etiquetas, x=top[conj], orientation="h", name=conj,
+                                 marker_color=COLORES[conj], showlegend=(i == 1),
+                                 text=[f"{v:.2f}" for v in top[conj]], textposition="outside",
+                                 textfont=dict(size=18, color="black"), cliponaxis=False),
+                          row=i, col=1)
+        fig.update_xaxes(range=[0, top.values.max() * 1.15], row=i, col=1,
+                         title_text="Abundancia relativa media (%)" if i == len(ranks) else None)
+    for r in ranks:
+        fig.update_annotations(selector=dict(text=RANK_ES[r]), font=dict(size=26, color="black"))
+    _ejes_claros(fig)
+    fig.update_yaxes(tickfont=dict(size=21), ticks="")
+    _letras_paneles(fig, len(ranks), dx=-0.005, dy=0.012)
+    fig.update_layout(template="plotly_white", font=FUENTE, barmode="group", bargap=0.25,
+                      bargroupgap=0.05, width=1500, height=2300,
+                      margin=dict(l=40, r=40, t=90, b=110),
+                      legend=dict(orientation="h", yanchor="bottom", y=1.025, xanchor="right", x=1,
+                                  traceorder="reversed", font=dict(size=22)))
+    nombre = f"compare_top{topn}_barras_familia_genero_especie"
+    fig.write_html(str(outdir / f"{nombre}.html"))
+    if _HAS_KALEIDO:
+        fig.write_image(str(outdir / f"{nombre}.png"), scale=2)
+
+
 def build_parser():
     p = argparse.ArgumentParser(
         description="Compara composiciones taxonómicas (tus resultados vs. artículo) a un rango dado."
@@ -442,7 +549,7 @@ def build_parser():
                    help="Uno o varios niveles taxonómicos (p. ej. family genus species).")
     p.add_argument("--outdir", type=Path, default=None,
                    help="Carpeta de salida. Por defecto <my-results-dir>/compare_taxa o ./compare_taxa.")
-    p.add_argument("--topn", type=int, default=20, help="Top N taxones para barras lado a lado.")
+    p.add_argument("--topn", type=int, default=10, help="Top N taxones para barras lado a lado.")
     return p
 
 def main():
@@ -454,6 +561,7 @@ def main():
     outdir = _ensure_dir(args.outdir.resolve())
 
     resumen = {}
+    medias, datos = {}, {}
     for rank in args.rank:
         eprint(f"\n===== Rango: {rank} =====")
         mine = load_my(
@@ -489,6 +597,7 @@ def main():
         corrs_df.to_csv(outdir / f"compare_{rank}_correlations.tsv", sep="\t", index=False)
         r = float(corrs_df.set_index("metric").loc["pearson_r", "value"])
         resumen[RANK_ES[rank]] = r
+        medias[rank], datos[rank] = means_df, (mine, art)
         eprint(f"[OK] Pearson r ({rank}) = {r:.4f}")
 
         try:
@@ -499,6 +608,14 @@ def main():
             plot_top_bars(mine, art, outdir, rank, topn=args.topn)
         except Exception as e:
             eprint(f"[WARN] No se pudo generar barras top: {e}")
+
+    if len(args.rank) > 1:
+        rs = {k: resumen[RANK_ES[k]] for k in medias}
+        try:
+            plot_scatter_paneles(medias, rs, outdir)
+            plot_barras_paneles(datos, outdir, topn=args.topn)
+        except Exception as e:
+            eprint(f"[WARN] No se pudieron generar las figuras combinadas: {e}")
 
     # tabla de Pearson con una columna por rango
     tabla = pd.DataFrame([resumen], index=["Pearson"])
