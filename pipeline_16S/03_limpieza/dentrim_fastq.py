@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # Limpieza de los FASTQ del repositorio (Objetivo 1), igual que en el artículo:
-# primero pychopper (orienta y recorta entre primers) y luego filtlong (calidad y 1000-1700 pb).
 # Deja solo <muestra>_clean.fastq por muestra y dentrim_summary.csv en la carpeta de salida.
 
 import argparse, csv, glob, gzip, os, shlex, shutil, subprocess, sys
